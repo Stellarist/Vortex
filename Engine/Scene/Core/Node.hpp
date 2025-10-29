@@ -11,6 +11,12 @@
 class Scene;
 class World;
 
+template <typename T>
+concept IsComponent = std::is_base_of<Component, T>::value;
+
+template <typename T>
+concept IsBehaviour = std::is_base_of<Behaviour, T>::value;
+
 class Node : public Entity {
 private:
 	size_t      id;
@@ -18,7 +24,7 @@ private:
 	Node*       parent{};
 	Transform   transform;
 
-	Scene* scene;
+	Scene* scene{};
 	World* world{};
 
 	std::vector<Node*> children;
@@ -53,16 +59,16 @@ public:
 
 	World* getWorld() const;
 
-	template <typename T>
+	template <IsComponent T>
 	T&         getComponent() const;
 	Component& getComponent(std::type_index type) const;
 	void       setComponent(Component& component);
 
-	template <typename T>
+	template <IsComponent T>
 	bool hasComponent() const;
 	bool hasComponent(std::type_index type) const;
 
-	template <typename T>
+	template <IsBehaviour T>
 	T*   getBehaviour() const;
 	void addBehaviour(Behaviour& behaviour);
 	void removeBehaviour(Behaviour& behaviour);
@@ -73,27 +79,21 @@ public:
 	void                      addChild(Node& child);
 };
 
-template <typename T>
+template <IsComponent T>
 T& Node::getComponent() const
 {
-	static_assert(std::is_base_of<Component, T>::value, "T must be a Component type");
-
 	return dynamic_cast<T&>(getComponent(typeid(T)));
 }
 
-template <typename T>
+template <IsComponent T>
 inline bool Node::hasComponent() const
 {
-	static_assert(std::is_base_of<Component, T>::value, "T must be a Component type");
-
 	return hasComponent(typeid(T));
 }
 
-template <typename T>
+template <IsBehaviour T>
 T* Node::getBehaviour() const
 {
-	static_assert(std::is_base_of<Behaviour, T>::value, "T must be a Behaviour type");
-
 	for (auto* behaviour : behaviours)
 		if (dynamic_cast<T*>(behaviour))
 			return dynamic_cast<T&>(*behaviour);
