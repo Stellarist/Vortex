@@ -70,7 +70,7 @@ std::unique_ptr<Scene> AssetImporter::loadScene(std::string_view file_path)
 	std::vector<std::unique_ptr<Node>> nodes;
 	for (size_t index = 0; index < model.nodes.size(); index++) {
 		auto tfnode = model.nodes[index];
-		auto node = parseNode(tfnode, index);
+		auto node = parseNode(tfnode, index + 1);
 
 		if (tfnode.mesh >= 0) {
 			auto meshes = scene->getComponents<Mesh>();
@@ -106,7 +106,7 @@ std::unique_ptr<Scene> AssetImporter::loadScene(std::string_view file_path)
 	if (!tfscene)
 		throw std::runtime_error("No default scene found in glTF file.");
 
-	auto root_node = std::make_unique<Node>(-1, tfscene->name);
+	auto root_node = std::make_unique<Node>(0, tfscene->name);
 	for (auto node_index : tfscene->nodes)
 		traverse_nodes.push({std::ref(*root_node), node_index});
 
