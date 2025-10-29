@@ -6,7 +6,7 @@
 
 #include "Component.hpp"
 #include "Behaviour.hpp"
-#include "Transform.hpp"
+#include "Scene/Components/Transform.hpp"
 
 class Scene;
 class World;

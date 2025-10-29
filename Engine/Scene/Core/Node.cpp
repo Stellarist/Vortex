@@ -6,6 +6,7 @@ Node::Node(size_t id, std::string name) :
     id(id), name(std::move(name))
 {
 	transform.setNode(*this);
+	setComponent(transform);
 }
 
 std::type_index Node::getType()

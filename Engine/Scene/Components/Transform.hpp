@@ -3,11 +3,11 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-#include "Scene/Core/Entity.hpp"
+#include "Scene/Core/Component.hpp"
 
 class Node;
 
-class Transform : public Entity {
+class Transform : public Component {
 private:
 	glm::vec3 translation{0.0f, 0.0f, 0.0f};
 	glm::quat rotation{1.0f, 0.0f, 0.0f, 0.0f};
