@@ -1,0 +1,36 @@
+#pragma once
+
+#include <string>
+#include <typeindex>
+
+#include "Entity.hpp"
+
+class Node;
+
+class Component : public Entity {
+private:
+	std::string name;
+
+protected:
+	Node* node{};
+
+public:
+	Component() = default;
+	Component(std::string name);
+
+	Component(const Component&) = default;
+	Component& operator=(Component&) = default;
+
+	Component(Component&&) noexcept = default;
+	Component& operator=(Component&&) noexcept = default;
+
+	~Component() override = default;
+
+	std::type_index getType() override = 0;
+
+	auto getName() const -> const std::string&;
+	void setName(const std::string& name);
+
+	Node* getNode() const;
+	void  setNode(Node& node);
+};
