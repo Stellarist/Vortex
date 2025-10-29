@@ -34,7 +34,7 @@ void Application::run()
 	while (!window->shouldClose()) {
 		elapseTime();
 
-		tickGui();
+		tickGui(delta_time);
 		tickLogic(delta_time);
 		tickRender(delta_time);
 	}
@@ -49,7 +49,7 @@ void Application::elapseTime()
 	last_time = current_time;
 }
 
-void Application::tickGui()
+void Application::tickGui(float dt)
 {
 	window->pollEvent();
 

@@ -1,5 +1,7 @@
 #include "Component.hpp"
 
+#include "Scene/Core/Node.hpp"
+
 Component::Component(std::string name) :
     name(std::move(name))
 {}
@@ -22,4 +24,20 @@ void Component::setNode(Node& node)
 Node* Component::getNode() const
 {
 	return node;
+}
+
+World* Component::getWorld() const
+{
+	if (node)
+		return node->getWorld();
+
+	return nullptr;
+}
+
+Scene* Component::getScene() const
+{
+	if (node)
+		return node->getScene();
+
+	return nullptr;
 }

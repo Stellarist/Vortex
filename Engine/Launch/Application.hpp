@@ -24,7 +24,7 @@ public:
 	void run();
 	void elapseTime();
 
-	void tickGui();
+	void tickGui(float dt);
 	void tickLogic(float dt);
 	void tickRender(float dt);
 

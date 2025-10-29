@@ -1,5 +1,7 @@
 #include "Behaviour.hpp"
 
+#include "Scene/Core/Node.hpp"
+
 Behaviour::Behaviour(std::string name) :
     name(std::move(name))
 {}
@@ -48,4 +50,20 @@ bool Behaviour::isEnabled() const
 void Behaviour::setEnabled(bool enabled)
 {
 	this->enabled = enabled;
+}
+
+World* Behaviour::getWorld() const
+{
+	if (node)
+		return node->getWorld();
+
+	return nullptr;
+}
+
+Scene* Behaviour::getScene() const
+{
+	if (node)
+		return node->getScene();
+
+	return nullptr;
 }

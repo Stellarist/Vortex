@@ -6,6 +6,8 @@
 #include "Entity.hpp"
 
 class Node;
+class World;
+class Scene;
 
 class Component : public Entity {
 private:
@@ -26,4 +28,7 @@ public:
 
 	Node* getNode() const;
 	void  setNode(Node& node);
+
+	World* getWorld() const;
+	Scene* getScene() const;
 };

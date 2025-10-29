@@ -5,6 +5,8 @@
 #include "Entity.hpp"
 
 class Node;
+class World;
+class Scene;
 
 class Behaviour : public Entity {
 private:
@@ -37,4 +39,7 @@ public:
 
 	bool isEnabled() const;
 	void setEnabled(bool enabled);
+
+	World* getWorld() const;
+	Scene* getScene() const;
 };
