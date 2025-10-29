@@ -21,14 +21,7 @@ private:
 
 public:
 	Transform() = default;
-
-	Transform(const Transform&) = default;
-	Transform& operator=(const Transform&) = delete;
-
-	Transform(Transform&&) noexcept = default;
-	Transform& operator=(Transform&&) noexcept = delete;
-
-	virtual ~Transform() = default;
+	~Transform() = default;
 
 	std::type_index getType() override;
 

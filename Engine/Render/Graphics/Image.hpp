@@ -26,14 +26,13 @@ private:
 
 public:
 	Image(Context& context, std::string_view file_path);
+	~Image();
 
 	Image(const Image&) = delete;
 	Image& operator=(const Image&) = delete;
 
 	Image(Image&&) noexcept = default;
 	Image& operator=(Image&&) noexcept = default;
-
-	~Image();
 
 	void readImage(std::string_view file_path);
 	void freeImage();

@@ -12,6 +12,12 @@ CommandPool::CommandPool(Context&                   context,
 	pool = context.getLogicalDevice().createCommandPool(create_info);
 }
 
+CommandPool::~CommandPool()
+{
+	if (context && pool)
+		context->getLogicalDevice().destroyCommandPool(pool);
+}
+
 CommandPool::CommandPool(CommandPool&& other) noexcept :
     pool(std::exchange(other.pool, nullptr)),
     buffers(std::move(other.buffers)),
@@ -30,12 +36,6 @@ CommandPool& CommandPool::operator=(CommandPool&& other) noexcept
 	}
 
 	return *this;
-}
-
-CommandPool::~CommandPool()
-{
-	if (context && pool)
-		context->getLogicalDevice().destroyCommandPool(pool);
 }
 
 vk::CommandBuffer CommandPool::allocate(vk::CommandBufferLevel level)

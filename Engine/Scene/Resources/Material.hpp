@@ -28,12 +28,6 @@ private:
 public:
 	Material(const std::string& name);
 
-	Material(const Material&) = delete;
-	Material& operator=(const Material&) = delete;
-
-	Material(Material&& other) noexcept = default;
-	Material& operator=(Material&& other) noexcept = default;
-
 	~Material() override = default;
 
 	std::type_index getType() override;
@@ -63,13 +57,6 @@ private:
 
 public:
 	PBRMaterial(const std::string& name);
-
-	PBRMaterial(const PBRMaterial&) = delete;
-	PBRMaterial& operator=(const PBRMaterial&) = delete;
-
-	PBRMaterial(PBRMaterial&& other) noexcept = default;
-	PBRMaterial& operator=(PBRMaterial&& other) noexcept = default;
-
 	~PBRMaterial() override = default;
 
 	std::type_index getType() override;

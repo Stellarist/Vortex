@@ -9,6 +9,12 @@ Semaphore::Semaphore(Context& context) :
 	semaphore = context.getLogicalDevice().createSemaphore(create_info);
 }
 
+Semaphore::~Semaphore()
+{
+	if (context && semaphore)
+		context->getLogicalDevice().destroySemaphore(semaphore);
+}
+
 Semaphore::Semaphore(Semaphore&& other) noexcept :
     semaphore(std::exchange(other.semaphore, nullptr)),
     context(std::exchange(other.context, nullptr))
@@ -25,12 +31,6 @@ Semaphore& Semaphore::operator=(Semaphore&& other) noexcept
 	}
 
 	return *this;
-}
-
-Semaphore::~Semaphore()
-{
-	if (context && semaphore)
-		context->getLogicalDevice().destroySemaphore(semaphore);
 }
 
 vk::Semaphore Semaphore::get() const&

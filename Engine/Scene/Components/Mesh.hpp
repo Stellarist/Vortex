@@ -13,13 +13,6 @@ private:
 
 public:
 	Mesh(const std::string& name);
-
-	Mesh(const Mesh&) = delete;
-	Mesh& operator=(const Mesh&) = delete;
-
-	Mesh(Mesh&&) noexcept = default;
-	Mesh& operator=(Mesh&&) noexcept = default;
-
 	~Mesh() override = default;
 
 	std::type_index getType() override;

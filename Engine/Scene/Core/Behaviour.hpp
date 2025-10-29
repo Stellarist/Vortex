@@ -19,13 +19,6 @@ protected:
 public:
 	Behaviour() = default;
 	Behaviour(std::string name);
-
-	Behaviour(const Behaviour&) = default;
-	Behaviour& operator=(Behaviour&) = default;
-
-	Behaviour(Behaviour&&) noexcept = default;
-	Behaviour& operator=(Behaviour&&) noexcept = default;
-
 	~Behaviour() override = default;
 
 	std::type_index getType() override = 0;

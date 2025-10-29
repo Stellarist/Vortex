@@ -28,6 +28,6 @@ public:
 	void newFrame();
 	void drawFrame(vk::CommandBuffer command_buffer);
 
-	bool pollEvnet(const SDL_Event& event);
+	bool pollEvent(const SDL_Event& event);
 	void hook(std::function<void()> callback);
 };

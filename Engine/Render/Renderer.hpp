@@ -50,14 +50,13 @@ class Renderer {
 
 public:
 	Renderer(Window& window);
+	~Renderer();
 
 	Renderer(const Renderer&) = delete;
 	Renderer& operator=(const Renderer&) = delete;
 
 	Renderer(Renderer&&) noexcept = default;
 	Renderer& operator=(Renderer&&) noexcept = default;
-
-	~Renderer();
 
 	void begin();
 	void end();

@@ -14,14 +14,13 @@ private:
 public:
 	World() = default;
 	World(std::unique_ptr<Scene>&& scene);
+	~World() = default;
 
 	World(const World&) = delete;
 	World& operator=(const World&) = delete;
 
 	World(World&&) noexcept = default;
 	World& operator=(World&&) noexcept = default;
-
-	~World() = default;
 
 	void tick(float dt);
 

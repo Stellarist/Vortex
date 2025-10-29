@@ -12,13 +12,6 @@ private:
 
 public:
 	Camera(const std::string& name);
-
-	Camera(const Camera&) = default;
-	Camera& operator=(const Camera&) = delete;
-
-	Camera(Camera&&) noexcept = default;
-	Camera& operator=(Camera&&) noexcept = default;
-
 	~Camera() override = default;
 
 	std::type_index getType() override;
@@ -41,13 +34,6 @@ private:
 public:
 	PerspectiveCamera(const std::string& name);
 	PerspectiveCamera(const std::string& name, float fov, float aspect_ratio, float near_plane, float far_plane);
-
-	PerspectiveCamera(const PerspectiveCamera&) = default;
-	PerspectiveCamera& operator=(const PerspectiveCamera&) = delete;
-
-	PerspectiveCamera(PerspectiveCamera&&) noexcept = default;
-	PerspectiveCamera& operator=(PerspectiveCamera&&) noexcept = default;
-
 	~PerspectiveCamera() override = default;
 
 	std::type_index getType() override;

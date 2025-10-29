@@ -18,13 +18,6 @@ private:
 
 public:
 	CameraController(std::string name = "CameraController");
-
-	CameraController(const CameraController&) = delete;
-	CameraController& operator=(const CameraController&) = delete;
-
-	CameraController(CameraController&&) noexcept = default;
-	CameraController& operator=(CameraController&&) noexcept = default;
-
 	~CameraController() override = default;
 
 	std::type_index getType() override;

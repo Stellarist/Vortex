@@ -101,14 +101,13 @@ public:
 	                 RenderPass&                              render_pass,
 	                 std::span<const vk::DescriptorSetLayout> descriptor_layouts,
 	                 const GraphicsPipelineConfig&            pipeline_config = {});
+	~GraphicsPipeline();
 
 	GraphicsPipeline(const GraphicsPipeline&) = delete;
 	GraphicsPipeline& operator=(const GraphicsPipeline&) = delete;
 
 	GraphicsPipeline(GraphicsPipeline&&) noexcept = default;
 	GraphicsPipeline& operator=(GraphicsPipeline&&) noexcept = default;
-
-	~GraphicsPipeline();
 
 	void create(const GraphicsPipelineConfig& config);
 

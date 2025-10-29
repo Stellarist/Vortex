@@ -2,7 +2,7 @@
 
 #include <chrono>
 
-#include "Scene/Assets/AssetImporter.hpp"
+#include "Subsystem/Asset/AssetImporter.hpp"
 
 Application::Application()
 {
@@ -19,7 +19,7 @@ Application::Application()
 	widget = std::make_unique<Widget>(*window, *renderer);
 
 	window->hook([this]() {
-		widget->pollEvnet(*window->getEvent());
+		widget->pollEvent(*window->getEvent());
 	});
 	renderer->hook([this]() {
 		widget->drawFrame(renderer->getCurrentFrame().getCurrentCommandBuffer());
@@ -51,7 +51,7 @@ void Application::elapseTime()
 
 void Application::tickGui()
 {
-	window->pollEvents();
+	window->pollEvent();
 
 	widget->newFrame();
 }

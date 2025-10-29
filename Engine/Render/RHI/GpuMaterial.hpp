@@ -27,14 +27,13 @@ public:
 	            DescriptorSetLayout&      layout,
 	            DescriptorPool&           pool,
 	            Image*                    default_texture = nullptr);
+	~GpuMaterial() = default;
 
 	GpuMaterial(const GpuMaterial&) = delete;
 	GpuMaterial& operator=(const GpuMaterial&) = delete;
 
 	GpuMaterial(GpuMaterial&&) noexcept = default;
 	GpuMaterial& operator=(GpuMaterial&&) noexcept = default;
-
-	~GpuMaterial() = default;
 
 	void updateUniforms();
 	void bind(vk::CommandBuffer command_buffer, vk::PipelineLayout pipeline_layout);

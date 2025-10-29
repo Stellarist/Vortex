@@ -60,14 +60,13 @@ private:
 public:
 	RenderScene() = default;
 	RenderScene(Context& context, const World& world);
+	~RenderScene() = default;
 
 	RenderScene(const RenderScene&) = delete;
 	RenderScene& operator=(const RenderScene&) = delete;
 
 	RenderScene(RenderScene&&) noexcept = default;
 	RenderScene& operator=(RenderScene&&) noexcept = default;
-
-	~RenderScene() = default;
 
 	void update(float dt);
 	void rebuild();

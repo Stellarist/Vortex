@@ -22,7 +22,7 @@ public:
 	Window(std::string_view title, int width, int height);
 	~Window();
 
-	void pollEvents();
+	void pollEvent();
 	void hook(std::function<void()> callback);
 
 	uint32_t getWidth() const;

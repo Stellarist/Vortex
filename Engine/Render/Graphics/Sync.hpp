@@ -12,14 +12,13 @@ private:
 
 public:
 	Semaphore(Context& context);
+	~Semaphore();
 
 	Semaphore(const Semaphore&) = delete;
 	Semaphore& operator=(const Semaphore&) = delete;
 
 	Semaphore(Semaphore&& other) noexcept;
 	Semaphore& operator=(Semaphore&& other) noexcept;
-
-	~Semaphore();
 
 	vk::Semaphore get() const&;
 	vk::Semaphore get() const&& = delete;

@@ -29,14 +29,13 @@ public:
 	Scene() = default;
 	Scene(std::string name);
 	Scene(int id, const std::string& name);
+	~Scene() override = default;
 
 	Scene(const Scene&) = delete;
 	Scene& operator=(const Scene&) = delete;
 
 	Scene(Scene&&) noexcept = default;
 	Scene& operator=(Scene&&) noexcept = default;
-
-	~Scene() override = default;
 
 	std::type_index getType() override;
 

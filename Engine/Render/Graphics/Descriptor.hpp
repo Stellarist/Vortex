@@ -16,14 +16,13 @@ public:
 	DescriptorSet(
 	    Context&          context,
 	    vk::DescriptorSet set);
+	~DescriptorSet() = default;
 
 	DescriptorSet(const DescriptorSet&) = delete;
 	DescriptorSet& operator=(const DescriptorSet&) = delete;
 
 	DescriptorSet(DescriptorSet&&) noexcept = default;
 	DescriptorSet& operator=(DescriptorSet&&) noexcept = default;
-
-	~DescriptorSet() = default;
 
 	void update(uint32_t binding, vk::DescriptorType type, const Buffer* buffer = {}) const;
 	void update(uint32_t binding, vk::DescriptorType type, const Image* texture = {}) const;
@@ -43,14 +42,13 @@ public:
 	    Context&                                        context,
 	    std::span<const vk::DescriptorSetLayoutBinding> bindings,
 	    vk::DescriptorSetLayoutCreateFlags              flags = {});
+	~DescriptorSetLayout();
 
 	DescriptorSetLayout(const DescriptorSetLayout&) = delete;
 	DescriptorSetLayout& operator=(const DescriptorSetLayout&) = delete;
 
 	DescriptorSetLayout(DescriptorSetLayout&& other) noexcept = default;
 	DescriptorSetLayout& operator=(DescriptorSetLayout&& other) noexcept = default;
-
-	~DescriptorSetLayout();
 
 	vk::DescriptorSetLayout get() const&;
 	vk::DescriptorSetLayout get() const&& = delete;
@@ -70,14 +68,13 @@ public:
 	    uint32_t                                max_sets,
 	    std::span<const vk::DescriptorPoolSize> pool_sizes,
 	    vk::DescriptorPoolCreateFlags           flags = {});
+	~DescriptorPool();
 
 	DescriptorPool(const DescriptorPool&) = delete;
 	DescriptorPool& operator=(const DescriptorPool&) = delete;
 
 	DescriptorPool(DescriptorPool&& other) noexcept = default;
 	DescriptorPool& operator=(DescriptorPool&& other) noexcept = default;
-
-	~DescriptorPool();
 
 	auto allocate(const DescriptorSetLayout& layout) -> size_t;
 	auto allocate(const std::vector<DescriptorSetLayout>& layouts) -> std::pair<size_t, size_t>;

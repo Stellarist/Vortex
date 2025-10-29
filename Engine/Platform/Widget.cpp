@@ -216,7 +216,7 @@ void Widget::drawFrame(vk::CommandBuffer command_buffer)
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer);
 }
 
-bool Widget::pollEvnet(const SDL_Event& event)
+bool Widget::pollEvent(const SDL_Event& event)
 {
 	return ImGui_ImplSDL3_ProcessEvent(&event);
 }

@@ -24,14 +24,13 @@ public:
 	CommandPool(Context&                   context,
 	            uint32_t                   queue_family_index,
 	            vk::CommandPoolCreateFlags flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
+	~CommandPool();
 
 	CommandPool(const CommandPool&) = delete;
 	CommandPool& operator=(const CommandPool&) = delete;
 
 	CommandPool(CommandPool&& other) noexcept;
 	CommandPool& operator=(CommandPool&& other) noexcept;
-
-	~CommandPool();
 
 	vk::CommandBuffer              allocate(vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary);
 	std::vector<vk::CommandBuffer> allocate(uint32_t count, vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary);

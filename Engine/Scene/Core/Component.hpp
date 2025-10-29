@@ -17,13 +17,6 @@ protected:
 public:
 	Component() = default;
 	Component(std::string name);
-
-	Component(const Component&) = default;
-	Component& operator=(Component&) = default;
-
-	Component(Component&&) noexcept = default;
-	Component& operator=(Component&&) noexcept = default;
-
 	~Component() override = default;
 
 	std::type_index getType() override = 0;

@@ -10,13 +10,6 @@ private:
 
 public:
 	Entity();
-
-	Entity(const Entity&) = default;
-	Entity& operator=(Entity&) = default;
-
-	Entity(Entity&&) noexcept = default;
-	Entity& operator=(Entity&&) noexcept = default;
-
 	virtual ~Entity() = default;
 
 	uint64_t getUid() const;

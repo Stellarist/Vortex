@@ -42,14 +42,13 @@ private:
 
 public:
 	Context(Window& window);
+	~Context();
 
 	Context(const Context&) = delete;
 	Context& operator=(const Context&) = delete;
 
 	Context(Context&&) noexcept = default;
 	Context& operator=(Context&&) noexcept = default;
-
-	~Context();
 
 	void execute(std::function<void(vk::CommandBuffer)> func);
 

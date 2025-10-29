@@ -27,14 +27,13 @@ public:
 	        const SubMesh&       submesh,
 	        DescriptorSetLayout& layout,
 	        DescriptorPool&      pool);
+	~GpuMesh() = default;
 
 	GpuMesh(const GpuMesh&) = delete;
 	GpuMesh& operator=(const GpuMesh&) = delete;
 
 	GpuMesh(GpuMesh&&) noexcept = default;
 	GpuMesh& operator=(GpuMesh&&) noexcept = default;
-
-	~GpuMesh() = default;
 
 	void draw(vk::CommandBuffer command_buffer);
 	void bind(vk::CommandBuffer command_buffer, vk::PipelineLayout pipeline_layout);

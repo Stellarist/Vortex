@@ -56,14 +56,13 @@ private:
 
 public:
 	RenderPass(Context& context, SwapChain& swap_chain, const RenderPassConfig& config = {});
+	~RenderPass();
 
 	RenderPass(const RenderPass&) = delete;
 	RenderPass& operator=(const RenderPass&) = delete;
 
 	RenderPass(RenderPass&&) noexcept = default;
 	RenderPass& operator=(RenderPass&&) noexcept = default;
-
-	~RenderPass();
 
 	void begin(vk::CommandBuffer command_buffer, uint32_t framebuffer_index, const vk::Extent2D& extent, const vk::ClearValue& color);
 	void end(vk::CommandBuffer command_buffer);

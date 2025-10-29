@@ -23,7 +23,7 @@ Window::~Window()
 	SDL_Quit();
 }
 
-void Window::pollEvents()
+void Window::pollEvent()
 {
 	while (SDL_PollEvent(&event)) {
 		for (auto& callback : event_callbacks)

@@ -28,13 +28,6 @@ private:
 
 public:
 	SubMesh(const std::string& name = {});
-
-	SubMesh(const SubMesh&) = delete;
-	SubMesh& operator=(const SubMesh&) = delete;
-
-	SubMesh(SubMesh&&) noexcept = default;
-	SubMesh& operator=(SubMesh&&) noexcept = default;
-
 	~SubMesh() override = default;
 
 	std::type_index getType() override;

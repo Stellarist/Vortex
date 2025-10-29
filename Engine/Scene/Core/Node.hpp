@@ -28,14 +28,13 @@ private:
 
 public:
 	Node(size_t id, std::string name);
+	~Node() override = default;
 
 	Node(const Node&) = delete;
 	Node& operator=(Node&) = delete;
 
 	Node(Node&&) noexcept = delete;
 	Node& operator=(Node&&) noexcept = delete;
-
-	~Node() override = default;
 
 	std::type_index getType() override;
 

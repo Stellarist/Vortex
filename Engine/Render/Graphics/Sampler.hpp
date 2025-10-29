@@ -11,14 +11,13 @@ class Sampler {
 
 public:
 	Sampler(Context& context);
+	~Sampler();
 
 	Sampler(const Sampler&) = delete;
 	Sampler& operator=(const Sampler&) = delete;
 
 	Sampler(Sampler&&) noexcept = default;
 	Sampler& operator=(Sampler&&) noexcept = default;
-
-	~Sampler();
 
 	void create();
 

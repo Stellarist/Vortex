@@ -12,13 +12,6 @@ private:
 public:
 	Resource() = default;
 	Resource(std::string name);
-
-	Resource(const Resource&) = default;
-	Resource& operator=(Resource&) = default;
-
-	Resource(Resource&&) noexcept = default;
-	Resource& operator=(Resource&&) noexcept = default;
-
 	virtual ~Resource() = default;
 
 	auto getName() const -> const std::string&;
