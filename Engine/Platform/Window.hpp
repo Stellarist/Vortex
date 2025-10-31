@@ -7,6 +7,8 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
 
+#include "Core/Input/Input.hpp"
+
 class Window {
 private:
 	SDL_Window* window{};
@@ -35,4 +37,20 @@ public:
 
 	SDL_Window* get() const;
 	SDL_Event*  getEvent();
+};
+
+static std::unordered_map<uint8_t, Mouse> mouse_map = {
+    {SDL_BUTTON_LEFT, Mouse::LEFT},
+    {SDL_BUTTON_MIDDLE, Mouse::MIDDLE},
+    {SDL_BUTTON_RIGHT, Mouse::RIGHT},
+};
+
+static std::unordered_map<SDL_Keycode, Key> key_map = {
+    {SDLK_W, Key::W},
+    {SDLK_A, Key::A},
+    {SDLK_S, Key::S},
+    {SDLK_D, Key::D},
+    {SDLK_ESCAPE, Key::ESCAPE},
+    {SDLK_SPACE, Key::SPACE},
+    {SDLK_RETURN, Key::ENTER},
 };

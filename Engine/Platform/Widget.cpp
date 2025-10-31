@@ -99,7 +99,7 @@ void Widget::drawSceneNodes(const Node* root)
 			auto& transform = node->getTransform();
 			auto* pos = const_cast<glm::vec3*>(&transform.getTranslation());
 			auto* rot = const_cast<glm::quat*>(&transform.getRotation());
-			auto* scale = const_cast<glm::vec3*>(&transform.getScale());
+			auto* scale = const_cast<glm::vec3*>(&transform.getScaling());
 
 			if (ImGui::TreeNodeEx("Transform", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth)) {
 				ImGui::DragFloat3("Position", &pos->x, 0.01f);

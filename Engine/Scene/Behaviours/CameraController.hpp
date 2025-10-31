@@ -5,23 +5,41 @@
 #include "Scene/Core/Behaviour.hpp"
 #include "Scene/Components/Camera.hpp"
 
-class CameraController : Behaviour {
+enum class CameraMovement;
+
+class CameraController : public Behaviour {
 private:
-	float move_speed{2.5f};
-	float rotate_speed{0.1f};
+	float move_speed{10.0f};
 	float mouse_sensitivity{0.1f};
+	float scroll_sensitivity{0.01f};
 
-	glm::vec2 last_mouse_pos{0.0f};
-	bool      first_mouse{true};
+	bool enable_move{false};
+	bool enable_rotation{false};
+	bool enable_scroll{false};
+	bool first_mouse{true};
 
-	Camera* camera{nullptr};
+	glm::vec2 last_mouse_pos{};
+	glm::vec2 last_scroll_offset{};
+
+	Camera* camera{};
 
 public:
-	CameraController(std::string name = "CameraController");
+	CameraController(std::string name);
 	~CameraController() override = default;
 
 	std::type_index getType() override;
 
 	void start() override;
 	void update(float dt) override;
+
+	void translate(CameraMovement movement, float dt);
+	void rotate(const glm::vec2& mouse_pos);
+	void scroll(float yoffset);
+};
+
+enum class CameraMovement {
+	FORWARD,
+	BACKWARD,
+	LEFT,
+	RIGHT
 };

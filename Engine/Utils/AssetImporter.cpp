@@ -5,7 +5,6 @@
 #include "AssetImporter.hpp"
 
 #include <queue>
-#include <print>
 #include <stdexcept>
 
 static constexpr std::array attributes_names = {
@@ -23,9 +22,9 @@ std::unique_ptr<Scene> AssetImporter::loadScene(std::string_view file_path)
 	std::string        error, warn;
 	if (!loader.LoadASCIIFromFile(&model, &error, &warn, file_path.data())) {
 		if (!error.empty())
-			std::println("Error: {}", error);
+			throw std::runtime_error("Error: " + error);
 		if (!warn.empty())
-			std::println("Warning: {}", warn);
+			throw std::runtime_error("Warning: " + warn);
 		throw std::runtime_error("Failed to load glTF file.");
 	}
 
@@ -153,6 +152,12 @@ std::unique_ptr<Scene> AssetImporter::loadScene(std::string_view file_path)
 		scene->addResource(std::shared_ptr<Material>(std::move(default_material)));
 	}
 
+	// Add Default Camera Controller
+	auto default_camera = scene->getComponents<Camera>().front();
+	auto camera_controller = createDefaultCameraController();
+	scene->addBehaviour(std::move(camera_controller), *default_camera->getNode());
+
+	// Assign Default Material to SubMeshes without Material
 	for (auto  materials = scene->getResources<Material>();
 	     auto& submesh : scene->getResources<SubMesh>()) {
 		if (!submesh->getMaterial())
@@ -180,8 +185,6 @@ std::unique_ptr<SubMesh> AssetImporter::loadModel(const tinygltf::Model& tfmodel
 	size_t vertex_count = accessor.count;
 	pos = reinterpret_cast<const float*>(&tfmodel.buffers[buffer_view.buffer].data[accessor.byteOffset + buffer_view.byteOffset]);
 
-	// submesh->setVerticesCount(static_cast<uint32_t>(vertex_count));
-
 	if (tfprimitive.attributes.find("NORMAL") != tfprimitive.attributes.end()) {
 		auto& accessor = tfmodel.accessors[tfprimitive.attributes.find("NORMAL")->second];
 		auto& buffer_view = tfmodel.bufferViews[accessor.bufferView];
@@ -200,17 +203,6 @@ std::unique_ptr<SubMesh> AssetImporter::loadModel(const tinygltf::Model& tfmodel
 		colors = reinterpret_cast<const float*>(&tfmodel.buffers[buffer_view.buffer].data[accessor.byteOffset + buffer_view.byteOffset]);
 	}
 
-	// if (tfprimitive.indices >= 0) {
-	// 	auto& accessor = tfmodel.accessors[tfprimitive.indices];
-	// 	auto& buffer_view = tfmodel.bufferViews[accessor.bufferView];
-	// 	auto* indices = reinterpret_cast<const uint32_t*>(&tfmodel.buffers[buffer_view.buffer].data[accessor.byteOffset + buffer_view.byteOffset]);
-
-	// 	std::vector<uint32_t> index_data(indices, indices + accessor.count);
-	// 	submesh->setIndices(std::move(index_data));
-	// }
-
-	// TODO: Load mesh data into submesh
-
 	return submesh;
 }
 
@@ -226,7 +218,7 @@ std::unique_ptr<Node> AssetImporter::parseNode(const tinygltf::Node& tfnode, siz
 		transform.setRotation(glm::quat(rotation[3], rotation[0], rotation[1], rotation[2]));
 
 	if (const auto& scale = tfnode.scale; !scale.empty())
-		transform.setScale(glm::vec3(scale[0], scale[1], scale[2]));
+		transform.setScaling(glm::vec3(scale[0], scale[1], scale[2]));
 
 	if (const auto& matrix = tfnode.matrix; !tfnode.matrix.empty())
 		transform.setMatrix(glm::mat4(
@@ -439,6 +431,13 @@ std::unique_ptr<Material> AssetImporter::createDefaultMaterial()
 	material->setDoubleSided(false);
 
 	return material;
+}
+
+std::unique_ptr<CameraController> AssetImporter::createDefaultCameraController()
+{
+	auto controller = std::make_unique<CameraController>("Default_Camera_Controller");
+
+	return controller;
 }
 
 std::vector<uint8_t> AssetImporter::getAttributeData(const tinygltf::Model& model, uint32_t accessor_index)

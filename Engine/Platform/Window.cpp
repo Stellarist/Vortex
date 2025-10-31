@@ -1,20 +1,15 @@
 #include "Window.hpp"
 
-#include <print>
+#include "Core/Input/InputHandler.hpp"
 
-Window::Window(std::string_view title, int width, int height) :
-    width(width), height(height)
+Window::Window(std::string_view title, int width, int height) : width(width), height(height)
 {
-	if (!SDL_Init(SDL_INIT_VIDEO)) {
-		std::println("SDL initialize failed: {}", SDL_GetError());
-		throw std::runtime_error("SDL initialization failed");
-	}
+	if (!SDL_Init(SDL_INIT_VIDEO))
+		throw std::runtime_error(SDL_GetError());
 
 	window = SDL_CreateWindow(title.data(), width, height, SDL_WINDOW_VULKAN);
-	if (!window) {
-		std::println("SDL window creation failed: {}", SDL_GetError());
-		throw std::runtime_error("SDL window creation failed");
-	}
+	if (!window)
+		throw std::runtime_error(SDL_GetError());
 }
 
 Window::~Window()
@@ -30,14 +25,55 @@ void Window::pollEvent()
 			callback();
 
 		switch (event.type) {
-		case SDL_EventType::SDL_EVENT_KEY_DOWN:
-			if (event.key.key == SDLK_ESCAPE)
-				should_close = true;
+		case SDL_EventType::SDL_EVENT_MOUSE_BUTTON_DOWN:
+		{
+			glm::vec2  pos{event.button.x, event.button.y};
+			MouseInput mouse_input(mouse_map[event.button.button], pos, InputState::PRESSED);
+			InputHandler::instance().onMouseInput(mouse_input);
 			break;
+		}
+
+		case SDL_EventType::SDL_EVENT_MOUSE_BUTTON_UP:
+		{
+			glm::vec2  pos{event.button.x, event.button.y};
+			MouseInput mouse_input(mouse_map[event.button.button], pos, InputState::RELEASED);
+			InputHandler::instance().onMouseInput(mouse_input);
+			break;
+		}
+
+		case SDL_EventType::SDL_EVENT_MOUSE_MOTION:
+		{
+			glm::vec2 pos{event.motion.x, event.motion.y};
+			InputHandler::instance().setMousePos(pos);
+			break;
+		}
+
+		case SDL_EventType::SDL_EVENT_MOUSE_WHEEL:
+		{
+			glm::vec2 scroll{static_cast<float>(event.wheel.x), static_cast<float>(event.wheel.y)};
+			InputHandler::instance().setMouseScroll(scroll);
+			break;
+		}
+
+		case SDL_EventType::SDL_EVENT_KEY_DOWN:
+		{
+			KeyInput key_input(key_map[event.key.key], InputState::PRESSED);
+			InputHandler::instance().onKeyInput(key_input);
+			break;
+		}
+
+		case SDL_EventType::SDL_EVENT_KEY_UP:
+		{
+			KeyInput key_input(key_map[event.key.key], InputState::RELEASED);
+			InputHandler::instance().onKeyInput(key_input);
+			break;
+		}
 
 		case SDL_EventType::SDL_EVENT_QUIT:
+		{
 			should_close = true;
 			break;
+		}
 		}
 	}
 }

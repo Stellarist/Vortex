@@ -10,6 +10,7 @@
 #include "Scene/Components/Mesh.hpp"
 #include "Scene/Components/Camera.hpp"
 #include "Scene/Components/Light.hpp"
+#include "Scene/Behaviours/CameraController.hpp"
 #include "Scene/Resources/Material.hpp"
 
 class AssetImporter {
@@ -39,6 +40,8 @@ public:
 	static std::unique_ptr<Camera>   createDefaultCamera();
 	static std::unique_ptr<Light>    createDefaultLight();
 	static std::unique_ptr<Material> createDefaultMaterial();
+
+	static std::unique_ptr<CameraController> createDefaultCameraController();
 };
 
 template <typename S, typename D>
