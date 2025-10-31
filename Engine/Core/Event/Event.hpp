@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <glm/glm.hpp>
 
 #include "Core/Input/Input.hpp"
 

@@ -3,6 +3,7 @@
 /bin/
 /dependencies/
 /lib/
+/logs/
 /vcpkg_installed/
 /cmake-build-debug/
 /.cache/

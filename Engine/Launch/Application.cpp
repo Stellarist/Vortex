@@ -4,9 +4,11 @@
 
 #include "Utils/AssetImporter.hpp"
 
+#include <Core/Log/Logger.hpp>
+
 Application::Application()
 {
-	auto scene = AssetImporter::loadScene(ASSETS_DIR "/dragon.gltf");
+	auto scene = AssetImporter::loadScene(ASSETS_DIR "dragon.gltf");
 
 	window = std::make_unique<Window>("Vortex", 2560, 1440);
 

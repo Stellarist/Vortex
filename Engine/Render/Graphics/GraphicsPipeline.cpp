@@ -9,7 +9,7 @@ GraphicsPipeline::GraphicsPipeline(Context&                                 cont
                                    const GraphicsPipelineConfig&            pipeline_config) :
     context(&context),
     render_pass(&render_pass),
-    shader(context, SHADER_DIR "/default.spv"),
+    shader(context, SHADER_DIR "default.spv"),
     config(pipeline_config)
 {
 	shader.setStage(vk::ShaderStageFlagBits::eVertex, "vertexMain");

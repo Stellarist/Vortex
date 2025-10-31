@@ -14,6 +14,7 @@ find_package(Vulkan REQUIRED)
 find_package(SDL3 REQUIRED)
 find_package(glm REQUIRED)
 find_package(imgui REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
 add_executable(Vortex
@@ -27,10 +28,11 @@ target_include_directories(Vortex
 
 target_compile_definitions(Vortex
     PRIVATE
-        SOURCE_DIR="${CMAKE_SOURCE_DIR}"
-        SHADER_DIR="${CMAKE_SOURCE_DIR}/Shaders"
-        ASSETS_DIR="${CMAKE_SOURCE_DIR}/Assets"
-        SCRIPTS_DIR="${CMAKE_SOURCE_DIR}/Scripts"
+        SOURCE_DIR="${CMAKE_SOURCE_DIR}/"
+        SHADER_DIR="${CMAKE_SOURCE_DIR}/Shaders/"
+        ASSETS_DIR="${CMAKE_SOURCE_DIR}/Assets/"
+        LOGS_DIR="${CMAKE_SOURCE_DIR}/Logs/"
+        SCRIPTS_DIR="${CMAKE_SOURCE_DIR}/Scripts/"
         GLM_ENABLE_EXPERIMENTAL
 )
 
@@ -39,6 +41,7 @@ target_link_libraries(Vortex
 	SDL3::SDL3
 	glm::glm
 	imgui::imgui
+	spdlog::spdlog
 )
 
 add_custom_target(compile_shaders
