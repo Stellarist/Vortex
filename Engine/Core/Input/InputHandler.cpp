@@ -44,10 +44,7 @@ glm::vec2 InputHandler::getMouseScroll() const
 	return mouse_scroll;
 }
 
-#include <print>
 void InputHandler::setMouseScroll(const glm::vec2& scroll)
 {
 	mouse_scroll = scroll;
-	std::println("Scroll: {}, {}", scroll.x, scroll.y);
-	std::fflush(stdout);
 }
