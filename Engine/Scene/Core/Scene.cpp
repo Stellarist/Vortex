@@ -187,22 +187,18 @@ Node* Scene::findNode(const std::string& name)
 
 void Scene::start()
 {
-	for (auto& behaviour : behaviours) {
-		if (!behaviour->isStarted() && behaviour->isEnabled()) {
+	for (auto& behaviour : behaviours)
+		if (!behaviour->isStarted() && behaviour->isEnabled())
 			behaviour->start();
-			behaviour->setStarted(true);
-		}
-	}
 }
 
 void Scene::update(float dt)
 {
 	for (auto* behaviour : tickable_behaviours) {
 		if (behaviour->isEnabled()) {
-			if (!behaviour->isStarted()) {
+			if (!behaviour->isStarted())
 				behaviour->start();
-				behaviour->setStarted(true);
-			}
+
 			behaviour->update(dt);
 		}
 	}

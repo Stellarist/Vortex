@@ -7,6 +7,24 @@ std::type_index Transform::getType()
 	return typeid(Transform);
 }
 
+void Transform::translate(const glm::vec3& delta)
+{
+	translation += delta;
+	invalidateWorldMatrix();
+}
+
+void Transform::rotate(const glm::vec3& axis, float angle)
+{
+	rotation = glm::normalize(glm::angleAxis(angle, axis) * rotation);
+	invalidateWorldMatrix();
+}
+
+void Transform::scale(const glm::vec3& factor)
+{
+	scaling *= factor;
+	invalidateWorldMatrix();
+}
+
 const glm::vec3& Transform::getTranslation() const
 {
 	return translation;
@@ -29,14 +47,14 @@ void Transform::setRotation(const glm::quat& rotation)
 	invalidateWorldMatrix();
 }
 
-const glm::vec3& Transform::getScale() const
+const glm::vec3& Transform::getScaling() const
 {
-	return scale;
+	return scaling;
 }
 
-void Transform::setScale(const glm::vec3& scale)
+void Transform::setScaling(const glm::vec3& scale)
 {
-	this->scale = scale;
+	this->scaling = scale;
 	invalidateWorldMatrix();
 }
 
@@ -54,7 +72,7 @@ glm::mat4 Transform::getMatrix() const
 {
 	return glm::translate(glm::mat4(1.0f), translation) *
 	       glm::mat4_cast(rotation) *
-	       glm::scale(glm::mat4(1.0f), scale);
+	       glm::scale(glm::mat4(1.0f), scaling);
 }
 
 glm::mat4 Transform::getWorldMatrix()

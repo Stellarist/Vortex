@@ -19,7 +19,6 @@ private:
 
 public:
 	Application();
-	~Application() = default;
 
 	void run();
 	void elapseTime();

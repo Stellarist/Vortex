@@ -1,6 +1,10 @@
 #include "World.hpp"
 
-World::World(std::unique_ptr<Scene>&& new_scene)
+World::World()
+{}
+
+World::World(std::unique_ptr<Scene>&& new_scene) :
+    World()
 {
 	setActiveScene(std::move(new_scene));
 }

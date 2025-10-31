@@ -1,7 +1,6 @@
 #include "Context.hpp"
 
 #include <set>
-#include <print>
 
 #include "Command.hpp"
 #include "Sync.hpp"
@@ -48,10 +47,8 @@ void Context::createInstance()
 void Context::createSurface()
 {
 	VkSurfaceKHR csurface{};
-	if (!SDL_Vulkan_CreateSurface(window->get(), instance, nullptr, &csurface)) {
-		std::println("Failed to create Vulkan surface: {}", SDL_GetError());
-		throw std::runtime_error("Vulkan surface creation failed");
-	}
+	if (!SDL_Vulkan_CreateSurface(window->get(), instance, nullptr, &csurface))
+		throw std::runtime_error(SDL_GetError());
 
 	surface = std::move(csurface);
 }

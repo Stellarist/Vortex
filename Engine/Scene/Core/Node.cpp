@@ -6,7 +6,7 @@ Node::Node(size_t id, std::string name) :
     id(id), name(std::move(name))
 {
 	transform.setNode(*this);
-	setComponent(transform);
+	setComponent<Transform>(transform);
 }
 
 std::type_index Node::getType()
@@ -60,17 +60,18 @@ World* Node::getWorld() const
 	return scene ? scene->getWorld() : world;
 }
 
-Component& Node::getComponent(std::type_index type) const
+Component& Node::getComponent(const std::type_index& type) const
 {
 	return *components.at(type);
 }
 
-void Node::setComponent(Component& component)
+void Node::setComponent(const std::type_index& type, Component& component)
 {
-	components[component.getType()] = &component;
+	components[type] = &component;
+	component.setNode(*this);
 }
 
-bool Node::hasComponent(std::type_index type) const
+bool Node::hasComponent(const std::type_index& type) const
 {
 	return components.count(type) > 0;
 }

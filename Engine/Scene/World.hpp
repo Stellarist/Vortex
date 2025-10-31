@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "Core/Scene.hpp"
+#include "Scene/Core/Scene.hpp"
 #include "Components/Camera.hpp"
 
 class World {
@@ -12,7 +12,7 @@ private:
 	Camera* active_camera{};
 
 public:
-	World() = default;
+	World();
 	World(std::unique_ptr<Scene>&& scene);
 	~World() = default;
 

@@ -61,15 +61,19 @@ public:
 
 	template <IsComponent T>
 	T&         getComponent() const;
-	Component& getComponent(std::type_index type) const;
-	void       setComponent(Component& component);
+	Component& getComponent(const std::type_index& type) const;
+
+	template <IsComponent T>
+	void setComponent(T& component);
+	void setComponent(const std::type_index& type, Component& component);
 
 	template <IsComponent T>
 	bool hasComponent() const;
-	bool hasComponent(std::type_index type) const;
+	bool hasComponent(const std::type_index& type) const;
 
 	template <IsBehaviour T>
-	T*   getBehaviour() const;
+	T* getBehaviour() const;
+
 	void addBehaviour(Behaviour& behaviour);
 	void removeBehaviour(Behaviour& behaviour);
 
@@ -83,6 +87,12 @@ template <IsComponent T>
 T& Node::getComponent() const
 {
 	return dynamic_cast<T&>(getComponent(typeid(T)));
+}
+
+template <IsComponent T>
+void Node::setComponent(T& component)
+{
+	components[typeid(T)] = &component;
 }
 
 template <IsComponent T>

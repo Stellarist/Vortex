@@ -2,7 +2,7 @@
 
 #include <chrono>
 
-#include "Subsystem/Asset/AssetImporter.hpp"
+#include "Utils/AssetImporter.hpp"
 
 Application::Application()
 {
@@ -21,9 +21,11 @@ Application::Application()
 	window->hook([this]() {
 		widget->pollEvent(*window->getEvent());
 	});
+
 	renderer->hook([this]() {
 		widget->drawFrame(renderer->getCurrentFrame().getCurrentCommandBuffer());
 	});
+
 	widget->hook([this]() {
 		widget->drawSceneGraph(world.get());
 	});
