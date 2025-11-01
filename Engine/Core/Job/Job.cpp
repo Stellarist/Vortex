@@ -13,11 +13,6 @@ void Job::execute()
 
 	completed.store(true);
 
-	complete();
-}
-
-void Job::complete()
-{
 	for (auto& weak_dependent : dependents)
 		if (auto dependent = weak_dependent.lock())
 			dependent->onDependencyCompleted();
@@ -40,7 +35,7 @@ void Job::dependsOn(std::shared_ptr<Job> dependency)
 
 void Job::onDependencyCompleted()
 {
-	int remaining = unfinished_dependencies.fetch_sub(1);
+	unfinished_dependencies.fetch_sub(1);
 }
 
 bool Job::isReady() const
@@ -51,4 +46,10 @@ bool Job::isReady() const
 bool Job::isCompleted() const
 {
 	return completed.load();
+}
+
+void Job::addDependent(std::shared_ptr<Job> dependent)
+{
+	if (dependent)
+		dependents.push_back(dependent);
 }

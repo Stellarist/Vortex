@@ -39,17 +39,17 @@ void ThreadPool::workerThread()
 				tasks.pop();
 				active_threads.fetch_add(1);
 			}
+		}
 
-			if (task)
-				task();
+		if (task)
+			task();
 
-			{
-				std::lock_guard<std::mutex> lock(queue_mutex);
-				active_threads.fetch_sub(1);
+		{
+			std::lock_guard<std::mutex> lock(queue_mutex);
+			active_threads.fetch_sub(1);
 
-				if (tasks.empty() && (active_threads.load() == 0))
-					finish_condition.notify_all();
-			}
+			if (tasks.empty() && (active_threads.load() == 0))
+				finish_condition.notify_all();
 		}
 	}
 }

@@ -3,6 +3,7 @@
 #include <functional>
 #include <atomic>
 #include <memory>
+#include <vector>
 
 using JobFunc = std::function<void()>;
 
@@ -21,7 +22,6 @@ public:
 	Job(JobFunc func);
 
 	void execute();
-	void complete();
 	void wait();
 
 	void dependsOn(std::shared_ptr<Job> other);

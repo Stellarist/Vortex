@@ -1,8 +1,5 @@
 #include "JobScheduler.hpp"
 
-// JobScheduler::JobScheduler()
-// {}
-
 JobScheduler& JobScheduler::instance()
 {
 	static JobScheduler instance;
@@ -10,13 +7,12 @@ JobScheduler& JobScheduler::instance()
 }
 
 void JobScheduler::initialize(size_t num_threads)
-
 {
 	if (thread_pool)
 		throw std::runtime_error("JobScheduler is already initialized");
 
 	if (num_threads == 0)
-		num_threads = std::max(std::thread::hardware_concurrency(), 1u);
+		num_threads = std::thread::hardware_concurrency() - 1;
 
 	thread_pool = std::make_unique<ThreadPool>(num_threads);
 	stop.store(false);
