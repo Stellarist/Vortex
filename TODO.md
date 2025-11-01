@@ -1,7 +1,7 @@
 # TODO
 
 - multi thread
-- logger
 - pyhsics
 - audio
 - scripts
+- add dirty flag

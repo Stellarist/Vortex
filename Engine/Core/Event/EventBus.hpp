@@ -15,7 +15,7 @@ class EventBus {
 private:
 	EventBus() = default;
 
-	uint32_t callback_id;
+	uint32_t callback_id{};
 
 	std::unordered_map<uint32_t, std::vector<EventListener>> listeners;
 

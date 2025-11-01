@@ -17,6 +17,39 @@ Buffer::~Buffer()
 		context->getLogicalDevice().destroyBuffer(buffer);
 }
 
+Buffer::Buffer(Buffer&& other) noexcept :
+    buffer(std::exchange(other.buffer, nullptr)),
+    size(other.size),
+    memory(std::exchange(other.memory, nullptr)),
+    data(other.data),
+    mapped_size(other.mapped_size),
+    mapped_offset(other.mapped_offset),
+    mapped(other.mapped),
+    context(std::exchange(other.context, nullptr))
+{}
+
+Buffer& Buffer::operator=(Buffer&& other)
+{
+	if (this != &other) {
+		if (memory)
+			context->getLogicalDevice().freeMemory(memory);
+
+		if (buffer)
+			context->getLogicalDevice().destroyBuffer(buffer);
+
+		buffer = std::exchange(other.buffer, nullptr);
+		size = other.size;
+		memory = std::exchange(other.memory, nullptr);
+		data = other.data;
+		mapped_size = other.mapped_size;
+		mapped_offset = other.mapped_offset;
+		mapped = other.mapped;
+		context = std::exchange(other.context, nullptr);
+	}
+
+	return *this;
+}
+
 void Buffer::create(vk::BufferUsageFlags usage, size_t size)
 {
 	vk::BufferCreateInfo create_info{};

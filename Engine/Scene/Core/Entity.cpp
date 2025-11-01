@@ -1,12 +1,12 @@
 #include "Entity.hpp"
 
-uint64_t Entity::id_counter = 0;
+std::atomic<uint32_t> Entity::id_counter = 0;
 
 Entity::Entity() :
     uid(id_counter++)
 {}
 
-uint64_t Entity::getUid() const
+uint32_t Entity::getUid() const
 {
 	return uid;
 }
