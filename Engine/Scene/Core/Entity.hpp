@@ -5,15 +5,15 @@
 
 class Entity {
 private:
-	uint32_t uid;
+	uint64_t uid;
 
-	static std::atomic<uint32_t> id_counter;
+	static std::atomic<uint64_t> id_counter;
 
 public:
 	Entity();
 	virtual ~Entity() = default;
 
-	uint32_t getUid() const;
+	uint64_t getUid() const;
 
 	virtual std::type_index getType() = 0;
 };
