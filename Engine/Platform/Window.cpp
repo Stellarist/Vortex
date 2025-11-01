@@ -28,7 +28,7 @@ void Window::pollEvent()
 		case SDL_EventType::SDL_EVENT_MOUSE_BUTTON_DOWN:
 		{
 			glm::vec2  pos{event.button.x, event.button.y};
-			MouseInput mouse_input(mouse_map[event.button.button], pos, InputState::PRESSED);
+			MouseInput mouse_input(mouse_map[event.button.button], pos, InputState::Pressed);
 			InputHandler::instance().onMouseInput(mouse_input);
 			break;
 		}
@@ -36,7 +36,7 @@ void Window::pollEvent()
 		case SDL_EventType::SDL_EVENT_MOUSE_BUTTON_UP:
 		{
 			glm::vec2  pos{event.button.x, event.button.y};
-			MouseInput mouse_input(mouse_map[event.button.button], pos, InputState::RELEASED);
+			MouseInput mouse_input(mouse_map[event.button.button], pos, InputState::Released);
 			InputHandler::instance().onMouseInput(mouse_input);
 			break;
 		}
@@ -57,14 +57,14 @@ void Window::pollEvent()
 
 		case SDL_EventType::SDL_EVENT_KEY_DOWN:
 		{
-			KeyInput key_input(key_map[event.key.key], InputState::PRESSED);
+			KeyInput key_input(key_map[event.key.key], InputState::Pressed);
 			InputHandler::instance().onKeyInput(key_input);
 			break;
 		}
 
 		case SDL_EventType::SDL_EVENT_KEY_UP:
 		{
-			KeyInput key_input(key_map[event.key.key], InputState::RELEASED);
+			KeyInput key_input(key_map[event.key.key], InputState::Released);
 			InputHandler::instance().onKeyInput(key_input);
 			break;
 		}

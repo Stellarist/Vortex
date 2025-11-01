@@ -20,13 +20,13 @@ void InputHandler::onMouseInput(const MouseInput& input)
 bool InputHandler::isKeyHeld(Key key) const
 {
 	auto it = key_states.find(static_cast<uint8_t>(key));
-	return it != key_states.end() && it->second == InputState::PRESSED;
+	return it != key_states.end() && it->second == InputState::Pressed;
 }
 
 bool InputHandler::isMouseHeld(Mouse mouse) const
 {
 	auto it = mouse_states.find(static_cast<uint8_t>(mouse));
-	return it != mouse_states.end() && it->second == InputState::PRESSED;
+	return it != mouse_states.end() && it->second == InputState::Pressed;
 }
 
 glm::vec2 InputHandler::getMousePos() const

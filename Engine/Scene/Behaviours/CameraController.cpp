@@ -29,15 +29,15 @@ void CameraController::update(float dt)
 	auto& handler = InputHandler::instance();
 
 	if (handler.isKeyHeld(Key::W))
-		translate(CameraMovement::FORWARD, dt);
+		translate(CameraMovement::Forward, dt);
 	if (handler.isKeyHeld(Key::S))
-		translate(CameraMovement::BACKWARD, dt);
+		translate(CameraMovement::Backward, dt);
 	if (handler.isKeyHeld(Key::A))
-		translate(CameraMovement::LEFT, dt);
+		translate(CameraMovement::Left, dt);
 	if (handler.isKeyHeld(Key::D))
-		translate(CameraMovement::RIGHT, dt);
+		translate(CameraMovement::Right, dt);
 
-	if (handler.isMouseHeld(Mouse::RIGHT)) {
+	if (handler.isMouseHeld(Mouse::Right)) {
 		if (!first_mouse)
 			rotate(handler.getMousePos());
 		else {
@@ -62,19 +62,19 @@ void CameraController::translate(CameraMovement movement, float dt)
 	glm::vec3 right = persp_camera->getRight();
 
 	switch (movement) {
-	case CameraMovement::FORWARD:
+	case CameraMovement::Forward:
 		transform.translate(front * move_speed * dt);
 		break;
 
-	case CameraMovement::BACKWARD:
+	case CameraMovement::Backward:
 		transform.translate(-front * move_speed * dt);
 		break;
 
-	case CameraMovement::LEFT:
+	case CameraMovement::Left:
 		transform.translate(-right * move_speed * dt);
 		break;
 
-	case CameraMovement::RIGHT:
+	case CameraMovement::Right:
 		transform.translate(right * move_speed * dt);
 		break;
 	}

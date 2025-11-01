@@ -40,9 +40,9 @@ public:
 };
 
 static std::unordered_map<uint8_t, Mouse> mouse_map = {
-    {SDL_BUTTON_LEFT, Mouse::LEFT},
-    {SDL_BUTTON_MIDDLE, Mouse::MIDDLE},
-    {SDL_BUTTON_RIGHT, Mouse::RIGHT},
+    {SDL_BUTTON_LEFT, Mouse::Left},
+    {SDL_BUTTON_MIDDLE, Mouse::Middle},
+    {SDL_BUTTON_RIGHT, Mouse::Right},
 };
 
 static std::unordered_map<SDL_Keycode, Key> key_map = {
@@ -50,7 +50,7 @@ static std::unordered_map<SDL_Keycode, Key> key_map = {
     {SDLK_A, Key::A},
     {SDLK_S, Key::S},
     {SDLK_D, Key::D},
-    {SDLK_ESCAPE, Key::ESCAPE},
-    {SDLK_SPACE, Key::SPACE},
-    {SDLK_RETURN, Key::ENTER},
+    {SDLK_ESCAPE, Key::Escape},
+    {SDLK_SPACE, Key::Space},
+    {SDLK_RETURN, Key::Enter},
 };

@@ -16,7 +16,7 @@ InputState Input::getState() const
 }
 
 KeyInput::KeyInput(Key key, InputState state) :
-    Input(InputType::KEYBOARD, state),
+    Input(InputType::Keyboard, state),
     key(key)
 {}
 
@@ -26,7 +26,7 @@ Key KeyInput::getKey() const
 }
 
 MouseInput::MouseInput(Mouse mouse, const glm::vec2& pos, InputState state) :
-    Input(InputType::MOUSE, state),
+    Input(InputType::Mouse, state),
     mouse(mouse),
     pos(pos)
 {}

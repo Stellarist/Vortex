@@ -49,24 +49,24 @@ enum class Key : uint8_t {
 	A,
 	S,
 	D,
-	ESCAPE,
-	SPACE,
-	ENTER,
+	Escape,
+	Space,
+	Enter,
 };
 
 enum class Mouse : uint8_t {
-	LEFT,
-	RIGHT,
-	MIDDLE,
+	Left,
+	Right,
+	Middle,
 };
 
 enum class InputType : uint8_t {
-	KEYBOARD,
-	MOUSE,
+	Keyboard,
+	Mouse,
 };
 
 enum class InputState : uint8_t {
-	UNDEFINED,
-	PRESSED,
-	RELEASED,
+	Undefined,
+	Pressed,
+	Released,
 };
