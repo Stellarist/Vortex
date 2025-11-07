@@ -1,0 +1,14 @@
+/build/
+/bin/
+/dependencies/
+/lib/
+/logs/
+/vcpkg_installed/
+/cmake-build-debug/
+/.cache/
+/.vs/
+/.vscode/
+/.idea/
+/.zed/
+/**/*.spv
+/**/*.blend*
