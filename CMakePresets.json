@@ -1,0 +1,31 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "clang",
+            "binaryDir": "${sourceDir}/Build",
+            "installDir": "${sourceDir}/Bin",
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_CXX_STANDARD": "23",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+                "VCPKG_TARGET_TRIPLET": "x64-windows",
+                "X_VCPKG_APPLOCAL_DEPS_INSTALL": "ON"
+            }
+        },
+        {
+            "name": "msvc",
+            "binaryDir": "${sourceDir}/Build",
+            "installDir": "${sourceDir}/Bin",
+            "generator": "Visual Studio 17 2022",
+            "cacheVariables": {
+                "CMAKE_CXX_STANDARD": "23",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+                "VCPKG_TARGET_TRIPLET": "x64-windows",
+                "X_VCPKG_APPLOCAL_DEPS_INSTALL": "ON"
+            }
+        }
+    ]
+}

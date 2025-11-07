@@ -1,0 +1,6 @@
+{
+    "scene": "Sponza/Sponza2.gltf",
+    "forward_shader": "Forward/pbr.spv",
+    "deferred_geometry_shader": "Deferred/geometry.spv",
+    "deferred_lighting_shader": "Deferred/pbr.spv"
+}

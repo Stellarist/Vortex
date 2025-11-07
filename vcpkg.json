@@ -1,0 +1,22 @@
+{
+  "dependencies": [
+    "glm",
+    {
+      "name": "imgui",
+      "features": [
+        "sdl3-binding",
+        "vulkan-binding"
+      ]
+    },
+    {
+      "name": "sdl3",
+      "features": [
+        "vulkan"
+      ]
+    },
+    "tinygltf",
+    "vulkan",
+    "spdlog",
+    "nlohmann-json"
+  ]
+}
