@@ -228,58 +228,44 @@ std::shared_ptr<SubMesh> AssetImporter::parseSubmesh(const tinygltf::Mesh& tfmes
 	const auto& tfprimitive = tfmesh.primitives[index];
 
 	// Load Vertices
-	struct AttributeData {
-		std::string              name;
-		uint32_t                 size;
-		std::span<const uint8_t> data_view;
-	};
+	std::vector<Vertex> vertices;
 
-	std::map<std::string, AttributeData> attributes_map;
-	for (const auto& [attr_name, accessor_id] : tfprimitive.attributes) {
-		auto upper_name = attr_name;
-		std::transform(upper_name.begin(), upper_name.end(), upper_name.begin(), ::toupper);
-		if (std::find(attributes_names.begin(), attributes_names.end(), upper_name) == attributes_names.end())
-			continue;
+	auto pos_it = tfprimitive.attributes.find("POSITION");
+	auto vertex_count = getAttributeCount(&tfmodel, pos_it->second);
+	vertices.resize(vertex_count);
 
-		attributes_map[upper_name] = AttributeData{
-		    .name = upper_name,
-		    .size = getAttributeSize(&tfmodel, accessor_id),
-		    .data_view = getAttributeDataView(tfmodel, accessor_id),
-		};
+	if (pos_it != tfprimitive.attributes.end()) {
+		const auto& pos_data = getAttributeDataView(tfmodel, pos_it->second);
+		const auto* pos_ptr = reinterpret_cast<const float*>(pos_data.data());
+		for (uint32_t i = 0; i < vertex_count; i++)
+			vertices[i].pos = glm::vec3(pos_ptr[i * 3 + 0], pos_ptr[i * 3 + 1], pos_ptr[i * 3 + 2]);
 	}
 
-	uint32_t vertex_count = getAttributeCount(&tfmodel, tfprimitive.attributes.begin()->second);
-	uint32_t vertex_stride = 0;
-	for (const auto& attribute_name : attributes_names) {
-		if (!attributes_map.contains(attribute_name))
-			continue;
-
-		auto&    attribute = attributes_map.at(attribute_name);
-		uint32_t offset = vertex_stride;
-
-		submesh->setAttribute(attribute_name, {attribute.size, offset});
-		vertex_stride += attribute.size;
+	auto normal_it = tfprimitive.attributes.find("NORMAL");
+	if (normal_it != tfprimitive.attributes.end()) {
+		const auto& normal_data = getAttributeDataView(tfmodel, normal_it->second);
+		const auto* normal_ptr = reinterpret_cast<const float*>(normal_data.data());
+		for (uint32_t i = 0; i < vertex_count; i++)
+			vertices[i].normal = glm::vec3(normal_ptr[i * 3 + 0], normal_ptr[i * 3 + 1], normal_ptr[i * 3 + 2]);
 	}
 
-	std::vector<uint8_t> vertices_raw_data(vertex_count * vertex_stride);
-	for (const auto& attribute_name : attributes_names) {
-		if (!attributes_map.contains(attribute_name))
-			continue;
-
-		const auto& attribute = attributes_map.at(attribute_name);
-		const auto& submesh_attribute = submesh->getAttribute(attribute_name);
-		uint32_t    offset = submesh_attribute->offset;
-
-		for (uint32_t vertex_index = 0; vertex_index < vertex_count; vertex_index++) {
-			std::memcpy(&vertices_raw_data[vertex_index * vertex_stride + offset],
-			    &attribute.data_view[vertex_index * attribute.size],
-			    attribute.size);
-		}
+	auto uv_it = tfprimitive.attributes.find("TEXCOORD_0");
+	if (uv_it != tfprimitive.attributes.end()) {
+		const auto& uv_data = getAttributeDataView(tfmodel, uv_it->second);
+		const auto* uv_ptr = reinterpret_cast<const float*>(uv_data.data());
+		for (uint32_t i = 0; i < vertex_count; i++)
+			vertices[i].uv = glm::vec2(uv_ptr[i * 2 + 0], uv_ptr[i * 2 + 1]);
 	}
 
-	std::vector<float> vertices_data(vertices_raw_data.size() / sizeof(float));
-	std::memcpy(vertices_data.data(), vertices_raw_data.data(), vertices_raw_data.size());
-	submesh->setVertices(std::move(vertices_data), vertex_count);
+	auto color_it = tfprimitive.attributes.find("COLOR_0");
+	if (color_it != tfprimitive.attributes.end()) {
+		const auto& color_data = getAttributeDataView(tfmodel, color_it->second);
+		const auto* color_ptr = reinterpret_cast<const float*>(color_data.data());
+		for (uint32_t i = 0; i < vertex_count; i++)
+			vertices[i].color = glm::vec4(color_ptr[i * 4 + 0], color_ptr[i * 4 + 1], color_ptr[i * 4 + 2], color_ptr[i * 4 + 3]);
+	}
+
+	submesh->setVertices(std::move(vertices));
 
 	// Load Indices
 	if (tfprimitive.indices >= 0) {

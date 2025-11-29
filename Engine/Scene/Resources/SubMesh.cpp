@@ -9,25 +9,14 @@ std::type_index SubMesh::getType()
 	return typeid(SubMesh);
 }
 
-uint32_t SubMesh::getVerticesCount() const
-{
-	return vertices_count;
-}
-
-uint32_t SubMesh::getIndicesCount() const
-{
-	return indices_count;
-}
-
-auto SubMesh::getVertices() const -> const std::vector<float>&
+auto SubMesh::getVertices() const -> const std::vector<Vertex>&
 {
 	return vertex_data;
 }
 
-void SubMesh::setVertices(std::vector<float> vertex_data, uint32_t count)
+void SubMesh::setVertices(std::vector<Vertex> vertex_data)
 {
 	this->vertex_data = std::move(vertex_data);
-	vertices_count = count;
 }
 
 auto SubMesh::getIndices() const -> const std::vector<uint32_t>&
@@ -38,28 +27,16 @@ auto SubMesh::getIndices() const -> const std::vector<uint32_t>&
 void SubMesh::setIndices(std::vector<uint32_t> index_data)
 {
 	this->index_data = std::move(index_data);
-	indices_count = static_cast<uint32_t>(this->index_data.size());
 }
 
-auto SubMesh::getAttributes() const -> const std::unordered_map<std::string, VertexAttribute>&
+uint32_t SubMesh::getVerticesCount() const
 {
-	return vertex_attributes;
+	return vertex_data.size();
 }
 
-VertexAttribute* SubMesh::getAttribute(const std::string& name)
+uint32_t SubMesh::getIndicesCount() const
 {
-	return const_cast<VertexAttribute*>(std::as_const(*this).getAttribute(name));
-}
-
-const VertexAttribute* SubMesh::getAttribute(const std::string& name) const
-{
-	auto it = vertex_attributes.find(name);
-	return it != vertex_attributes.end() ? &it->second : nullptr;
-}
-
-void SubMesh::setAttribute(const std::string& attribute_name, const VertexAttribute& attribute)
-{
-	vertex_attributes[attribute_name] = attribute;
+	return index_data.size();
 }
 
 std::shared_ptr<Material> SubMesh::getMaterial() const

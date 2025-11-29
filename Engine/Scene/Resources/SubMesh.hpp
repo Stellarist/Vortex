@@ -2,27 +2,24 @@
 
 #include <string>
 #include <vector>
-#include <unordered_map>
 
 #include "Material.hpp"
 
-struct VertexAttribute {
-	uint32_t size = 0;
-	uint32_t offset = 0;
+struct Vertex {
+	glm::vec3 pos{0.0f};
+	glm::vec3 normal{0.0f, 0.0f, 1.0f};
+	glm::vec2 uv{0.0f};
+	glm::vec4 color{1.0f};
 };
 
 class SubMesh : public Resource {
 private:
+	std::vector<Vertex>   vertex_data;
+	std::vector<uint32_t> index_data;
+
 	std::shared_ptr<Material> material{};
 
 	std::string shader_name;
-	uint32_t    vertices_count{0};
-	uint32_t    indices_count{0};
-
-	std::vector<float>    vertex_data;
-	std::vector<uint32_t> index_data;
-
-	std::unordered_map<std::string, VertexAttribute> vertex_attributes;
 
 	bool visible{true};
 
@@ -32,19 +29,14 @@ public:
 
 	std::type_index getType() override;
 
-	uint32_t getVerticesCount() const;
-	uint32_t getIndicesCount() const;
-
-	auto getVertices() const -> const std::vector<float>&;
-	void setVertices(std::vector<float> vertex_data, uint32_t count = 0);
+	auto getVertices() const -> const std::vector<Vertex>&;
+	void setVertices(std::vector<Vertex> vertex_data);
 
 	auto getIndices() const -> const std::vector<uint32_t>&;
 	void setIndices(std::vector<uint32_t> index_data);
 
-	auto getAttributes() const -> const std::unordered_map<std::string, VertexAttribute>&;
-	auto getAttribute(const std::string& name) -> VertexAttribute*;
-	auto getAttribute(const std::string& name) const -> const VertexAttribute*;
-	void setAttribute(const std::string& name, const VertexAttribute& attribute);
+	uint32_t getVerticesCount() const;
+	uint32_t getIndicesCount() const;
 
 	auto getMaterial() const -> std::shared_ptr<Material>;
 	void setMaterial(std::shared_ptr<Material> material);
