@@ -15,17 +15,16 @@
 #include "Scene/World.hpp"
 
 struct Frame {
-	static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+	static constexpr int FRAMES_IN_FLIGHT = 2;
 
 	uint32_t image_count{};
 	uint32_t image_index{};
 	uint32_t current_frame{};
 
-	std::array<CommandBuffer, MAX_FRAMES_IN_FLIGHT>              commands{};
-	std::array<std::unique_ptr<Semaphore>, MAX_FRAMES_IN_FLIGHT> image_available_semaphores{};
-	std::array<std::unique_ptr<Semaphore>, MAX_FRAMES_IN_FLIGHT> render_finished_semaphores{};
-	std::array<std::unique_ptr<Fence>, MAX_FRAMES_IN_FLIGHT>     in_flight_fences{};
-	std::vector<Fence*>                                          images_in_flight{};
+	std::vector<CommandBuffer>              commands{};
+	std::vector<std::unique_ptr<Semaphore>> image_available_semaphores{};
+	std::vector<std::unique_ptr<Semaphore>> render_finished_semaphores{};
+	std::vector<std::unique_ptr<Fence>>     in_flight_fences{};
 
 	CommandBuffer currentCommand() const;
 };

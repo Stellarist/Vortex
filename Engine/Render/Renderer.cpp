@@ -16,13 +16,19 @@ Renderer::Renderer(Window& window)
 	context = std::make_unique<Context>(window);
 
 	frame.image_count = context->getSwapChain().getImageCount();
-	frame.images_in_flight.resize(frame.image_count, nullptr);
-	for (uint32_t i = 0; i < Frame::MAX_FRAMES_IN_FLIGHT; ++i) {
+	frame.commands.resize(Frame::FRAMES_IN_FLIGHT);
+	frame.image_available_semaphores.resize(Frame::FRAMES_IN_FLIGHT);
+	frame.render_finished_semaphores.resize(frame.image_count);
+	frame.in_flight_fences.resize(frame.FRAMES_IN_FLIGHT);
+
+	for (uint32_t i = 0; i < frame.FRAMES_IN_FLIGHT; ++i) {
 		frame.commands[i] = context->getGraphicsCommandPool().allocate();
 		frame.image_available_semaphores[i] = std::make_unique<Semaphore>(*context);
-		frame.render_finished_semaphores[i] = std::make_unique<Semaphore>(*context);
 		frame.in_flight_fences[i] = std::make_unique<Fence>(*context, true);
 	}
+
+	for (uint32_t i = 0; i < frame.image_count; ++i)
+		frame.render_finished_semaphores[i] = std::make_unique<Semaphore>(*context);
 }
 
 Renderer::~Renderer()
@@ -39,12 +45,6 @@ void Renderer::begin()
 	auto& image = frame.image_index;
 	auto  wait = frame.image_available_semaphores[frame.current_frame].get();
 	image = context->getSwapChain().acquireNextImage(wait->get(), nullptr);
-
-	auto& image_fence = frame.images_in_flight[image];
-	if (image_fence)
-		image_fence->wait();
-	image_fence = fence;
-
 	fence->reset();
 
 	auto& command = frame.commands[frame.current_frame];
@@ -57,16 +57,14 @@ void Renderer::end()
 	auto& command = frame.commands[frame.current_frame];
 	command.end();
 
-	auto image = frame.image_index;
 	auto wait = frame.image_available_semaphores[frame.current_frame].get();
-	auto signal = frame.render_finished_semaphores[frame.current_frame].get();
+	auto signal = frame.render_finished_semaphores[frame.image_index].get();
 	auto fence = frame.in_flight_fences[frame.current_frame].get();
 	auto stage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 
 	context->submit({command}, fence, {wait}, {signal}, {stage});
-	context->present({image}, {signal});
-
-	frame.current_frame = (frame.current_frame + 1) % Frame::MAX_FRAMES_IN_FLIGHT;
+	context->present({frame.image_index}, {signal});
+	frame.current_frame = (frame.current_frame + 1) % Frame::FRAMES_IN_FLIGHT;
 }
 
 void Renderer::call()
