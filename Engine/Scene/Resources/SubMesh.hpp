@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "Material.hpp"
+#include "Scene/Geometry/AABB.hpp"
 
 struct Vertex {
 	glm::vec3 pos{0.0f};
@@ -22,6 +23,11 @@ private:
 	std::string shader_name;
 
 	bool visible{true};
+
+	mutable AABB aabb{};
+	mutable bool aabb_dirty{true};
+
+	void updateAABB() const;
 
 public:
 	SubMesh(const std::string& name = {});
@@ -46,4 +52,7 @@ public:
 
 	bool isVisible() const;
 	void setVisible(bool visible);
+
+	auto getAABB() const -> const AABB&;
+	void invalidateAABB() const;
 };

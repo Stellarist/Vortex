@@ -1,0 +1,133 @@
+#include "AABB.hpp"
+
+#include <algorithm>
+
+AABB::AABB()
+{
+	reset();
+}
+
+AABB::AABB(const glm::vec3& min, const glm::vec3& max) :
+    min_bound(min), max_bound(max)
+{}
+
+glm::vec3 AABB::min() const
+{
+	return min_bound;
+}
+
+glm::vec3 AABB::max() const
+{
+	return max_bound;
+}
+
+glm::vec3 AABB::center() const
+{
+	return (min_bound + max_bound) * 0.5f;
+}
+
+glm::vec3 AABB::scale() const
+{
+	return max_bound - min_bound;
+}
+
+float AABB::area() const
+{
+	glm::vec3 extent = scale();
+	return 2.0f * (extent.x * extent.y + extent.y * extent.z + extent.z * extent.x);
+}
+
+float AABB::volume() const
+{
+	glm::vec3 extent = scale();
+	return extent.x * extent.y * extent.z;
+}
+
+void AABB::expand(const glm::vec3& point)
+{
+	min_bound = glm::min(min_bound, point);
+	max_bound = glm::max(max_bound, point);
+}
+
+void AABB::expand(const AABB& other)
+{
+	expand(other.min());
+	expand(other.max());
+}
+
+void AABB::expand(std::span<const glm::vec3> points)
+{
+	for (const auto& point : points)
+		expand(point);
+}
+
+bool AABB::intersects(const AABB& other) const
+{
+	if (!valid() || !other.valid())
+		return false;
+
+	return (min_bound.x <= other.max().x && max_bound.x >= other.min().x)
+	    && (min_bound.y <= other.max().y && max_bound.y >= other.min().y)
+	    && (min_bound.z <= other.max().z && max_bound.z >= other.min().z);
+}
+
+bool AABB::intersects(const Ray& ray, float& tmin, float& tmax) const
+{
+	if (!valid())
+		return false;
+
+	float tx1 = (min_bound.x - ray.origin().x) * ray.invDirection().x;
+	float tx2 = (max_bound.x - ray.origin().x) * ray.invDirection().x;
+
+	float ty1 = (min_bound.y - ray.origin().y) * ray.invDirection().y;
+	float ty2 = (max_bound.y - ray.origin().y) * ray.invDirection().y;
+
+	float tz1 = (min_bound.z - ray.origin().z) * ray.invDirection().z;
+	float tz2 = (max_bound.z - ray.origin().z) * ray.invDirection().z;
+
+	tmin = std::max({std::min(tx1, tx2), std::min(ty1, ty2), std::min(tz1, tz2)});
+	tmax = std::min({std::max(tx1, tx2), std::max(ty1, ty2), std::max(tz1, tz2)});
+
+	return tmax >= tmin && tmax >= 0.0f;
+}
+
+bool AABB::contains(const glm::vec3& point) const
+{
+	return (point.x >= min_bound.x && point.x <= max_bound.x)
+	    && (point.y >= min_bound.y && point.y <= max_bound.y)
+	    && (point.z >= min_bound.z && point.z <= max_bound.z);
+}
+
+bool AABB::contains(const AABB& other) const
+{
+	return contains(other.min()) && contains(other.max());
+}
+
+void AABB::reset()
+{
+	min_bound = glm::vec3(std::numeric_limits<float>::max());
+	max_bound = glm::vec3(std::numeric_limits<float>::lowest());
+}
+
+void AABB::transform(const glm::mat4& matrix)
+{
+	if (!valid())
+		return;
+
+	AABB result;
+	result.expand(matrix * glm::vec4(min_bound.x, min_bound.y, min_bound.z, 1.0f));
+	result.expand(matrix * glm::vec4(max_bound.x, min_bound.y, min_bound.z, 1.0f));
+	result.expand(matrix * glm::vec4(min_bound.x, max_bound.y, min_bound.z, 1.0f));
+	result.expand(matrix * glm::vec4(max_bound.x, max_bound.y, min_bound.z, 1.0f));
+	result.expand(matrix * glm::vec4(min_bound.x, min_bound.y, max_bound.z, 1.0f));
+	result.expand(matrix * glm::vec4(max_bound.x, min_bound.y, max_bound.z, 1.0f));
+	result.expand(matrix * glm::vec4(min_bound.x, max_bound.y, max_bound.z, 1.0f));
+	result.expand(matrix * glm::vec4(max_bound.x, max_bound.y, max_bound.z, 1.0f));
+
+	*this = result;
+}
+
+bool AABB::valid() const
+{
+	return (min_bound.x <= max_bound.x) && (min_bound.y <= max_bound.y) && (min_bound.z <= max_bound.z);
+}

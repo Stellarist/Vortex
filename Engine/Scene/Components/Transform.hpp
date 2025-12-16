@@ -14,8 +14,6 @@ private:
 	glm::vec3 scaling{1.0f, 1.0f, 1.0f};
 	glm::mat4 world_matrix{1.0f};
 
-	Node* node{};
-
 	bool world_matrix_dirty{true};
 
 	void updateWorldTransform();

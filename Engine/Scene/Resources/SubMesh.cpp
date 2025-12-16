@@ -17,6 +17,7 @@ auto SubMesh::getVertices() const -> const std::vector<Vertex>&
 void SubMesh::setVertices(std::vector<Vertex> vertex_data)
 {
 	this->vertex_data = std::move(vertex_data);
+	invalidateAABB();
 }
 
 auto SubMesh::getIndices() const -> const std::vector<uint32_t>&
@@ -67,4 +68,27 @@ bool SubMesh::isVisible() const
 void SubMesh::setVisible(bool visible)
 {
 	this->visible = visible;
+}
+
+const AABB& SubMesh::getAABB() const
+{
+	updateAABB();
+	return aabb;
+}
+
+void SubMesh::invalidateAABB() const
+{
+	aabb_dirty = true;
+}
+
+void SubMesh::updateAABB() const
+{
+	if (!aabb_dirty)
+		return;
+
+	aabb.reset();
+	for (const auto& vertex : vertex_data)
+		aabb.expand(vertex.pos);
+
+	aabb_dirty = false;
 }
