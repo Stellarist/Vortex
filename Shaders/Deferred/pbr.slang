@@ -24,7 +24,7 @@ import "../common";
 {
 	float3 world_pos = position_gbuffer.Sample(input.uv).rgb;
 	float3 N = normalize(normal_gbuffer.Sample(input.uv).rgb);
-	float3 V = normalize(scene.camera_position.xyz - world_pos);
+	float3 V = normalize(scene.camera.position.xyz - world_pos);
 
 	float3 albedo = albedo_gbuffer.Sample(input.uv).rgb;
 	float  metallic = metallic_gbuffer.Sample(input.uv).r;

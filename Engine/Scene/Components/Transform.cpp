@@ -75,26 +75,26 @@ glm::mat4 Transform::getMatrix() const
 	    * glm::scale(glm::mat4(1.0f), scaling);
 }
 
-glm::mat4 Transform::getWorldMatrix()
-{
-	updateWorldTransform();
-	return world_matrix;
-}
-
 void Transform::setMatrix(const glm::mat4& matrix)
 {
 	this->world_matrix = matrix;
 	invalidateWorldMatrix();
 }
 
+glm::mat4 Transform::getWorldMatrix()
+{
+	updateWorldTransform();
+	return world_matrix;
+}
+
 void Transform::invalidateWorldMatrix()
 {
-	update_world_matrix = true;
+	world_matrix_dirty = true;
 }
 
 void Transform::updateWorldTransform()
 {
-	if (!update_world_matrix)
+	if (!world_matrix_dirty)
 		return;
 
 	world_matrix = getMatrix();
@@ -103,5 +103,10 @@ void Transform::updateWorldTransform()
 		world_matrix = transform.getWorldMatrix() * world_matrix;
 	}
 
-	update_world_matrix = false;
+	world_matrix_dirty = false;
+}
+
+bool Transform::dirty() const
+{
+	return world_matrix_dirty;
 }

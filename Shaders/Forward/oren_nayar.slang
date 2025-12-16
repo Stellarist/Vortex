@@ -12,7 +12,7 @@ import "../common";
 	VSOutput output;
 	float4   world_position = mul(object.model, float4(input.pos, 1.0));
 
-	output.position = mul(scene.projection, mul(scene.view, world_position));
+	output.position = mul(scene.camera.projection, mul(scene.camera.view, world_position));
 	output.world_pos = world_position.xyz;
 	output.normal = mul((float3x3) (object.model), input.normal);
 	output.uv = input.uv;
@@ -24,7 +24,7 @@ import "../common";
     [shader("fragment")] float4 fragmentMain(VSOutput input)
 {
 	float3 N = normalize(input.normal);
-	float3 V = normalize(scene.camera_position.xyz - input.world_pos);
+	float3 V = normalize(scene.camera.position.xyz - input.world_pos);
 
 	float4 base_color = base_color_texture.Sample(input.uv);
 	float4 metallic_roughness = metallic_roughness_texture.Sample(input.uv);

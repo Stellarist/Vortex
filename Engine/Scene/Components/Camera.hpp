@@ -16,9 +16,9 @@ public:
 
 	std::type_index getType() override;
 
-	virtual glm::mat4 getProjection() = 0;
+	virtual glm::mat4 getProjection() const = 0;
 
-	auto getView() -> glm::mat4;
+	auto getView() const -> glm::mat4;
 
 	glm::mat4 getPreRotation() const;
 	void      setPreRotation(const glm::mat4& pre_rotation);
@@ -54,7 +54,7 @@ public:
 	glm::vec3 getUp();
 	glm::vec3 getRight();
 
-	glm::mat4 getProjection() override;
+	glm::mat4 getProjection() const override;
 };
 
 class OrthoCamera : public Camera {
@@ -98,5 +98,5 @@ public:
 	float getFarPlane() const;
 	void  setFarPlane(float far_plane);
 
-	glm::mat4 getProjection() override;
+	glm::mat4 getProjection() const override;
 };

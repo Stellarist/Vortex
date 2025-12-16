@@ -1,6 +1,5 @@
 #include "RenderScene.hpp"
 
-#include "Render/Graphics/Device.hpp"
 #include "Render/RHI/GpuMesh.hpp"
 #include "Render/RHI/GpuData.hpp"
 #include "Render/RHI/GpuTexture.hpp"
@@ -51,18 +50,66 @@ void RenderScene::createDescriptorPools()
 
 void RenderScene::createSceneDescriptor()
 {
-	scene_data.view = glm::mat4(1.0f);
-	scene_data.projection = glm::mat4(1.0f);
-	scene_data.ambient_color = glm::vec4(0.1f, 0.1f, 0.1f, 1.0f);
-
-	scene_uniform = Buffer::createDynamic(
-	    *context,
-	    vk::BufferUsageFlagBits::eUniformBuffer,
-	    &scene_data,
-	    sizeof(GpuSceneData));
+	scene_uniform = Buffer::createDynamic(*context, vk::BufferUsageFlagBits::eUniformBuffer, &scene_data, sizeof(GpuSceneData));
 
 	scene_descriptor = scene_pool->allocate(*scene_layout);
 	scene_descriptor.update(context->getDevice(), 0, vk::DescriptorType::eUniformBuffer, scene_uniform.get());
+}
+
+void RenderScene::updateCamera()
+{
+	if (!world)
+		return;
+
+	auto* camera = world->getActiveCamera();
+	if (!camera)
+		return;
+
+	if (!camera->getNode()->getTransform().dirty())
+		return;
+
+	scene_data.camera = GpuCameraData::convert(*camera);
+}
+
+void RenderScene::updateLights()
+{
+	if (!world)
+		return;
+
+	auto* scene = world->getActiveScene();
+	if (!scene)
+		return;
+
+	auto lights = scene->getComponents<Light>();
+	if (lights.empty())
+		return;
+
+	scene_data.light_count = std::min(static_cast<uint32_t>(lights.size()), MAX_LIGHTS);
+	for (uint32_t i = 0; i < scene_data.light_count; i++)
+		scene_data.lights[i] = GpuLightData::convert(*lights[i]);
+}
+
+void RenderScene::updateMesh()
+{
+	if (!world || !world->getActiveScene())
+		return;
+
+	auto scene = world->getActiveScene();
+
+	auto meshes = scene->getComponents<Mesh>();
+	for (auto& mesh : meshes) {
+		auto transform = mesh->getNode()->getTransform();
+		if (!transform.dirty())
+			continue;
+
+		for (auto submesh : mesh->getSubmeshes()) {
+			auto it = submesh_to_gpu_mesh.find(submesh);
+			if (it != submesh_to_gpu_mesh.end()) {
+				it->second->setModelMatrix(transform.getWorldMatrix());
+				it->second->updateUniforms();
+			}
+		}
+	}
 }
 
 void RenderScene::loadTextures()
@@ -71,8 +118,8 @@ void RenderScene::loadTextures()
 		return;
 
 	auto textures = world->getActiveScene()->getResources<Texture>();
-
 	gpu_textures.clear();
+	gpu_textures.reserve(textures.size());
 	texture_to_gpu_texture.clear();
 
 	default_sampler = std::make_shared<Sampler>(*context);
@@ -84,6 +131,8 @@ void RenderScene::loadTextures()
 		texture_to_gpu_texture[texture] = gpu_texture.get();
 		gpu_textures.push_back(std::move(gpu_texture));
 	}
+
+	last_texture_count = textures.size();
 }
 
 void RenderScene::loadMaterials()
@@ -92,7 +141,6 @@ void RenderScene::loadMaterials()
 		return;
 
 	auto materials = world->getActiveScene()->getResources<Material>();
-
 	gpu_materials.clear();
 	gpu_materials.reserve(materials.size());
 
@@ -176,10 +224,11 @@ bool RenderScene::needsRebuild() const
 	if (!world || !world->getActiveScene())
 		return false;
 
-	auto submeshes = world->getActiveScene()->getResources<SubMesh>();
-	auto materials = world->getActiveScene()->getResources<Material>();
+	const auto& textures = world->getActiveScene()->getResources<Texture>();
+	const auto& submeshes = world->getActiveScene()->getResources<SubMesh>();
+	const auto& materials = world->getActiveScene()->getResources<Material>();
 
-	return submeshes.size() != last_submesh_count || materials.size() != last_material_count;
+	return submeshes.size() != last_submesh_count || materials.size() != last_material_count || textures.size() != last_texture_count;
 }
 
 void RenderScene::clear()
@@ -197,132 +246,6 @@ void RenderScene::clear()
 		object_pool->reset();
 }
 
-void RenderScene::updateCamera()
-{
-	if (!world)
-		return;
-
-	auto* camera = world->getActiveCamera();
-	if (camera) {
-		scene_data.view = camera->getView();
-		scene_data.projection = camera->getProjection();
-
-		glm::mat4 inv_view = glm::inverse(scene_data.view);
-		scene_data.camera_position = glm::vec4(inv_view[3][0], inv_view[3][1], inv_view[3][2], 1.0f);
-	}
-
-	updateLights();
-
-	scene_uniform->upload(&scene_data, sizeof(GpuSceneData));
-}
-
-void RenderScene::updateLights()
-{
-	if (!world || !world->getActiveScene())
-		return;
-
-	auto scene = world->getActiveScene();
-	auto lights = scene->getComponents<Light>();
-
-	scene_data.light_count = std::min(static_cast<uint32_t>(lights.size()), MAX_LIGHTS);
-
-	for (uint32_t i = 0; i < scene_data.light_count; ++i) {
-		auto* light = lights[i];
-		auto& gpu_light = scene_data.lights[i];
-		Node* light_node = nullptr;
-
-		std::function<Node*(Node*)> findLightNode = [&](Node* node) -> Node* {
-			if (!node)
-				return nullptr;
-
-			if (node->hasComponent<Light>() && &node->getComponent<Light>() == light)
-				return node;
-
-			for (auto* child : node->getChildren())
-				if (auto* found = findLightNode(child))
-					return found;
-
-			return nullptr;
-		};
-
-		for (auto* root = scene->getRoot(); auto* child : root->getChildren()) {
-			light_node = findLightNode(child);
-			if (light_node)
-				break;
-		}
-
-		glm::vec3 position(0.0f);
-		glm::vec3 direction(0.0f, -1.0f, 0.0f);
-
-		if (light_node) {
-			auto world_matrix = getWorldMatrix(light_node);
-			position = glm::vec3(world_matrix[3]);
-			direction = glm::normalize(glm::vec3(world_matrix * glm::vec4(0.0f, -1.0f, 0.0f, 0.0f)));
-		}
-
-		if (auto* dir_light = dynamic_cast<DirectionalLight*>(light)) {
-			gpu_light.position = glm::vec4(direction, 0.0f);
-			gpu_light.direction = glm::vec4(direction, 0.0f);
-			gpu_light.color = glm::vec4(dir_light->getColor(), dir_light->getIntensity());
-			gpu_light.params = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
-
-		} else if (auto* point_light = dynamic_cast<PointLight*>(light)) {
-			gpu_light.position = glm::vec4(position, 1.0f);
-			gpu_light.direction = glm::vec4(0.0f);
-			gpu_light.color = glm::vec4(point_light->getColor(), point_light->getIntensity());
-			gpu_light.params = glm::vec4(point_light->getRange(), 0.0f, 0.0f, 1.0f);
-
-		} else if (auto* spot_light = dynamic_cast<SpotLight*>(light)) {
-			gpu_light.position = glm::vec4(position, 1.0f);
-			gpu_light.direction = glm::vec4(direction, 0.0f);
-			gpu_light.color = glm::vec4(spot_light->getColor(), spot_light->getIntensity());
-			gpu_light.params = glm::vec4(spot_light->getRange(), spot_light->getInnerConeAngle(), spot_light->getOuterConeAngle(), 2.0f);
-		}
-	}
-}
-
-void RenderScene::updateMesh()
-{
-	if (!world || !world->getActiveScene())
-		return;
-
-	auto scene = world->getActiveScene();
-
-	std::function<void(Node*)> traverse = [&](Node* node) {
-		if (!node)
-			return;
-
-		if (node->hasComponent<Mesh>()) {
-			auto& mesh = node->getComponent<Mesh>();
-			auto  world_matrix = getWorldMatrix(node);
-
-			for (auto submesh : mesh.getSubmeshes()) {
-				auto it = submesh_to_gpu_mesh.find(submesh);
-				if (it != submesh_to_gpu_mesh.end()) {
-					it->second->setModelMatrix(world_matrix);
-					it->second->updateUniforms();
-				}
-			}
-		}
-
-		for (auto* child : node->getChildren())
-			traverse(child);
-	};
-
-	auto* root = scene->getRoot();
-	for (auto* child : root->getChildren())
-		traverse(child);
-}
-
-glm::mat4 RenderScene::getWorldMatrix(const Node* node) const
-{
-	if (!node)
-		return glm::mat4(1.0f);
-
-	auto& transform = const_cast<Node*>(node)->getTransform();
-	return transform.getWorldMatrix();
-}
-
 void RenderScene::update(float dt)
 {
 	if (!world || !world->getActiveScene())
@@ -332,23 +255,22 @@ void RenderScene::update(float dt)
 		rebuild();
 
 	updateCamera();
+	updateLights();
 	updateMesh();
+
+	scene_uniform->upload(&scene_data, sizeof(GpuSceneData));
 }
 
 void RenderScene::rebuild()
 {
-	context->getDevice().logical().waitIdle();
-
 	clear();
 
 	if (!world || !world->getActiveScene())
 		return;
 
-	auto materials = world->getActiveScene()->getResources<Material>();
-	auto submeshes = world->getActiveScene()->getResources<SubMesh>();
-
-	if (materials.size() > material_pool->setsCount()) {
-		uint32_t                            material_count = std::max(1u, static_cast<uint32_t>(materials.size()));
+	auto     materials = world->getActiveScene()->getResources<Material>();
+	uint32_t material_count = std::max(1u, static_cast<uint32_t>(materials.size()));
+	if (material_pool->setsCount() < materials.size()) {
 		std::vector<vk::DescriptorPoolSize> material_pool_sizes = {
 		    {vk::DescriptorType::eUniformBuffer, material_count},
 		    {vk::DescriptorType::eCombinedImageSampler, material_count * 5},
@@ -356,8 +278,9 @@ void RenderScene::rebuild()
 		material_pool = std::make_unique<DescriptorPool>(*context, material_count, material_pool_sizes);
 	}
 
-	if (submeshes.size() > object_pool->setsCount()) {
-		uint32_t                            mesh_count = std::max(1u, static_cast<uint32_t>(submeshes.size()));
+	auto     submeshes = world->getActiveScene()->getResources<SubMesh>();
+	uint32_t mesh_count = std::max(1u, static_cast<uint32_t>(submeshes.size()));
+	if (object_pool->setsCount() < submeshes.size()) {
 		std::vector<vk::DescriptorPoolSize> object_pool_sizes = {
 		    {vk::DescriptorType::eUniformBuffer, mesh_count * 2},
 		};

@@ -13,9 +13,10 @@ private:
 	glm::quat rotation{1.0f, 0.0f, 0.0f, 0.0f};
 	glm::vec3 scaling{1.0f, 1.0f, 1.0f};
 	glm::mat4 world_matrix{1.0f};
-	bool      update_world_matrix{true};
 
 	Node* node{};
+
+	bool world_matrix_dirty{true};
 
 	void updateWorldTransform();
 
@@ -42,7 +43,10 @@ public:
 	void setNode(Node& node);
 
 	auto getMatrix() const -> glm::mat4;
-	auto getWorldMatrix() -> glm::mat4;
 	void setMatrix(const glm::mat4& matrix);
+
+	auto getWorldMatrix() -> glm::mat4;
 	void invalidateWorldMatrix();
+
+	bool dirty() const;
 };

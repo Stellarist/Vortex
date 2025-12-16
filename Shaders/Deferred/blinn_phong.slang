@@ -24,12 +24,12 @@ import "../common";
 {
 	float3 world_pos = position_gbuffer.Sample(input.uv).rgb;
 	float3 N = normalize(normal_gbuffer.Sample(input.uv).rgb);
-	float3 V = normalize(scene.camera_position.xyz - world_pos);
+	float3 V = normalize(scene.camera.position.xyz - world_pos);
 
 	float3 albedo = albedo_gbuffer.Sample(input.uv).rgb;
 	float  opacity = albedo_gbuffer.Sample(input.uv).a;
 
-	float3 ambient = scene.ambient_color.rgb * scene.ambient_color.a;
+	float3 ambient = scene.camera.position.rgb * scene.ambient_color.a;
 	float3 lighting = ambient;
 
 	for (uint i = 0; i < scene.light_count; ++i) {

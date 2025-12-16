@@ -11,7 +11,7 @@ std::type_index Camera::getType()
 	return typeid(Camera);
 }
 
-glm::mat4 Camera::getView()
+glm::mat4 Camera::getView() const
 {
 	assert(node && "Camera component must be attached to a node");
 
@@ -104,7 +104,7 @@ glm::vec3 PerspectiveCamera::getRight()
 	return glm::normalize(transform.getWorldMatrix() * glm::vec4(1.0f, 0.0f, 0.0f, 0.0f));
 }
 
-glm::mat4 PerspectiveCamera::getProjection()
+glm::mat4 PerspectiveCamera::getProjection() const
 {
 	auto proj = glm::perspectiveRH_ZO(fov, aspect_ratio, near_plane, far_plane);
 	proj[1][1] *= -1.0f;
@@ -191,7 +191,7 @@ float OrthoCamera::getFarPlane() const
 	return far_plane;
 }
 
-glm::mat4 OrthoCamera::getProjection()
+glm::mat4 OrthoCamera::getProjection() const
 {
 	auto ortho = glm::orthoRH_ZO(left, right, bottom, top, near_plane, far_plane);
 	ortho[1][1] *= -1.0f;

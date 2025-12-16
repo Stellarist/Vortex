@@ -16,6 +16,12 @@ struct VSOutput {
 	float4 color : COLOR;
 };
 
+struct CameraData {
+	float4x4 view;
+	float4x4 projection;
+	float4   position;
+};
+
 struct LightData {
 	float4 position;
 	float4 direction;
@@ -31,20 +37,13 @@ struct MaterialData {
 	float4 base_color;
 	float  metallic;
 	float  roughness;
-	float  padding1;
-	float  padding2;
 };
 
 struct SceneData {
-	float4x4  view;
-	float4x4  projection;
-	float4    ambient_color;
-	float4    camera_position;
-	uint      light_count;
-	float     padding1;
-	float     padding2;
-	float     padding3;
-	LightData lights[16];
+	CameraData camera;
+	LightData  lights[16];
+	float4     ambient_color;
+	uint       light_count;
 };
 
 struct LightSample {

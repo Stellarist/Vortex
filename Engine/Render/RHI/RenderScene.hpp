@@ -42,6 +42,7 @@ private:
 	std::unordered_map<std::shared_ptr<SubMesh>, GpuMesh*>               submesh_to_gpu_mesh;
 
 	size_t last_submesh_count{0};
+	size_t last_texture_count{0};
 	size_t last_material_count{0};
 
 	Context* context{};
@@ -50,6 +51,10 @@ private:
 	void createDescriptorPools();
 	void createSceneDescriptor();
 
+	void updateCamera();
+	void updateLights();
+	void updateMesh();
+
 	void loadTextures();
 	void loadMaterials();
 	void loadMeshes();
@@ -57,12 +62,6 @@ private:
 
 	bool needsRebuild() const;
 	void clear();
-
-	void updateCamera();
-	void updateLights();
-	void updateMesh();
-
-	glm::mat4 getWorldMatrix(const Node* node) const;
 
 public:
 	RenderScene() = default;

@@ -12,7 +12,7 @@ import "../common";
 	VSOutput output;
 	float4   world_position = mul(object.model, float4(input.pos, 1.0));
 
-	output.position = mul(scene.projection, mul(scene.view, world_position));
+	output.position = mul(scene.camera.projection, mul(scene.camera.view, world_position));
 	output.world_pos = world_position.xyz;
 	output.normal = mul((float3x3) (object.model), input.normal);
 	output.uv = input.uv;

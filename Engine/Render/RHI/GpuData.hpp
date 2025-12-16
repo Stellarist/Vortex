@@ -3,6 +3,9 @@
 #include <vulkan/vulkan.hpp>
 #include <glm/glm.hpp>
 
+#include "Scene/Components/Camera.hpp"
+#include "Scene/Components/Light.hpp"
+
 constexpr uint32_t MAX_LIGHTS = 16;
 
 struct GpuVertex {
@@ -15,10 +18,12 @@ struct GpuVertex {
 	static std::vector<vk::VertexInputAttributeDescription> attributes(uint32_t binding = {});
 };
 
-struct GpuObjectData {
-	glm::mat4 model{1.0f};
+struct GpuCameraData {
+	glm::mat4 view{1.0f};
+	glm::mat4 projection{1.0f};
+	glm::vec4 position{0.0f, 0.0f, 0.0f, 1.0f};
 
-	static vk::DescriptorSetLayoutBinding binding(uint32_t binding = 0);
+	static GpuCameraData convert(const Camera& camera);
 };
 
 struct GpuLightData {
@@ -26,28 +31,29 @@ struct GpuLightData {
 	glm::vec4 direction;
 	glm::vec4 color;
 	glm::vec4 params;
+
+	static GpuLightData convert(const Light& light);
+};
+
+struct GpuObjectData {
+	glm::mat4 model{1.0f};
+
+	static vk::DescriptorSetLayoutBinding binding(uint32_t binding = 0);
 };
 
 struct GpuMaterialData {
 	glm::vec4 base_color{1.0f};
 	float     metallic{0.0f};
 	float     roughness{1.0f};
-	float     padding1;
-	float     padding2;
 
 	static std::vector<vk::DescriptorSetLayoutBinding> bindings(uint32_t base_binding = 0);
 };
 
 struct GpuSceneData {
-	glm::mat4    view{1.0f};
-	glm::mat4    projection{1.0f};
-	glm::vec4    ambient_color{0.1f, 0.1f, 0.1f, 1.0f};
-	glm::vec4    camera_position{0.0f, 0.0f, 0.0f, 1.0f};
-	uint32_t     light_count{0};
-	float        padding1;
-	float        padding2;
-	float        padding3;
-	GpuLightData lights[MAX_LIGHTS];
+	GpuCameraData camera;
+	GpuLightData  lights[MAX_LIGHTS];
+	glm::vec4     ambient_color{0.1f, 0.1f, 0.1f, 1.0f};
+	uint32_t      light_count{0};
 
 	static vk::DescriptorSetLayoutBinding binding(uint32_t binding = 0);
 };
