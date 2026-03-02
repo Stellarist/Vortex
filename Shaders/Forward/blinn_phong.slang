@@ -7,7 +7,9 @@ import "../common";
 [[vk::binding(0, 1)]] ConstantBuffer<MaterialData> material;
 [[vk::binding(1, 1)]] Sampler2D                    base_color_texture;
 
-[shader("vertex")] VSOutput vertexMain(VSInput input) {
+[shader("vertex")] 
+VSOutput vertexMain(VSInput input) 
+{
 	VSOutput output;
 	float4   world_position = mul(object.model, float4(input.pos, 1.0));
 
@@ -20,7 +22,8 @@ import "../common";
 	return output;
 }
 
-    [shader("fragment")] float4 fragmentMain(VSOutput input)
+[shader("fragment")] 
+float4 fragmentMain(VSOutput input)
 {
 	float4 tex_color = base_color_texture.Sample(input.uv);
 

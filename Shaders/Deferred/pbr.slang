@@ -8,7 +8,9 @@ import "../common";
 [[vk::binding(3, 3)]] Sampler2D metallic_gbuffer;
 [[vk::binding(4, 3)]] Sampler2D roughness_gbuffer;
 
-[shader("vertex")] FScreenOutput vertexMain(uint vertexID : SV_VertexID) {
+[shader("vertex")] 
+FScreenOutput vertexMain(uint vertexID : SV_VertexID) 
+{
 	FScreenOutput output;
 
 	float2 uv = float2(vertexID & 2, (vertexID << 1) & 2);
@@ -20,7 +22,8 @@ import "../common";
 	return output;
 }
 
-    [shader("fragment")] float4 fragmentMain(FScreenOutput input) : SV_Target
+[shader("fragment")] 
+float4 fragmentMain(FScreenOutput input) : SV_Target
 {
 	float3 world_pos = position_gbuffer.Sample(input.uv).rgb;
 	float3 N = normalize(normal_gbuffer.Sample(input.uv).rgb);
