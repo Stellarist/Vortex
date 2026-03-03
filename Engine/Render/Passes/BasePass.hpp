@@ -7,7 +7,8 @@ enum class PassType : uint32_t {
 	Forward,
 	Geometry,
 	Lighting,
-	Count
+	Shadow,
+	Count,
 };
 
 class BasePass {

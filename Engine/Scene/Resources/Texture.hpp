@@ -6,7 +6,16 @@
 #include "Scene/Core/Resource.hpp"
 
 class Texture : public Resource {
+public:
+	enum class Dimension : uint8_t {
+		Tex2D,
+		TexCube,
+		Count,
+	};
+
 private:
+	Dimension dimension{Dimension::Tex2D};
+
 	std::vector<uint8_t> data;
 
 	uint32_t format{0};
@@ -14,10 +23,13 @@ private:
 	uint32_t height{0};
 
 public:
-	Texture(const std::string& name);
+	Texture(Dimension dimension = Dimension::Tex2D, const std::string& name = {});
 	~Texture() override = default;
 
 	std::type_index getType() override;
+
+	auto getDimension() const -> Dimension;
+	void setDimension(Dimension dimension);
 
 	auto getData() const -> const std::vector<uint8_t>&;
 	void setData(std::vector<uint8_t> new_data);

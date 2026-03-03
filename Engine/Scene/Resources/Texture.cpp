@@ -1,12 +1,23 @@
 #include "Texture.hpp"
 
-Texture::Texture(const std::string& name) :
-    Resource(name)
+Texture::Texture(Dimension dimension, const std::string& name) :
+    Resource(name),
+    dimension(dimension)
 {}
 
 std::type_index Texture::getType()
 {
 	return typeid(Texture);
+}
+
+Texture::Dimension Texture::getDimension() const
+{
+	return dimension;
+}
+
+void Texture::setDimension(Texture::Dimension dimension)
+{
+	this->dimension = dimension;
 }
 
 const std::vector<uint8_t>& Texture::getData() const

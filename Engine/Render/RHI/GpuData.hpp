@@ -42,7 +42,7 @@ struct GpuObjectData {
 };
 
 struct GpuMaterialData {
-	glm::vec4 base_color{1.0f};
+	glm::vec4 albedo{1.0f};
 	float     metallic{0.0f};
 	float     roughness{1.0f};
 

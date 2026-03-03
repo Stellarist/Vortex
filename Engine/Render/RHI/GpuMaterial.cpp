@@ -11,10 +11,10 @@ GpuMaterial::GpuMaterial(Context& context,
     base_color_texture(base_color),
     metallic_roughness_texture(metallic_roughness)
 {
-	if (auto* pbr = dynamic_cast<const PBRMaterial*>(material.get())) {
-		material_data.base_color = pbr->getBaseColorFactor();
-		material_data.metallic = pbr->getMetallicFactor();
-		material_data.roughness = pbr->getRoughnessFactor();
+	if (auto* mat = dynamic_cast<const Material*>(material.get())) {
+		material_data.albedo = mat->getAlbedo();
+		material_data.metallic = mat->getMetallic();
+		material_data.roughness = mat->getRoughness();
 	}
 
 	material_uniform = Buffer::createDynamic(
