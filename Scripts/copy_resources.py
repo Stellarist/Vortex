@@ -6,7 +6,6 @@ RESOURCES = [
     "Assets",
     "Configs",
     "Scripts",
-    "Shaders/*.spv",
 ]
 
 def copy_resources(src_dir, build_dir):

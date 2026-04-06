@@ -44,13 +44,13 @@ set(SHADER_LIST
 )
 
 add_custom_target(build_shaders ALL
-	COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Scripts/compile_shaders.py ${SHADER_LIST}
-	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/Shaders
+	COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Scripts/compile_shaders.py --output-dir "$<TARGET_FILE_DIR:Vortex>/Shaders" ${SHADER_LIST}
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/Engine/Shaders
 	COMMENT "Compiling shaders..."
 )
 
 add_custom_target(copy_resources ALL
-	COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Scripts/copy_resources.py ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR}
+	COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Scripts/copy_resources.py ${CMAKE_SOURCE_DIR} "$<TARGET_FILE_DIR:Vortex>"
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 	DEPENDS build_shaders
 	COMMENT "Copying resources..."
