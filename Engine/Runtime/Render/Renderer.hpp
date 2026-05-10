@@ -6,10 +6,10 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
 
-#include "Graphics/Context.hpp"
-#include "Graphics/Command.hpp"
-#include "Graphics/Sync.hpp"
-#include "Proxy/RenderScene.hpp"
+#include "Backend/Context.hpp"
+#include "Backend/Command.hpp"
+#include "Backend/Sync.hpp"
+#include "Resources/GpuScene.hpp"
 #include "Paths/ForwardPath.hpp"
 #include "Paths/DeferredPath.hpp"
 #include "Runtime/World/World.hpp"
@@ -34,7 +34,7 @@ class Renderer {
 
 	std::unique_ptr<ForwardPath>  forward_pipeline;
 	std::unique_ptr<DeferredPath> deferred_pipeline;
-	std::unique_ptr<RenderScene>  render_scene;
+	std::unique_ptr<GpuScene>     render_scene;
 
 	World* active_world{};
 
@@ -66,8 +66,8 @@ public:
 	auto getActiveWorld() const -> World*;
 	void setActiveWorld(World& world);
 
-	Context&     getContext() const;
-	RenderScene& getRenderScene() const;
-	Frame&       getCurrentFrame() const;
-	RenderPass*  getUIPass() const;
+	Context&    getContext() const;
+	GpuScene&   getGpuScene() const;
+	Frame&      getCurrentFrame() const;
+	RenderPass* getUIPass() const;
 };

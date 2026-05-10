@@ -1,7 +1,7 @@
 #include "LightingPass.hpp"
 
-#include "Runtime/Render/Graphics/Device.hpp"
-#include "Runtime/Render/Graphics/SwapChain.hpp"
+#include "Runtime/Render/Backend/Device.hpp"
+#include "Runtime/Render/Backend/SwapChain.hpp"
 
 LightingPass::LightingPass()
 {

@@ -1,8 +1,8 @@
-#include "RenderScene.hpp"
+#include "GpuScene.hpp"
 
-#include "Runtime/Render/Proxy/GpuMesh.hpp"
-#include "Runtime/Render/Proxy/GpuData.hpp"
-#include "Runtime/Render/Proxy/GpuTexture.hpp"
+#include "Runtime/Render/Resources/GpuMesh.hpp"
+#include "Runtime/Render/Resources/GpuData.hpp"
+#include "Runtime/Render/Resources/GpuTexture.hpp"
 #include "Runtime/World/Components/Mesh.hpp"
 #include "Runtime/World/Components/Light.hpp"
 #include "Runtime/World/Resources/SubMesh.hpp"
@@ -12,7 +12,7 @@ constexpr uint32_t MAX_SCENE_SETS = 1;
 constexpr uint32_t MAX_MATERIAL_SETS = 10;
 constexpr uint32_t MAX_OBJECT_SETS = 100;
 
-RenderScene::RenderScene(Context& context, const World& world) :
+GpuScene::GpuScene(Context& context, const World& world) :
     context(&context), world(&world)
 {
 	createDescriptorLayouts();
@@ -22,7 +22,7 @@ RenderScene::RenderScene(Context& context, const World& world) :
 	rebuild();
 }
 
-void RenderScene::createDescriptorLayouts()
+void GpuScene::createDescriptorLayouts()
 {
 	auto scene_bindings = std::vector<vk::DescriptorSetLayoutBinding>{GpuSceneData::binding(0)};
 	scene_layout = std::make_unique<DescriptorSetLayout>(*context, scene_bindings);
@@ -34,7 +34,7 @@ void RenderScene::createDescriptorLayouts()
 	object_layout = std::make_unique<DescriptorSetLayout>(*context, object_bindings);
 }
 
-void RenderScene::createDescriptorPools()
+void GpuScene::createDescriptorPools()
 {
 	std::vector<vk::DescriptorPoolSize> scene_pool_sizes = {{vk::DescriptorType::eUniformBuffer, MAX_SCENE_SETS}};
 	scene_pool = std::make_unique<DescriptorPool>(*context, MAX_SCENE_SETS, scene_pool_sizes);
@@ -48,7 +48,7 @@ void RenderScene::createDescriptorPools()
 	object_pool = std::make_unique<DescriptorPool>(*context, MAX_OBJECT_SETS, object_pool_sizes);
 }
 
-void RenderScene::createSceneDescriptor()
+void GpuScene::createSceneDescriptor()
 {
 	scene_uniform = Buffer::createDynamic(*context, vk::BufferUsageFlagBits::eUniformBuffer, &scene_data, sizeof(GpuSceneData));
 
@@ -56,7 +56,7 @@ void RenderScene::createSceneDescriptor()
 	scene_descriptor.update(context->getDevice(), 0, vk::DescriptorType::eUniformBuffer, scene_uniform.get());
 }
 
-void RenderScene::updateCamera()
+void GpuScene::updateCamera()
 {
 	if (!world)
 		return;
@@ -71,7 +71,7 @@ void RenderScene::updateCamera()
 	scene_data.camera = GpuCameraData::convert(*camera);
 }
 
-void RenderScene::updateLights()
+void GpuScene::updateLights()
 {
 	if (!world)
 		return;
@@ -89,7 +89,7 @@ void RenderScene::updateLights()
 		scene_data.lights[i] = GpuLightData::convert(*lights[i]);
 }
 
-void RenderScene::updateMesh()
+void GpuScene::updateMesh()
 {
 	if (!world || !world->getActiveScene())
 		return;
@@ -112,7 +112,7 @@ void RenderScene::updateMesh()
 	}
 }
 
-void RenderScene::loadTextures()
+void GpuScene::loadTextures()
 {
 	if (!world || !world->getActiveScene())
 		return;
@@ -135,7 +135,7 @@ void RenderScene::loadTextures()
 	last_texture_count = textures.size();
 }
 
-void RenderScene::loadMaterials()
+void GpuScene::loadMaterials()
 {
 	if (!world || !world->getActiveScene())
 		return;
@@ -173,7 +173,7 @@ void RenderScene::loadMaterials()
 	last_material_count = materials.size();
 }
 
-void RenderScene::loadMeshes()
+void GpuScene::loadMeshes()
 {
 	if (!world || !world->getActiveScene())
 		return;
@@ -200,7 +200,7 @@ void RenderScene::loadMeshes()
 	last_submesh_count = submeshes.size();
 }
 
-void RenderScene::organizeMeshesByMaterial()
+void GpuScene::organizeMeshesByMaterial()
 {
 	meshes_by_material.clear();
 
@@ -219,7 +219,7 @@ void RenderScene::organizeMeshesByMaterial()
 	}
 }
 
-bool RenderScene::needsRebuild() const
+bool GpuScene::needsRebuild() const
 {
 	if (!world || !world->getActiveScene())
 		return false;
@@ -231,7 +231,7 @@ bool RenderScene::needsRebuild() const
 	return submeshes.size() != last_submesh_count || materials.size() != last_material_count || textures.size() != last_texture_count;
 }
 
-void RenderScene::clear()
+void GpuScene::clear()
 {
 	meshes_by_material.clear();
 	submesh_to_gpu_mesh.clear();
@@ -246,7 +246,7 @@ void RenderScene::clear()
 		object_pool->reset();
 }
 
-void RenderScene::update(float dt)
+void GpuScene::update(float dt)
 {
 	if (!world || !world->getActiveScene())
 		return;
@@ -261,7 +261,7 @@ void RenderScene::update(float dt)
 	scene_uniform->upload(&scene_data, sizeof(GpuSceneData));
 }
 
-void RenderScene::rebuild()
+void GpuScene::rebuild()
 {
 	clear();
 
@@ -293,7 +293,7 @@ void RenderScene::rebuild()
 	organizeMeshesByMaterial();
 }
 
-void RenderScene::draw(vk::CommandBuffer command_buffer, vk::PipelineLayout pipeline_layout)
+void GpuScene::draw(vk::CommandBuffer command_buffer, vk::PipelineLayout pipeline_layout)
 {
 	command_buffer.bindDescriptorSets(
 	    vk::PipelineBindPoint::eGraphics,
@@ -322,7 +322,7 @@ void RenderScene::draw(vk::CommandBuffer command_buffer, vk::PipelineLayout pipe
 	}
 }
 
-std::vector<vk::DescriptorSetLayout> RenderScene::getDescriptorSetLayouts() const
+std::vector<vk::DescriptorSetLayout> GpuScene::getDescriptorSetLayouts() const
 {
 	return {
 	    scene_layout->get(),
@@ -331,27 +331,27 @@ std::vector<vk::DescriptorSetLayout> RenderScene::getDescriptorSetLayouts() cons
 	};
 }
 
-DescriptorSetLayout* RenderScene::getSceneLayout()
+DescriptorSetLayout* GpuScene::getSceneLayout()
 {
 	return scene_layout.get();
 }
 
-DescriptorSetLayout* RenderScene::getMaterialLayout()
+DescriptorSetLayout* GpuScene::getMaterialLayout()
 {
 	return material_layout.get();
 }
 
-DescriptorSetLayout* RenderScene::getObjectLayout()
+DescriptorSetLayout* GpuScene::getObjectLayout()
 {
 	return object_layout.get();
 }
 
-DescriptorSet RenderScene::getSceneDescriptor()
+DescriptorSet GpuScene::getSceneDescriptor()
 {
 	return scene_descriptor;
 }
 
-const World* RenderScene::getWorld() const
+const World* GpuScene::getWorld() const
 {
 	return world;
 }

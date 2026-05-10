@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Runtime/Render/Graphics/RenderPass.hpp"
+#include "Runtime/Render/Backend/RenderPass.hpp"
 
 enum class PassType : uint32_t {
 	Base = 0,

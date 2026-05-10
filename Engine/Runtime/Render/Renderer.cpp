@@ -4,8 +4,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "Graphics/Device.hpp"
-#include "Graphics/SwapChain.hpp"
+#include "Backend/Device.hpp"
+#include "Backend/SwapChain.hpp"
 #include "Paths/ForwardPath.hpp"
 #include "Paths/DeferredPath.hpp"
 #include "Runtime/Core/File.hpp"
@@ -138,7 +138,7 @@ void Renderer::setActiveWorld(World& world)
 {
 	active_world = &world;
 
-	render_scene = std::make_unique<RenderScene>(*context, *active_world);
+	render_scene = std::make_unique<GpuScene>(*context, *active_world);
 
 	auto descriptor_layouts = render_scene->getDescriptorSetLayouts();
 
@@ -167,7 +167,7 @@ Context& Renderer::getContext() const
 	return *context;
 }
 
-RenderScene& Renderer::getRenderScene() const
+GpuScene& Renderer::getGpuScene() const
 {
 	return *render_scene;
 }

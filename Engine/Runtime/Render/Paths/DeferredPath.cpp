@@ -1,8 +1,8 @@
 #include "DeferredPath.hpp"
 
-#include "Runtime/Render/Graphics/Device.hpp"
-#include "Runtime/Render/Graphics/SwapChain.hpp"
-#include "Runtime/Render/Proxy/GpuData.hpp"
+#include "Runtime/Render/Backend/Device.hpp"
+#include "Runtime/Render/Backend/SwapChain.hpp"
+#include "Runtime/Render/Resources/GpuData.hpp"
 
 std::vector<vk::PipelineColorBlendAttachmentState> DeferredPath::color_blend_attachments = {};
 

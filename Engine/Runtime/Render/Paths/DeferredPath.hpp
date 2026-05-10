@@ -3,8 +3,8 @@
 #include "BasePath.hpp"
 #include "Runtime/Render/Passes/GeometryPass.hpp"
 #include "Runtime/Render/Passes/LightingPass.hpp"
-#include "Runtime/Render/Graphics/GraphicsPipeline.hpp"
-#include "Runtime/Render/Graphics/GBuffer.hpp"
+#include "Runtime/Render/Backend/GraphicsPipeline.hpp"
+#include "Runtime/Render/Backend/GBuffer.hpp"
 
 class DeferredPath : public BasePath {
 private:

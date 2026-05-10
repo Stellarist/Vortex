@@ -3,9 +3,9 @@
 #include <memory>
 #include <vulkan/vulkan.hpp>
 
-#include "Runtime/Render/Graphics/Context.hpp"
-#include "Runtime/Render/Graphics/Image.hpp"
-#include "Runtime/Render/Graphics/Sampler.hpp"
+#include "Runtime/Render/Backend/Context.hpp"
+#include "Runtime/Render/Backend/Image.hpp"
+#include "Runtime/Render/Backend/Sampler.hpp"
 #include "Runtime/World/Resources/Texture.hpp"
 
 class GpuTexture {

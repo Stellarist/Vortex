@@ -1,8 +1,8 @@
 #include "ForwardPath.hpp"
 
-#include "Runtime/Render/Graphics/Device.hpp"
-#include "Runtime/Render/Graphics/SwapChain.hpp"
-#include "Runtime/Render/Proxy/GpuData.hpp"
+#include "Runtime/Render/Backend/Device.hpp"
+#include "Runtime/Render/Backend/SwapChain.hpp"
+#include "Runtime/Render/Resources/GpuData.hpp"
 
 ForwardPath::ForwardPath()
 {

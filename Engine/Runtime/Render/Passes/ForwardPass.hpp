@@ -1,7 +1,7 @@
 #pragma once
 
 #include "BasePass.hpp"
-#include "Runtime/Render/Graphics/Image.hpp"
+#include "Runtime/Render/Backend/Image.hpp"
 
 class ForwardPass : public BasePass {
 private:

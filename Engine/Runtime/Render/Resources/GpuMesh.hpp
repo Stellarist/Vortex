@@ -3,8 +3,8 @@
 #include <vulkan/vulkan.hpp>
 
 #include "GpuData.hpp"
-#include "Runtime/Render/Graphics/Buffer.hpp"
-#include "Runtime/Render/Graphics/Descriptor.hpp"
+#include "Runtime/Render/Backend/Buffer.hpp"
+#include "Runtime/Render/Backend/Descriptor.hpp"
 #include "Runtime/World/Resources/SubMesh.hpp"
 
 class GpuMesh {

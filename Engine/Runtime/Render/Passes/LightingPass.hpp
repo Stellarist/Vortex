@@ -1,8 +1,8 @@
 #pragma once
 
 #include "BasePass.hpp"
-#include "Runtime/Render/Graphics/Descriptor.hpp"
-#include "Runtime/Render/Graphics/GBuffer.hpp"
+#include "Runtime/Render/Backend/Descriptor.hpp"
+#include "Runtime/Render/Backend/GBuffer.hpp"
 
 class LightingPass : public BasePass {
 private:

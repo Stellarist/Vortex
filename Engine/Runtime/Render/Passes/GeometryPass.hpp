@@ -1,7 +1,7 @@
 #pragma once
 
 #include "BasePass.hpp"
-#include "Runtime/Render/Graphics/GBuffer.hpp"
+#include "Runtime/Render/Backend/GBuffer.hpp"
 
 class GeometryPass : public BasePass {
 private:

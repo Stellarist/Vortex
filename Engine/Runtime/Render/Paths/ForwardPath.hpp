@@ -1,7 +1,7 @@
 #pragma once
 
 #include "BasePath.hpp"
-#include "Runtime/Render/Graphics/GraphicsPipeline.hpp"
+#include "Runtime/Render/Backend/GraphicsPipeline.hpp"
 #include "Runtime/Render/Passes/ForwardPass.hpp"
 
 class ForwardPath : public BasePath {

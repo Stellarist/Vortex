@@ -6,14 +6,14 @@
 
 #include "GpuMesh.hpp"
 #include "GpuTexture.hpp"
-#include "Runtime/Render/Graphics/Buffer.hpp"
-#include "Runtime/Render/Graphics/Context.hpp"
-#include "Runtime/Render/Graphics/Descriptor.hpp"
-#include "Runtime/Render/Proxy/GpuMaterial.hpp"
+#include "Runtime/Render/Backend/Buffer.hpp"
+#include "Runtime/Render/Backend/Context.hpp"
+#include "Runtime/Render/Backend/Descriptor.hpp"
+#include "Runtime/Render/Resources/GpuMaterial.hpp"
 #include "Runtime/World/World.hpp"
 #include "Runtime/World/Resources/Texture.hpp"
 
-class RenderScene {
+class GpuScene {
 private:
 	const World* world{};
 
@@ -64,15 +64,15 @@ private:
 	void clear();
 
 public:
-	RenderScene() = default;
-	RenderScene(Context& context, const World& world);
-	~RenderScene() = default;
+	GpuScene() = default;
+	GpuScene(Context& context, const World& world);
+	~GpuScene() = default;
 
-	RenderScene(const RenderScene&) = delete;
-	RenderScene& operator=(const RenderScene&) = delete;
+	GpuScene(const GpuScene&) = delete;
+	GpuScene& operator=(const GpuScene&) = delete;
 
-	RenderScene(RenderScene&&) noexcept = default;
-	RenderScene& operator=(RenderScene&&) noexcept = default;
+	GpuScene(GpuScene&&) noexcept = default;
+	GpuScene& operator=(GpuScene&&) noexcept = default;
 
 	void update(float dt);
 	void rebuild();

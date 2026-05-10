@@ -4,9 +4,9 @@
 #include <vulkan/vulkan.hpp>
 
 #include "GpuData.hpp"
-#include "Runtime/Render/Graphics/Buffer.hpp"
-#include "Runtime/Render/Graphics/Descriptor.hpp"
-#include "Runtime/Render/Graphics/Image.hpp"
+#include "Runtime/Render/Backend/Buffer.hpp"
+#include "Runtime/Render/Backend/Descriptor.hpp"
+#include "Runtime/Render/Backend/Image.hpp"
 #include "Runtime/World/Resources/Material.hpp"
 
 class GpuMaterial {

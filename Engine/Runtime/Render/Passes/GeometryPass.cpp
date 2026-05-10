@@ -1,6 +1,6 @@
 #include "GeometryPass.hpp"
 
-#include "Runtime/Render/Graphics/Device.hpp"
+#include "Runtime/Render/Backend/Device.hpp"
 
 GeometryPass::GeometryPass()
 {
