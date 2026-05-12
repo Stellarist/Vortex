@@ -1,28 +1,28 @@
-#include "Sync.hpp"
+#include "VulkanSync.hpp"
 
-#include "Device.hpp"
+#include "VulkanDevice.hpp"
 
 #include <vulkan/vulkan.h>
 
-Semaphore::Semaphore(Context& context) :
+VulkanSemaphore::VulkanSemaphore(VulkanContext& context) :
     context(&context)
 {
 	vk::SemaphoreCreateInfo create_info{};
 	semaphore = context.getDevice().logical().createSemaphore(create_info);
 }
 
-Semaphore::~Semaphore()
+VulkanSemaphore::~VulkanSemaphore()
 {
 	if (context && semaphore)
 		context->getDevice().logical().destroySemaphore(semaphore);
 }
 
-Semaphore::Semaphore(Semaphore&& other) noexcept :
+VulkanSemaphore::VulkanSemaphore(VulkanSemaphore&& other) noexcept :
     semaphore(std::exchange(other.semaphore, nullptr)),
     context(std::exchange(other.context, nullptr))
 {}
 
-Semaphore& Semaphore::operator=(Semaphore&& other) noexcept
+VulkanSemaphore& VulkanSemaphore::operator=(VulkanSemaphore&& other) noexcept
 {
 	if (this != &other) {
 		if (context && semaphore)
@@ -35,12 +35,12 @@ Semaphore& Semaphore::operator=(Semaphore&& other) noexcept
 	return *this;
 }
 
-vk::Semaphore Semaphore::get() const&
+vk::Semaphore VulkanSemaphore::get() const&
 {
 	return semaphore;
 }
 
-Fence::Fence(Context& context, bool signaled) :
+VulkanFence::VulkanFence(VulkanContext& context, bool signaled) :
     context(&context)
 {
 	vk::FenceCreateInfo create_info{};
@@ -50,18 +50,18 @@ Fence::Fence(Context& context, bool signaled) :
 	fence = context.getDevice().logical().createFence(create_info);
 }
 
-Fence::~Fence()
+VulkanFence::~VulkanFence()
 {
 	if (context && fence)
 		context->getDevice().logical().destroyFence(fence);
 }
 
-Fence::Fence(Fence&& other) noexcept :
+VulkanFence::VulkanFence(VulkanFence&& other) noexcept :
     fence(std::exchange(other.fence, nullptr)),
     context(std::exchange(other.context, nullptr))
 {}
 
-Fence& Fence::operator=(Fence&& other) noexcept
+VulkanFence& VulkanFence::operator=(VulkanFence&& other) noexcept
 {
 	if (this != &other) {
 		if (context && fence)
@@ -74,7 +74,7 @@ Fence& Fence::operator=(Fence&& other) noexcept
 	return *this;
 }
 
-void Fence::wait(uint64_t timeout) const
+void VulkanFence::wait(uint64_t timeout) const
 {
 	if (!fence)
 		throw std::runtime_error("Invalid fence");
@@ -84,7 +84,7 @@ void Fence::wait(uint64_t timeout) const
 		throw std::runtime_error("Failed to wait for fence");
 }
 
-void Fence::reset()
+void VulkanFence::reset()
 {
 	if (!fence)
 		throw std::runtime_error("Invalid fence");
@@ -92,7 +92,7 @@ void Fence::reset()
 	context->getDevice().logical().resetFences(fence);
 }
 
-bool Fence::signaled() const
+bool VulkanFence::signaled() const
 {
 	if (!fence)
 		return false;
@@ -100,7 +100,7 @@ bool Fence::signaled() const
 	return context->getDevice().logical().getFenceStatus(fence) == vk::Result::eSuccess;
 }
 
-vk::Fence Fence::get() const&
+vk::Fence VulkanFence::get() const&
 {
 	return fence;
 }

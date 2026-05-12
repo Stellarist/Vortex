@@ -3,30 +3,30 @@
 #include <vulkan/vulkan.hpp>
 
 #include "GpuData.hpp"
-#include "Runtime/Render/Backend/Buffer.hpp"
-#include "Runtime/Render/Backend/Descriptor.hpp"
+#include "Runtime/Render/Backend/VulkanBuffer.hpp"
+#include "Runtime/Render/Backend/VulkanDescriptor.hpp"
 #include "Runtime/World/Resources/SubMesh.hpp"
 
 class GpuMesh {
 private:
-	std::unique_ptr<Buffer> vertex_buffer;
-	std::unique_ptr<Buffer> index_buffer;
-	uint32_t                vertex_count{};
-	uint32_t                index_count{};
+	std::unique_ptr<VulkanBuffer> vertex_buffer;
+	std::unique_ptr<VulkanBuffer> index_buffer;
+	uint32_t                      vertex_count{};
+	uint32_t                      index_count{};
 
-	DescriptorSet object_descriptor;
+	VulkanDescriptorSet object_descriptor;
 
-	std::unique_ptr<Buffer> object_uniform;
-	GpuObjectData           object_data;
+	std::unique_ptr<VulkanBuffer> object_uniform;
+	GpuObjectData                 object_data;
 
 	const SubMesh* submesh{};
 
-	Context* context{};
+	VulkanContext* context{};
 
 public:
-	GpuMesh(Context&         context,
+	GpuMesh(VulkanContext&         context,
 	    const SubMesh&       submesh,
-	    DescriptorSetLayout& layout,
+	    VulkanDescriptorSetLayout& layout,
 	    DescriptorPool&      pool);
 	~GpuMesh() = default;
 
@@ -42,7 +42,7 @@ public:
 	void setModelMatrix(const glm::mat4& model);
 	void updateUniforms();
 
-	DescriptorSet  getDescriptor() const;
+	VulkanDescriptorSet  getDescriptor() const;
 	const SubMesh* getSubMesh() const;
 
 	vk::Buffer getVertexBuffer() const;

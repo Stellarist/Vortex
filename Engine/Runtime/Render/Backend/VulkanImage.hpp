@@ -2,11 +2,11 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "Context.hpp"
-#include "Buffer.hpp"
-#include "Sampler.hpp"
+#include "VulkanContext.hpp"
+#include "VulkanBuffer.hpp"
+#include "VulkanSampler.hpp"
 
-class Image {
+class VulkanImage {
 private:
 	vk::Image        image;
 	vk::ImageView    view;
@@ -19,23 +19,23 @@ private:
 
 	const void* data{};
 
-	std::unique_ptr<Buffer> buffer;
+	std::unique_ptr<VulkanBuffer> buffer;
 
-	Context* context{};
-	Sampler* sampler{};
+	VulkanContext* context{};
+	VulkanSampler* sampler{};
 
 	uint32_t queryMemoryType(uint32_t type, vk::MemoryPropertyFlags prop_flags) const;
 
 public:
-	Image(Context& context, const uint8_t* data, uint32_t width, uint32_t height, vk::Format format = vk::Format::eR8G8B8A8Srgb);
-	Image(Context& context, uint32_t width, uint32_t height, vk::Format format, vk::ImageUsageFlags usage);
-	~Image();
+	VulkanImage(VulkanContext& context, const uint8_t* data, uint32_t width, uint32_t height, vk::Format format = vk::Format::eR8G8B8A8Srgb);
+	VulkanImage(VulkanContext& context, uint32_t width, uint32_t height, vk::Format format, vk::ImageUsageFlags usage);
+	~VulkanImage();
 
-	Image(const Image&) = delete;
-	Image& operator=(const Image&) = delete;
+	VulkanImage(const VulkanImage&) = delete;
+	VulkanImage& operator=(const VulkanImage&) = delete;
 
-	Image(Image&&) noexcept = default;
-	Image& operator=(Image&&) noexcept = default;
+	VulkanImage(VulkanImage&&) noexcept = default;
+	VulkanImage& operator=(VulkanImage&&) noexcept = default;
 
 	void createBuffer(uint32_t image_size);
 	void createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageUsageFlags usage);
@@ -49,6 +49,6 @@ public:
 	vk::ImageView getView() const;
 	vk::Format    getFormat() const;
 
-	void     setSampler(Sampler& sampler);
-	Sampler& getSampler() const;
+	void     setSampler(VulkanSampler& sampler);
+	VulkanSampler& getSampler() const;
 };

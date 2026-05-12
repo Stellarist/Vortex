@@ -4,11 +4,11 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "Context.hpp"
-#include "RenderPass.hpp"
-#include "Shader.hpp"
+#include "VulkanContext.hpp"
+#include "VulkanRenderPass.hpp"
+#include "VulkanShader.hpp"
 
-struct GraphicsPipelineConfig {
+struct VulkanGraphicsPipelineConfig {
 	vk::PipelineVertexInputStateCreateInfo vertex_input{};
 
 	vk::PipelineInputAssemblyStateCreateInfo input_assembly{
@@ -73,25 +73,25 @@ struct GraphicsPipelineConfig {
 	std::vector<vk::DescriptorSetLayout> descriptor_layouts{};
 };
 
-class GraphicsPipeline {
+class VulkanGraphicsPipeline {
 private:
 	vk::Pipeline       pipeline;
 	vk::PipelineLayout pipeline_layout;
 
-	GraphicsPipelineConfig config;
+	VulkanGraphicsPipelineConfig config;
 
-	Context*    context{};
-	RenderPass* render_pass{};
+	VulkanContext*    context{};
+	VulkanRenderPass* render_pass{};
 
 public:
-	GraphicsPipeline(Context& context, RenderPass& render_pass, GraphicsPipelineConfig pipeline_config);
-	~GraphicsPipeline();
+	VulkanGraphicsPipeline(VulkanContext& context, VulkanRenderPass& render_pass, VulkanGraphicsPipelineConfig pipeline_config);
+	~VulkanGraphicsPipeline();
 
-	GraphicsPipeline(const GraphicsPipeline&) = delete;
-	GraphicsPipeline& operator=(const GraphicsPipeline&) = delete;
+	VulkanGraphicsPipeline(const VulkanGraphicsPipeline&) = delete;
+	VulkanGraphicsPipeline& operator=(const VulkanGraphicsPipeline&) = delete;
 
-	GraphicsPipeline(GraphicsPipeline&&) noexcept = default;
-	GraphicsPipeline& operator=(GraphicsPipeline&&) noexcept = default;
+	VulkanGraphicsPipeline(VulkanGraphicsPipeline&&) noexcept = default;
+	VulkanGraphicsPipeline& operator=(VulkanGraphicsPipeline&&) noexcept = default;
 
 	void createLayout();
 	void create();
@@ -99,6 +99,6 @@ public:
 	vk::Pipeline       get() const;
 	vk::PipelineLayout getLayout() const;
 
-	const GraphicsPipelineConfig& getConfig() const;
-	const Shader&                 getShader() const;
+	const VulkanGraphicsPipelineConfig& getConfig() const;
+	const VulkanShader&                 getShader() const;
 };

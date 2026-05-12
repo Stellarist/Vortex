@@ -1,19 +1,19 @@
-#include "Sampler.hpp"
+#include "VulkanSampler.hpp"
 
-#include "Device.hpp"
+#include "VulkanDevice.hpp"
 
-Sampler::Sampler(Context& context) :
+VulkanSampler::VulkanSampler(VulkanContext& context) :
     context(&context)
 {
 	create();
 }
 
-Sampler::~Sampler()
+VulkanSampler::~VulkanSampler()
 {
 	context->getDevice().logical().destroySampler(sampler);
 }
 
-void Sampler::create()
+void VulkanSampler::create()
 {
 	vk::SamplerCreateInfo create_info{};
 	create_info.setMagFilter(vk::Filter::eLinear)
@@ -31,12 +31,12 @@ void Sampler::create()
 	sampler = context->getDevice().logical().createSampler(create_info);
 }
 
-vk::Sampler Sampler::get() const
+vk::Sampler VulkanSampler::get() const
 {
 	return sampler;
 }
 
-vk::DescriptorSetLayoutBinding Sampler::binding(uint32_t binding)
+vk::DescriptorSetLayoutBinding VulkanSampler::binding(uint32_t binding)
 {
 	vk::DescriptorSetLayoutBinding layout_binding{};
 	layout_binding.setBinding(binding)

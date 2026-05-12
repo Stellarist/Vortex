@@ -4,15 +4,15 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "Backend/Device.hpp"
-#include "Backend/SwapChain.hpp"
+#include "Backend/VulkanDevice.hpp"
+#include "Backend/VulkanSwapChain.hpp"
 #include "Paths/ForwardPath.hpp"
 #include "Paths/DeferredPath.hpp"
 #include "Runtime/Core/File.hpp"
 
 Renderer::Renderer(Window& window)
 {
-	context = std::make_unique<Context>(window);
+	context = std::make_unique<VulkanContext>(window);
 
 	frame.image_count = context->getSwapChain().getImageCount();
 	frame.commands.resize(Frame::FRAMES_IN_FLIGHT);
@@ -22,12 +22,12 @@ Renderer::Renderer(Window& window)
 
 	for (uint32_t i = 0; i < frame.FRAMES_IN_FLIGHT; ++i) {
 		frame.commands[i] = context->getGraphicsCommandPool().allocate();
-		frame.image_available_semaphores[i] = std::make_unique<Semaphore>(*context);
-		frame.in_flight_fences[i] = std::make_unique<Fence>(*context, true);
+		frame.image_available_semaphores[i] = std::make_unique<VulkanSemaphore>(*context);
+		frame.in_flight_fences[i] = std::make_unique<VulkanFence>(*context, true);
 	}
 
 	for (uint32_t i = 0; i < frame.image_count; ++i)
-		frame.render_finished_semaphores[i] = std::make_unique<Semaphore>(*context);
+		frame.render_finished_semaphores[i] = std::make_unique<VulkanSemaphore>(*context);
 }
 
 Renderer::~Renderer()
@@ -149,9 +149,9 @@ void Renderer::setActiveWorld(World& world)
 	auto geometry_path = PathResolver::getShadersDir() / config_data["deferred_geometry_shader"].get<std::string>();
 	auto lighting_path = PathResolver::getShadersDir() / config_data["deferred_lighting_shader"].get<std::string>();
 
-	auto forward_shader = std::make_shared<Shader>(*context, forward_path.string());
-	auto geometry_shader = std::make_shared<Shader>(*context, geometry_path.string());
-	auto lighting_shader = std::make_shared<Shader>(*context, lighting_path.string());
+	auto forward_shader = std::make_shared<VulkanShader>(*context, forward_path.string());
+	auto geometry_shader = std::make_shared<VulkanShader>(*context, geometry_path.string());
+	auto lighting_shader = std::make_shared<VulkanShader>(*context, lighting_path.string());
 
 	forward_pipeline = std::make_unique<ForwardPath>();
 	forward_pipeline->initialize(*context);
@@ -162,7 +162,7 @@ void Renderer::setActiveWorld(World& world)
 	deferred_pipeline->build(descriptor_layouts, geometry_shader->getStages(), descriptor_layouts, lighting_shader->getStages());
 }
 
-Context& Renderer::getContext() const
+VulkanContext& Renderer::getContext() const
 {
 	return *context;
 }
@@ -177,7 +177,7 @@ Frame& Renderer::getCurrentFrame() const
 	return const_cast<Frame&>(frame);
 }
 
-RenderPass* Renderer::getUIPass() const
+VulkanRenderPass* Renderer::getUIPass() const
 {
 	if (type == PathType::Deferred)
 		return &deferred_pipeline->getLightingPass().getPass();
@@ -185,7 +185,7 @@ RenderPass* Renderer::getUIPass() const
 		return &forward_pipeline->getForwardPass().getPass();
 }
 
-CommandBuffer Frame::currentCommand() const
+VulkanCommandBuffer Frame::currentCommand() const
 {
 	return commands[current_frame];
 }

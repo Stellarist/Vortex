@@ -1,16 +1,16 @@
-#include "Image.hpp"
+#include "VulkanImage.hpp"
 
-#include "Device.hpp"
-#include "Command.hpp"
+#include "VulkanDevice.hpp"
+#include "VulkanCommand.hpp"
 
-Image::Image(Context& context, const uint8_t* data, uint32_t width, uint32_t height, vk::Format format) :
+VulkanImage::VulkanImage(VulkanContext& context, const uint8_t* data, uint32_t width, uint32_t height, vk::Format format) :
     context(&context), format(format), width(width), height(height), channels(4), data(reinterpret_cast<const void*>(data))
 {
 	createBuffer(width * height * 4);
 	createImage(width, height, format, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled);
 	allocateMemory();
 
-	context.execute([&](CommandBuffer command) {
+	context.execute([&](VulkanCommandBuffer command) {
 		transitionImageLayout(command.get(), image, format, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
 		copyBufferToImage(command.get(), buffer->get(), image, width, height);
 		transitionImageLayout(command.get(), image, format, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
@@ -19,7 +19,7 @@ Image::Image(Context& context, const uint8_t* data, uint32_t width, uint32_t hei
 	createImageView(format, vk::ImageAspectFlagBits::eColor);
 }
 
-Image::Image(Context& context, uint32_t width, uint32_t height, vk::Format format, vk::ImageUsageFlags usage) :
+VulkanImage::VulkanImage(VulkanContext& context, uint32_t width, uint32_t height, vk::Format format, vk::ImageUsageFlags usage) :
     context(&context), format(format), width(width), height(height)
 {
 	createImage(width, height, format, usage);
@@ -32,16 +32,16 @@ Image::Image(Context& context, uint32_t width, uint32_t height, vk::Format forma
 	createImageView(format, aspect);
 }
 
-Image::~Image()
+VulkanImage::~VulkanImage()
 {
 	context->getDevice().logical().destroyImageView(view);
 	context->getDevice().logical().freeMemory(memory);
 	context->getDevice().logical().destroyImage(image);
 }
 
-void Image::createBuffer(uint32_t image_size)
+void VulkanImage::createBuffer(uint32_t image_size)
 {
-	buffer = std::make_unique<Buffer>(
+	buffer = std::make_unique<VulkanBuffer>(
 	    *context,
 	    image_size,
 	    vk::BufferUsageFlagBits::eTransferSrc,
@@ -50,7 +50,7 @@ void Image::createBuffer(uint32_t image_size)
 	buffer->upload(data, image_size);
 }
 
-void Image::createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageUsageFlags usage)
+void VulkanImage::createImage(uint32_t width, uint32_t height, vk::Format format, vk::ImageUsageFlags usage)
 {
 	vk::ImageCreateInfo create_info{};
 	create_info.setImageType(vk::ImageType::e2D)
@@ -67,7 +67,7 @@ void Image::createImage(uint32_t width, uint32_t height, vk::Format format, vk::
 	image = context->getDevice().logical().createImage(create_info);
 }
 
-void Image::allocateMemory()
+void VulkanImage::allocateMemory()
 {
 	vk::MemoryRequirements requirements = context->getDevice().logical().getImageMemoryRequirements(image);
 
@@ -81,7 +81,7 @@ void Image::allocateMemory()
 	context->getDevice().logical().bindImageMemory(image, memory, 0);
 }
 
-void Image::createImageView(vk::Format format, vk::ImageAspectFlags aspect_flags)
+void VulkanImage::createImageView(vk::Format format, vk::ImageAspectFlags aspect_flags)
 {
 	vk::ImageSubresourceRange range{};
 	vk::ComponentMapping      mapping{};
@@ -101,7 +101,7 @@ void Image::createImageView(vk::Format format, vk::ImageAspectFlags aspect_flags
 	view = context->getDevice().logical().createImageView(create_info);
 }
 
-void Image::copyBufferToImage(vk::CommandBuffer command, vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height)
+void VulkanImage::copyBufferToImage(vk::CommandBuffer command, vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height)
 {
 	vk::ImageSubresourceLayers layers{};
 	layers.setAspectMask(vk::ImageAspectFlagBits::eColor)
@@ -120,7 +120,7 @@ void Image::copyBufferToImage(vk::CommandBuffer command, vk::Buffer buffer, vk::
 	command.copyBufferToImage(buffer, image, vk::ImageLayout::eTransferDstOptimal, region);
 }
 
-void Image::transitionImageLayout(vk::CommandBuffer command, vk::Image image, vk::Format format, vk::ImageLayout old_layout, vk::ImageLayout new_layout)
+void VulkanImage::transitionImageLayout(vk::CommandBuffer command, vk::Image image, vk::Format format, vk::ImageLayout old_layout, vk::ImageLayout new_layout)
 {
 	vk::ImageSubresourceRange range{};
 	range.setAspectMask(vk::ImageAspectFlagBits::eColor)
@@ -169,32 +169,32 @@ void Image::transitionImageLayout(vk::CommandBuffer command, vk::Image image, vk
 	    barrier);
 }
 
-vk::Image Image::get() const
+vk::Image VulkanImage::get() const
 {
 	return image;
 }
 
-vk::ImageView Image::getView() const
+vk::ImageView VulkanImage::getView() const
 {
 	return view;
 }
 
-vk::Format Image::getFormat() const
+vk::Format VulkanImage::getFormat() const
 {
 	return format;
 }
 
-void Image::setSampler(Sampler& sampler)
+void VulkanImage::setSampler(VulkanSampler& sampler)
 {
 	this->sampler = &sampler;
 }
 
-Sampler& Image::getSampler() const
+VulkanSampler& VulkanImage::getSampler() const
 {
 	return *sampler;
 }
 
-uint32_t Image::queryMemoryType(uint32_t type, vk::MemoryPropertyFlags prop_flags) const
+uint32_t VulkanImage::queryMemoryType(uint32_t type, vk::MemoryPropertyFlags prop_flags) const
 {
 	auto property = context->getDevice().physical().getMemoryProperties();
 

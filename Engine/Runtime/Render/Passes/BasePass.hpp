@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Runtime/Render/Backend/RenderPass.hpp"
+#include "Runtime/Render/Backend/VulkanRenderPass.hpp"
 
 enum class PassType : uint32_t {
 	Base = 0,
@@ -17,15 +17,15 @@ protected:
 
 	vk::Extent2D extent{};
 
-	std::unique_ptr<RenderPass> pass;
+	std::unique_ptr<VulkanRenderPass> pass;
 
-	Context* context{};
+	VulkanContext* context{};
 
 public:
 	BasePass();
 	virtual ~BasePass() = default;
 
-	virtual void initialize(Context& context, vk::Extent2D extent) = 0;
+	virtual void initialize(VulkanContext& context, vk::Extent2D extent) = 0;
 	virtual void cleanup() = 0;
 	virtual void resize(vk::Extent2D new_extent) = 0;
 
@@ -36,5 +36,5 @@ public:
 	PassType getType() const;
 
 	vk::Extent2D getExtent() const;
-	RenderPass&  getPass();
+	VulkanRenderPass&  getPass();
 };

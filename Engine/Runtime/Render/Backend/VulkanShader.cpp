@@ -1,9 +1,9 @@
-#include "Shader.hpp"
+#include "VulkanShader.hpp"
 
-#include "Device.hpp"
+#include "VulkanDevice.hpp"
 #include "Runtime/Core/File.hpp"
 
-Shader::Shader(Context& context, std::string_view filename,
+VulkanShader::VulkanShader(VulkanContext& context, std::string_view filename,
     std::string_view vertex_entry,
     std::string_view fragment_entry) :
     context(&context), name(filename)
@@ -15,17 +15,17 @@ Shader::Shader(Context& context, std::string_view filename,
 	setStage(vk::ShaderStageFlagBits::eFragment, fragment_entry);
 }
 
-Shader::~Shader()
+VulkanShader::~VulkanShader()
 {
 	context->getDevice().logical().destroyShaderModule(shader);
 }
 
-void Shader::read()
+void VulkanShader::read()
 {
 	codes = FileSystem::readBinaryFile(std::string(name));
 }
 
-void Shader::create()
+void VulkanShader::create()
 {
 	vk::ShaderModuleCreateInfo create_info{};
 	create_info.setCodeSize(codes.size())
@@ -36,7 +36,7 @@ void Shader::create()
 		throw std::runtime_error("Failed to create shader module: " + name);
 }
 
-void Shader::setStage(vk::ShaderStageFlagBits stage, std::string_view entry)
+void VulkanShader::setStage(vk::ShaderStageFlagBits stage, std::string_view entry)
 {
 	if (stages.contains(stage))
 		throw std::runtime_error("Shader stage already exists: " + std::to_string(static_cast<int>(stage)));
@@ -44,7 +44,7 @@ void Shader::setStage(vk::ShaderStageFlagBits stage, std::string_view entry)
 	stages[stage] = entry;
 }
 
-vk::PipelineShaderStageCreateInfo Shader::getStage(vk::ShaderStageFlagBits stage) const
+vk::PipelineShaderStageCreateInfo VulkanShader::getStage(vk::ShaderStageFlagBits stage) const
 {
 	auto it = stages.find(stage);
 	if (it == stages.end())
@@ -58,7 +58,7 @@ vk::PipelineShaderStageCreateInfo Shader::getStage(vk::ShaderStageFlagBits stage
 	return stage_info;
 }
 
-std::vector<vk::PipelineShaderStageCreateInfo> Shader::getStages() const
+std::vector<vk::PipelineShaderStageCreateInfo> VulkanShader::getStages() const
 {
 	std::vector<vk::PipelineShaderStageCreateInfo> stage_infos;
 	stage_infos.reserve(stages.size());
@@ -69,7 +69,7 @@ std::vector<vk::PipelineShaderStageCreateInfo> Shader::getStages() const
 	return stage_infos;
 }
 
-vk::ShaderModule Shader::get() const
+vk::ShaderModule VulkanShader::get() const
 {
 	return shader;
 }

@@ -1,7 +1,7 @@
 #include "ForwardPath.hpp"
 
-#include "Runtime/Render/Backend/Device.hpp"
-#include "Runtime/Render/Backend/SwapChain.hpp"
+#include "Runtime/Render/Backend/VulkanDevice.hpp"
+#include "Runtime/Render/Backend/VulkanSwapChain.hpp"
 #include "Runtime/Render/Resources/GpuData.hpp"
 
 ForwardPath::ForwardPath()
@@ -14,7 +14,7 @@ ForwardPath::~ForwardPath()
 	cleanup();
 }
 
-void ForwardPath::initialize(Context& ctx)
+void ForwardPath::initialize(VulkanContext& ctx)
 {
 	context = &ctx;
 
@@ -39,9 +39,9 @@ void ForwardPath::resize(uint32_t width, uint32_t height)
 		forward_pass->resize(vk::Extent2D{width, height});
 }
 
-GraphicsPipelineConfig ForwardPath::createPipelineConfig()
+VulkanGraphicsPipelineConfig ForwardPath::createPipelineConfig()
 {
-	GraphicsPipelineConfig config{};
+	VulkanGraphicsPipelineConfig config{};
 
 	// Vertex input
 	config.vertex_binding = GpuVertex::binding();
@@ -86,7 +86,7 @@ ForwardPath& ForwardPath::build(std::span<const vk::DescriptorSetLayout> forward
 	pipeline_config.descriptor_layouts = {forward_layouts.begin(), forward_layouts.end()};
 	pipeline_config.pipeline_layout.setSetLayouts(pipeline_config.descriptor_layouts);
 	pipeline_config.shader_stages = {forward_stages.begin(), forward_stages.end()};
-	forward_pipeline = std::make_unique<GraphicsPipeline>(*context, forward_pass->getPass(), std::move(pipeline_config));
+	forward_pipeline = std::make_unique<VulkanGraphicsPipeline>(*context, forward_pass->getPass(), std::move(pipeline_config));
 
 	return *this;
 }
@@ -96,7 +96,7 @@ ForwardPass& ForwardPath::getForwardPass() const
 	return *forward_pass;
 }
 
-GraphicsPipeline& ForwardPath::getForwardPipeline() const
+VulkanGraphicsPipeline& ForwardPath::getForwardPipeline() const
 {
 	return *forward_pipeline;
 }

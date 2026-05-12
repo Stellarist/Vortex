@@ -1,11 +1,11 @@
 #include "GpuMesh.hpp"
 
-#include "Runtime/Render/Backend/Context.hpp"
+#include "Runtime/Render/Backend/VulkanContext.hpp"
 #include "Runtime/World/Resources/SubMesh.hpp"
 
-GpuMesh::GpuMesh(Context& context,
+GpuMesh::GpuMesh(VulkanContext& context,
     const SubMesh&        submesh,
-    DescriptorSetLayout&  layout,
+    VulkanDescriptorSetLayout&  layout,
     DescriptorPool&       pool) :
     context(&context), submesh(&submesh)
 {
@@ -16,7 +16,7 @@ GpuMesh::GpuMesh(Context& context,
 	index_count = indices.size();
 
 	if (!vertices.empty()) {
-		vertex_buffer = Buffer::createStatic(
+		vertex_buffer = VulkanBuffer::createStatic(
 		    *this->context,
 		    vk::BufferUsageFlagBits::eVertexBuffer,
 		    vertices.data(),
@@ -24,14 +24,14 @@ GpuMesh::GpuMesh(Context& context,
 	}
 
 	if (!indices.empty()) {
-		index_buffer = Buffer::createStatic(
+		index_buffer = VulkanBuffer::createStatic(
 		    *this->context,
 		    vk::BufferUsageFlagBits::eIndexBuffer,
 		    indices.data(),
 		    indices.size() * sizeof(uint32_t));
 	}
 
-	object_uniform = Buffer::createDynamic(
+	object_uniform = VulkanBuffer::createDynamic(
 	    *this->context,
 	    vk::BufferUsageFlagBits::eUniformBuffer,
 	    &object_data,
@@ -64,7 +64,7 @@ void GpuMesh::updateUniforms()
 	object_uniform->upload(&object_data, sizeof(GpuObjectData));
 }
 
-DescriptorSet GpuMesh::getDescriptor() const
+VulkanDescriptorSet GpuMesh::getDescriptor() const
 {
 	return object_descriptor;
 }

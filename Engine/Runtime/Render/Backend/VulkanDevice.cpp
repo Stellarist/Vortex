@@ -1,20 +1,20 @@
-#include "Device.hpp"
+#include "VulkanDevice.hpp"
 
 #include <set>
 
-Device::Device(Context& context) :
+VulkanDevice::VulkanDevice(VulkanContext& context) :
     context(&context)
 {
 	pickPhysicalDevice();
 	createLogicalDevice();
 }
 
-Device::~Device()
+VulkanDevice::~VulkanDevice()
 {
 	logical_device.destroy();
 }
 
-void Device::pickPhysicalDevice()
+void VulkanDevice::pickPhysicalDevice()
 {
 	auto devices = context->getInstance().enumeratePhysicalDevices();
 	for (const auto& context : devices) {
@@ -28,7 +28,7 @@ void Device::pickPhysicalDevice()
 	physical_device = devices.front();
 }
 
-void Device::createLogicalDevice()
+void VulkanDevice::createLogicalDevice()
 {
 	queryQueueFamilyIndices();
 
@@ -64,7 +64,7 @@ void Device::createLogicalDevice()
 	present_queue = logical_device.getQueue(queue_family_indices.present_family.value(), 0);
 }
 
-void Device::queryQueueFamilyIndices()
+void VulkanDevice::queryQueueFamilyIndices()
 {
 	auto properties = physical_device.getQueueFamilyProperties();
 	for (int i = 0; i < properties.size(); i++) {
@@ -81,7 +81,7 @@ void Device::queryQueueFamilyIndices()
 	}
 }
 
-std::vector<const char*> Device::requestExtensions()
+std::vector<const char*> VulkanDevice::requestExtensions()
 {
 	std::vector<const char*> extensions = {
 	    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -90,7 +90,7 @@ std::vector<const char*> Device::requestExtensions()
 	return extensions;
 }
 
-std::vector<const char*> Device::requestLayers()
+std::vector<const char*> VulkanDevice::requestLayers()
 {
 	std::vector<const char*> layers = {
 	    "VK_LAYER_KHRONOS_validation",
@@ -99,37 +99,37 @@ std::vector<const char*> Device::requestLayers()
 	return layers;
 }
 
-vk::PhysicalDevice Device::physical() const
+vk::PhysicalDevice VulkanDevice::physical() const
 {
 	return physical_device;
 }
 
-vk::Device Device::logical() const
+vk::Device VulkanDevice::logical() const
 {
 	return logical_device;
 }
 
-vk::Queue Device::graphicsQueue() const
+vk::Queue VulkanDevice::graphicsQueue() const
 {
 	return graphics_queue;
 }
 
-vk::Queue Device::presentQueue() const
+vk::Queue VulkanDevice::presentQueue() const
 {
 	return present_queue;
 }
 
-uint32_t Device::graphicsQueueIndex() const
+uint32_t VulkanDevice::graphicsQueueIndex() const
 {
 	return queue_family_indices.graphics_family.value();
 }
 
-uint32_t Device::presentQueueIndex() const
+uint32_t VulkanDevice::presentQueueIndex() const
 {
 	return queue_family_indices.present_family.value();
 }
 
-QueueFamilyIndices::operator bool() const
+VulkanQueueFamilyIndices::operator bool() const
 {
 	return graphics_family.has_value() && present_family.has_value();
 }

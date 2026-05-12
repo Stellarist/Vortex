@@ -2,33 +2,33 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "Context.hpp"
+#include "VulkanContext.hpp"
 
-struct RenderPassConfig {
+struct VulkanRenderPassConfig {
 	std::vector<vk::AttachmentDescription> attachments;
 	std::vector<vk::SubpassDescription>    subpasses;
 	std::vector<vk::SubpassDependency>     dependencies;
 };
 
-class RenderPass {
+class VulkanRenderPass {
 private:
 	vk::RenderPass render_pass;
 
 	std::vector<vk::Framebuffer> framebuffers;
 
-	Context* context{};
+	VulkanContext* context{};
 
-	void create(const RenderPassConfig& config);
+	void create(const VulkanRenderPassConfig& config);
 
 public:
-	RenderPass(Context& context, const RenderPassConfig& config);
-	~RenderPass();
+	VulkanRenderPass(VulkanContext& context, const VulkanRenderPassConfig& config);
+	~VulkanRenderPass();
 
-	RenderPass(const RenderPass&) = delete;
-	RenderPass& operator=(const RenderPass&) = delete;
+	VulkanRenderPass(const VulkanRenderPass&) = delete;
+	VulkanRenderPass& operator=(const VulkanRenderPass&) = delete;
 
-	RenderPass(RenderPass&&) noexcept = default;
-	RenderPass& operator=(RenderPass&&) noexcept = default;
+	VulkanRenderPass(VulkanRenderPass&&) noexcept = default;
+	VulkanRenderPass& operator=(VulkanRenderPass&&) noexcept = default;
 
 	void createFramebuffers(std::span<const std::vector<vk::ImageView>> attachments_per_frame, vk::Extent2D extent);
 

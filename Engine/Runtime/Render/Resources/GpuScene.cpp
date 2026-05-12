@@ -12,7 +12,7 @@ constexpr uint32_t MAX_SCENE_SETS = 1;
 constexpr uint32_t MAX_MATERIAL_SETS = 10;
 constexpr uint32_t MAX_OBJECT_SETS = 100;
 
-GpuScene::GpuScene(Context& context, const World& world) :
+GpuScene::GpuScene(VulkanContext& context, const World& world) :
     context(&context), world(&world)
 {
 	createDescriptorLayouts();
@@ -25,13 +25,13 @@ GpuScene::GpuScene(Context& context, const World& world) :
 void GpuScene::createDescriptorLayouts()
 {
 	auto scene_bindings = std::vector<vk::DescriptorSetLayoutBinding>{GpuSceneData::binding(0)};
-	scene_layout = std::make_unique<DescriptorSetLayout>(*context, scene_bindings);
+	scene_layout = std::make_unique<VulkanDescriptorSetLayout>(*context, scene_bindings);
 
 	auto material_bindings = GpuMaterialData::bindings(0);
-	material_layout = std::make_unique<DescriptorSetLayout>(*context, material_bindings);
+	material_layout = std::make_unique<VulkanDescriptorSetLayout>(*context, material_bindings);
 
 	auto object_bindings = std::vector<vk::DescriptorSetLayoutBinding>{GpuObjectData::binding(0)};
-	object_layout = std::make_unique<DescriptorSetLayout>(*context, object_bindings);
+	object_layout = std::make_unique<VulkanDescriptorSetLayout>(*context, object_bindings);
 }
 
 void GpuScene::createDescriptorPools()
@@ -50,7 +50,7 @@ void GpuScene::createDescriptorPools()
 
 void GpuScene::createSceneDescriptor()
 {
-	scene_uniform = Buffer::createDynamic(*context, vk::BufferUsageFlagBits::eUniformBuffer, &scene_data, sizeof(GpuSceneData));
+	scene_uniform = VulkanBuffer::createDynamic(*context, vk::BufferUsageFlagBits::eUniformBuffer, &scene_data, sizeof(GpuSceneData));
 
 	scene_descriptor = scene_pool->allocate(*scene_layout);
 	scene_descriptor.update(context->getDevice(), 0, vk::DescriptorType::eUniformBuffer, scene_uniform.get());
@@ -122,7 +122,7 @@ void GpuScene::loadTextures()
 	gpu_textures.reserve(textures.size());
 	texture_to_gpu_texture.clear();
 
-	default_sampler = std::make_shared<Sampler>(*context);
+	default_sampler = std::make_shared<VulkanSampler>(*context);
 	for (auto texture : textures) {
 		if (!texture || !texture->valid())
 			continue;
@@ -148,8 +148,8 @@ void GpuScene::loadMaterials()
 		if (!material)
 			continue;
 
-		Image* base_color_texture = nullptr;
-		Image* metallic_roughness_texture = nullptr;
+		VulkanImage* base_color_texture = nullptr;
+		VulkanImage* metallic_roughness_texture = nullptr;
 
 		if (auto base_color_tex = material->getTexture("baseColor"); base_color_tex)
 			if (auto base_color_it = texture_to_gpu_texture.find(base_color_tex); base_color_it != texture_to_gpu_texture.end())
@@ -331,22 +331,22 @@ std::vector<vk::DescriptorSetLayout> GpuScene::getDescriptorSetLayouts() const
 	};
 }
 
-DescriptorSetLayout* GpuScene::getSceneLayout()
+VulkanDescriptorSetLayout* GpuScene::getSceneLayout()
 {
 	return scene_layout.get();
 }
 
-DescriptorSetLayout* GpuScene::getMaterialLayout()
+VulkanDescriptorSetLayout* GpuScene::getMaterialLayout()
 {
 	return material_layout.get();
 }
 
-DescriptorSetLayout* GpuScene::getObjectLayout()
+VulkanDescriptorSetLayout* GpuScene::getObjectLayout()
 {
 	return object_layout.get();
 }
 
-DescriptorSet GpuScene::getSceneDescriptor()
+VulkanDescriptorSet GpuScene::getSceneDescriptor()
 {
 	return scene_descriptor;
 }

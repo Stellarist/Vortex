@@ -2,15 +2,15 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "Context.hpp"
+#include "VulkanContext.hpp"
 
-struct SwapChainDetails {
+struct VulkanSwapChainDetails {
 	vk::SurfaceCapabilitiesKHR        capabilities;
 	std::vector<vk::SurfaceFormatKHR> formats;
 	std::vector<vk::PresentModeKHR>   present_modes;
 };
 
-class SwapChain {
+class VulkanSwapChain {
 private:
 	vk::SwapchainKHR     swap_chain;
 	vk::SurfaceFormatKHR format;
@@ -22,7 +22,7 @@ private:
 	std::vector<vk::ImageView> image_views;
 
 	Window*  window{};
-	Context* context{};
+	VulkanContext* context{};
 
 	void create(uint32_t width, uint32_t height, bool old = false);
 	void recreate(uint32_t width, uint32_t height);
@@ -30,20 +30,20 @@ private:
 	void createImageViews();
 	void destroyImageViews();
 
-	SwapChainDetails     querySwapChainDetails(uint32_t width, uint32_t height);
+	VulkanSwapChainDetails     querySwapChainDetails(uint32_t width, uint32_t height);
 	vk::SurfaceFormatKHR chooseSwapSurfaceFormat(std::span<const vk::SurfaceFormatKHR> surface_formats);
 	vk::PresentModeKHR   chooseSwapPresentMode(std::span<const vk::PresentModeKHR> present_modes);
 	vk::Extent2D         chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities, uint32_t width, uint32_t height);
 
 public:
-	SwapChain(Window& window, Context& context);
-	~SwapChain();
+	VulkanSwapChain(Window& window, VulkanContext& context);
+	~VulkanSwapChain();
 
-	SwapChain(const SwapChain&) = delete;
-	SwapChain& operator=(const SwapChain&) = delete;
+	VulkanSwapChain(const VulkanSwapChain&) = delete;
+	VulkanSwapChain& operator=(const VulkanSwapChain&) = delete;
 
-	SwapChain(SwapChain&&) noexcept = default;
-	SwapChain& operator=(SwapChain&&) noexcept = default;
+	VulkanSwapChain(VulkanSwapChain&&) noexcept = default;
+	VulkanSwapChain& operator=(VulkanSwapChain&&) noexcept = default;
 
 	uint32_t acquireNextImage(vk::Semaphore semaphore, vk::Fence fence);
 	void     presentImage(vk::Queue present_queue, uint32_t image_index, std::span<const vk::Semaphore> wait_semaphore);

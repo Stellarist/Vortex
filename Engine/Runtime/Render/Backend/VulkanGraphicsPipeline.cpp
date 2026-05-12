@@ -1,26 +1,26 @@
-#include "GraphicsPipeline.hpp"
+#include "VulkanGraphicsPipeline.hpp"
 
-#include "Device.hpp"
+#include "VulkanDevice.hpp"
 
-GraphicsPipeline::GraphicsPipeline(Context& context, RenderPass& render_pass, GraphicsPipelineConfig pipeline_config) :
+VulkanGraphicsPipeline::VulkanGraphicsPipeline(VulkanContext& context, VulkanRenderPass& render_pass, VulkanGraphicsPipelineConfig pipeline_config) :
     context(&context), render_pass(&render_pass), config(std::move(pipeline_config))
 {
 	createLayout();
 	create();
 }
 
-GraphicsPipeline::~GraphicsPipeline()
+VulkanGraphicsPipeline::~VulkanGraphicsPipeline()
 {
 	context->getDevice().logical().destroyPipeline(pipeline);
 	context->getDevice().logical().destroyPipelineLayout(pipeline_layout);
 }
 
-void GraphicsPipeline::createLayout()
+void VulkanGraphicsPipeline::createLayout()
 {
 	pipeline_layout = context->getDevice().logical().createPipelineLayout(config.pipeline_layout);
 }
 
-void GraphicsPipeline::create()
+void VulkanGraphicsPipeline::create()
 {
 	vk::GraphicsPipelineCreateInfo pipeline_info{};
 	pipeline_info.setStages(config.shader_stages)
@@ -39,17 +39,17 @@ void GraphicsPipeline::create()
 	pipeline = context->getDevice().logical().createGraphicsPipeline({}, pipeline_info).value;
 }
 
-vk::Pipeline GraphicsPipeline::get() const
+vk::Pipeline VulkanGraphicsPipeline::get() const
 {
 	return pipeline;
 }
 
-vk::PipelineLayout GraphicsPipeline::getLayout() const
+vk::PipelineLayout VulkanGraphicsPipeline::getLayout() const
 {
 	return pipeline_layout;
 }
 
-const GraphicsPipelineConfig& GraphicsPipeline::getConfig() const
+const VulkanGraphicsPipelineConfig& VulkanGraphicsPipeline::getConfig() const
 {
 	return config;
 }

@@ -4,32 +4,32 @@
 #include <vulkan/vulkan.hpp>
 
 #include "GpuData.hpp"
-#include "Runtime/Render/Backend/Buffer.hpp"
-#include "Runtime/Render/Backend/Descriptor.hpp"
-#include "Runtime/Render/Backend/Image.hpp"
+#include "Runtime/Render/Backend/VulkanBuffer.hpp"
+#include "Runtime/Render/Backend/VulkanDescriptor.hpp"
+#include "Runtime/Render/Backend/VulkanImage.hpp"
 #include "Runtime/World/Resources/Material.hpp"
 
 class GpuMaterial {
 private:
-	DescriptorSet material_descriptor;
+	VulkanDescriptorSet material_descriptor;
 
-	std::unique_ptr<Buffer> material_uniform;
-	GpuMaterialData         material_data;
+	std::unique_ptr<VulkanBuffer> material_uniform;
+	GpuMaterialData               material_data;
 
 	std::shared_ptr<Material> source_material;
 
-	Image* base_color_texture{};
-	Image* metallic_roughness_texture{};
+	VulkanImage* base_color_texture{};
+	VulkanImage* metallic_roughness_texture{};
 
-	Context* context{};
+	VulkanContext* context{};
 
 public:
-	GpuMaterial(Context&          context,
+	GpuMaterial(VulkanContext&          context,
 	    std::shared_ptr<Material> material,
-	    DescriptorSetLayout&      layout,
+	    VulkanDescriptorSetLayout&      layout,
 	    DescriptorPool&           pool,
-	    Image*                    base_color = nullptr,
-	    Image*                    metallic_roughness = nullptr);
+	    VulkanImage*                    base_color = nullptr,
+	    VulkanImage*                    metallic_roughness = nullptr);
 	~GpuMaterial() = default;
 
 	GpuMaterial(const GpuMaterial&) = delete;
@@ -41,6 +41,6 @@ public:
 	void updateUniforms();
 	void bind(vk::CommandBuffer command_buffer, vk::PipelineLayout pipeline_layout);
 
-	DescriptorSet             getDescriptor();
+	VulkanDescriptorSet             getDescriptor();
 	std::shared_ptr<Material> getSourceMaterial() const;
 };

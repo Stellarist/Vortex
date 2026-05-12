@@ -1,9 +1,9 @@
-#include "Buffer.hpp"
+#include "VulkanBuffer.hpp"
 
-#include "Device.hpp"
-#include "Command.hpp"
+#include "VulkanDevice.hpp"
+#include "VulkanCommand.hpp"
 
-Buffer::Buffer(Context& context, size_t size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties) :
+VulkanBuffer::VulkanBuffer(VulkanContext& context, size_t size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties) :
     context(&context), size(size)
 {
 	create(usage, size);
@@ -11,7 +11,7 @@ Buffer::Buffer(Context& context, size_t size, vk::BufferUsageFlags usage, vk::Me
 	bind();
 }
 
-Buffer::~Buffer()
+VulkanBuffer::~VulkanBuffer()
 {
 	if (memory)
 		context->getDevice().logical().freeMemory(memory);
@@ -20,7 +20,7 @@ Buffer::~Buffer()
 		context->getDevice().logical().destroyBuffer(buffer);
 }
 
-Buffer::Buffer(Buffer&& other) noexcept :
+VulkanBuffer::VulkanBuffer(VulkanBuffer&& other) noexcept :
     buffer(std::exchange(other.buffer, nullptr)),
     size(other.size),
     memory(std::exchange(other.memory, nullptr)),
@@ -31,7 +31,7 @@ Buffer::Buffer(Buffer&& other) noexcept :
     context(std::exchange(other.context, nullptr))
 {}
 
-Buffer& Buffer::operator=(Buffer&& other)
+VulkanBuffer& VulkanBuffer::operator=(VulkanBuffer&& other)
 {
 	if (this != &other) {
 		if (memory)
@@ -53,7 +53,7 @@ Buffer& Buffer::operator=(Buffer&& other)
 	return *this;
 }
 
-void Buffer::create(vk::BufferUsageFlags usage, size_t size)
+void VulkanBuffer::create(vk::BufferUsageFlags usage, size_t size)
 {
 	vk::BufferCreateInfo create_info{};
 	create_info.setSize(size)
@@ -63,9 +63,9 @@ void Buffer::create(vk::BufferUsageFlags usage, size_t size)
 	buffer = context->getDevice().logical().createBuffer(create_info);
 }
 
-void Buffer::allocate(vk::MemoryPropertyFlags properties)
+void VulkanBuffer::allocate(vk::MemoryPropertyFlags properties)
 {
-	MemoryInfo info = queryMemoryInfo(properties);
+	VulkanMemoryInfo info = queryMemoryInfo(properties);
 
 	vk::MemoryAllocateInfo allocate_info{};
 	allocate_info.setAllocationSize(info.size)
@@ -74,18 +74,18 @@ void Buffer::allocate(vk::MemoryPropertyFlags properties)
 	memory = context->getDevice().logical().allocateMemory(allocate_info);
 }
 
-void Buffer::bind(size_t bind_offset)
+void VulkanBuffer::bind(size_t bind_offset)
 {
 	context->getDevice().logical().bindBufferMemory(buffer, memory, bind_offset);
 }
 
-void Buffer::map(size_t map_size, size_t map_offset)
+void VulkanBuffer::map(size_t map_size, size_t map_offset)
 {
 	mapped = true;
 	data = context->getDevice().logical().mapMemory(memory, map_offset, map_size);
 }
 
-void Buffer::unmap()
+void VulkanBuffer::unmap()
 {
 	mapped = false;
 	if (data) {
@@ -94,9 +94,9 @@ void Buffer::unmap()
 	}
 }
 
-void Buffer::copyTo(vk::Buffer dst, size_t size, size_t src_offset, size_t dst_offset)
+void VulkanBuffer::copyTo(vk::Buffer dst, size_t size, size_t src_offset, size_t dst_offset)
 {
-	context->execute([&](CommandBuffer command) {
+	context->execute([&](VulkanCommandBuffer command) {
 		vk::BufferCopy copy_region{};
 		copy_region.setSrcOffset(src_offset)
 		    .setDstOffset(dst_offset)
@@ -106,9 +106,9 @@ void Buffer::copyTo(vk::Buffer dst, size_t size, size_t src_offset, size_t dst_o
 	});
 }
 
-void Buffer::copyFrom(vk::Buffer src, size_t size, size_t src_offset, size_t dst_offset)
+void VulkanBuffer::copyFrom(vk::Buffer src, size_t size, size_t src_offset, size_t dst_offset)
 {
-	context->execute([&](CommandBuffer command) {
+	context->execute([&](VulkanCommandBuffer command) {
 		vk::BufferCopy copy_region{};
 		copy_region.setSrcOffset(src_offset)
 		    .setDstOffset(dst_offset)
@@ -118,7 +118,7 @@ void Buffer::copyFrom(vk::Buffer src, size_t size, size_t src_offset, size_t dst
 	});
 }
 
-void Buffer::upload(const void* src, size_t src_size, size_t dst_offset)
+void VulkanBuffer::upload(const void* src, size_t src_size, size_t dst_offset)
 {
 	if (!mapped)
 		map(src_size, dst_offset);
@@ -130,17 +130,17 @@ void Buffer::upload(const void* src, size_t src_size, size_t dst_offset)
 	std::memcpy(data, src, src_size);
 }
 
-std::unique_ptr<Buffer> Buffer::createStatic(Context& context, vk::BufferUsageFlags Usage, const void* src, size_t size)
+std::unique_ptr<VulkanBuffer> VulkanBuffer::createStatic(VulkanContext& context, vk::BufferUsageFlags Usage, const void* src, size_t size)
 {
 	if (!src || size == 0)
 		return nullptr;
 
-	auto host_buffer = std::make_unique<Buffer>(context, size,
+	auto host_buffer = std::make_unique<VulkanBuffer>(context, size,
 	    vk::BufferUsageFlagBits::eTransferSrc,
 	    vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 	host_buffer->upload(src, size);
 
-	auto device_buffer = std::make_unique<Buffer>(context, size,
+	auto device_buffer = std::make_unique<VulkanBuffer>(context, size,
 	    Usage | vk::BufferUsageFlagBits::eTransferDst,
 	    vk::MemoryPropertyFlagBits::eDeviceLocal);
 	device_buffer->copyFrom(host_buffer->get(), size);
@@ -148,28 +148,28 @@ std::unique_ptr<Buffer> Buffer::createStatic(Context& context, vk::BufferUsageFl
 	return device_buffer;
 }
 
-std::unique_ptr<Buffer> Buffer::createDynamic(Context& context, vk::BufferUsageFlags Usage, const void* src, size_t size)
+std::unique_ptr<VulkanBuffer> VulkanBuffer::createDynamic(VulkanContext& context, vk::BufferUsageFlags Usage, const void* src, size_t size)
 {
 	if (!src || size == 0)
 		return nullptr;
 
-	auto buffer = std::make_unique<Buffer>(context, size, Usage, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+	auto buffer = std::make_unique<VulkanBuffer>(context, size, Usage, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 	buffer->upload(src, size);
 
 	return buffer;
 }
 
-vk::Buffer Buffer::get() const
+vk::Buffer VulkanBuffer::get() const
 {
 	return buffer;
 }
 
-vk::DeviceSize Buffer::getSize() const
+vk::DeviceSize VulkanBuffer::getSize() const
 {
 	return size;
 }
 
-vk::DeviceAddress Buffer::getAddress() const
+vk::DeviceAddress VulkanBuffer::getAddress() const
 {
 	vk::BufferDeviceAddressInfo address_info{};
 	address_info.setBuffer(buffer);
@@ -177,9 +177,9 @@ vk::DeviceAddress Buffer::getAddress() const
 	return context->getDevice().logical().getBufferAddress(address_info);
 }
 
-MemoryInfo Buffer::queryMemoryInfo(vk::MemoryPropertyFlags prop_flags) const
+VulkanMemoryInfo VulkanBuffer::queryMemoryInfo(vk::MemoryPropertyFlags prop_flags) const
 {
-	MemoryInfo info{};
+	VulkanMemoryInfo info{};
 
 	auto requirements = context->getDevice().logical().getBufferMemoryRequirements(buffer);
 	info.size = requirements.size;

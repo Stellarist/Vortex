@@ -26,7 +26,7 @@ public:
 	void drawSceneResources(const Scene* scene);
 
 	void newFrame();
-	void drawFrame(CommandBuffer command_buffer);
+	void drawFrame(VulkanCommandBuffer command_buffer);
 
 	bool pollEvent(const SDL_Event& event);
 	void hook(std::function<void()> callback);

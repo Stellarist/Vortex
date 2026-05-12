@@ -1,7 +1,7 @@
 #include "ForwardPass.hpp"
 
-#include "Runtime/Render/Backend/Device.hpp"
-#include "Runtime/Render/Backend/SwapChain.hpp"
+#include "Runtime/Render/Backend/VulkanDevice.hpp"
+#include "Runtime/Render/Backend/VulkanSwapChain.hpp"
 
 ForwardPass::ForwardPass()
 {
@@ -13,9 +13,9 @@ ForwardPass::~ForwardPass()
 	cleanup();
 }
 
-RenderPassConfig ForwardPass::createConfig()
+VulkanRenderPassConfig ForwardPass::createConfig()
 {
-	RenderPassConfig config;
+	VulkanRenderPassConfig config;
 
 	static vk::AttachmentReference color_ref{0, vk::ImageLayout::eColorAttachmentOptimal};
 	static vk::AttachmentReference depth_ref{1, vk::ImageLayout::eDepthStencilAttachmentOptimal};
@@ -62,7 +62,7 @@ RenderPassConfig ForwardPass::createConfig()
 
 void ForwardPass::createDepthImage()
 {
-	depth_image = std::make_unique<Image>(
+	depth_image = std::make_unique<VulkanImage>(
 	    *context,
 	    context->getSwapChain().getExtent().width,
 	    context->getSwapChain().getExtent().height,
@@ -82,13 +82,13 @@ void ForwardPass::createFramebuffers()
 	pass->createFramebuffers(attachments, extent);
 }
 
-void ForwardPass::initialize(Context& ctx, vk::Extent2D ext)
+void ForwardPass::initialize(VulkanContext& ctx, vk::Extent2D ext)
 {
 	context = &ctx;
 	extent = ext;
 
 	createDepthImage();
-	pass = std::make_unique<RenderPass>(ctx, createConfig());
+	pass = std::make_unique<VulkanRenderPass>(ctx, createConfig());
 	createFramebuffers();
 }
 
@@ -114,7 +114,7 @@ void ForwardPass::resize(vk::Extent2D new_extent)
 	createFramebuffers();
 }
 
-Image& ForwardPass::getDepthImage() const
+VulkanImage& ForwardPass::getDepthImage() const
 {
 	return *depth_image;
 }

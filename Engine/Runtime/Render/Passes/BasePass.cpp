@@ -26,7 +26,7 @@ vk::Extent2D BasePass::getExtent() const
 	return extent;
 }
 
-RenderPass& BasePass::getPass()
+VulkanRenderPass& BasePass::getPass()
 {
 	return *pass;
 }

@@ -6,7 +6,7 @@
 #include <imgui_impl_sdl3.h>
 #include <imgui_impl_vulkan.h>
 
-#include "Runtime/Render/Backend/Device.hpp"
+#include "Runtime/Render/Backend/VulkanDevice.hpp"
 #include "Runtime/Core/Clock.hpp"
 #include "Runtime/World/Base/Node.hpp"
 #include "Runtime/World/Components/Camera.hpp"
@@ -343,7 +343,7 @@ void Widget::newFrame()
 		callback();
 }
 
-void Widget::drawFrame(CommandBuffer command)
+void Widget::drawFrame(VulkanCommandBuffer command)
 {
 	ImGui::Render();
 

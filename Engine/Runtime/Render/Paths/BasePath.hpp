@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Runtime/Render/Backend/Context.hpp"
+#include "Runtime/Render/Backend/VulkanContext.hpp"
 
 enum class PathType : uint32_t {
 	Base = 0,
@@ -13,13 +13,13 @@ class BasePath {
 protected:
 	PathType type{};
 
-	Context* context{};
+	VulkanContext* context{};
 
 public:
 	BasePath();
 	virtual ~BasePath() = default;
 
-	virtual void initialize(Context& context) = 0;
+	virtual void initialize(VulkanContext& context) = 0;
 	virtual void cleanup() = 0;
 	virtual void resize(uint32_t width, uint32_t height) = 0;
 };

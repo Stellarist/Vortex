@@ -1,6 +1,6 @@
 #include "GeometryPass.hpp"
 
-#include "Runtime/Render/Backend/Device.hpp"
+#include "Runtime/Render/Backend/VulkanDevice.hpp"
 
 GeometryPass::GeometryPass()
 {
@@ -12,9 +12,9 @@ GeometryPass::~GeometryPass()
 	cleanup();
 }
 
-RenderPassConfig GeometryPass::createConfig()
+VulkanRenderPassConfig GeometryPass::createConfig()
 {
-	RenderPassConfig config;
+	VulkanRenderPassConfig config;
 
 	// Attachment references
 	static std::vector<vk::AttachmentReference> color_refs = {
@@ -29,7 +29,7 @@ RenderPassConfig GeometryPass::createConfig()
 	// Position attachment
 	config.attachments.push_back(
 	    vk::AttachmentDescription()
-	        .setFormat(attachment_infos.at(GBufferAttachment::Position).first)
+	        .setFormat(attachment_infos.at(VulkanGBufferAttachment::Position).first)
 	        .setSamples(vk::SampleCountFlagBits::e1)
 	        .setLoadOp(vk::AttachmentLoadOp::eClear)
 	        .setStoreOp(vk::AttachmentStoreOp::eStore)
@@ -41,7 +41,7 @@ RenderPassConfig GeometryPass::createConfig()
 	// Normal attachment
 	config.attachments.push_back(
 	    vk::AttachmentDescription()
-	        .setFormat(attachment_infos.at(GBufferAttachment::Normal).first)
+	        .setFormat(attachment_infos.at(VulkanGBufferAttachment::Normal).first)
 	        .setSamples(vk::SampleCountFlagBits::e1)
 	        .setLoadOp(vk::AttachmentLoadOp::eClear)
 	        .setStoreOp(vk::AttachmentStoreOp::eStore)
@@ -53,7 +53,7 @@ RenderPassConfig GeometryPass::createConfig()
 	// Albedo attachment
 	config.attachments.push_back(
 	    vk::AttachmentDescription()
-	        .setFormat(attachment_infos.at(GBufferAttachment::Albedo).first)
+	        .setFormat(attachment_infos.at(VulkanGBufferAttachment::Albedo).first)
 	        .setSamples(vk::SampleCountFlagBits::e1)
 	        .setLoadOp(vk::AttachmentLoadOp::eClear)
 	        .setStoreOp(vk::AttachmentStoreOp::eStore)
@@ -65,7 +65,7 @@ RenderPassConfig GeometryPass::createConfig()
 	// Metallic attachment
 	config.attachments.push_back(
 	    vk::AttachmentDescription()
-	        .setFormat(attachment_infos.at(GBufferAttachment::Metallic).first)
+	        .setFormat(attachment_infos.at(VulkanGBufferAttachment::Metallic).first)
 	        .setSamples(vk::SampleCountFlagBits::e1)
 	        .setLoadOp(vk::AttachmentLoadOp::eClear)
 	        .setStoreOp(vk::AttachmentStoreOp::eStore)
@@ -77,7 +77,7 @@ RenderPassConfig GeometryPass::createConfig()
 	// Roughness attachment
 	config.attachments.push_back(
 	    vk::AttachmentDescription()
-	        .setFormat(attachment_infos.at(GBufferAttachment::Roughness).first)
+	        .setFormat(attachment_infos.at(VulkanGBufferAttachment::Roughness).first)
 	        .setSamples(vk::SampleCountFlagBits::e1)
 	        .setLoadOp(vk::AttachmentLoadOp::eClear)
 	        .setStoreOp(vk::AttachmentStoreOp::eStore)
@@ -89,7 +89,7 @@ RenderPassConfig GeometryPass::createConfig()
 	// Depth attachment
 	config.attachments.push_back(
 	    vk::AttachmentDescription()
-	        .setFormat(attachment_infos.at(GBufferAttachment::Depth).first)
+	        .setFormat(attachment_infos.at(VulkanGBufferAttachment::Depth).first)
 	        .setSamples(vk::SampleCountFlagBits::e1)
 	        .setLoadOp(vk::AttachmentLoadOp::eClear)
 	        .setStoreOp(vk::AttachmentStoreOp::eStore)
@@ -129,32 +129,32 @@ RenderPassConfig GeometryPass::createConfig()
 
 void GeometryPass::createAttachmentInfos()
 {
-	attachment_infos[GBufferAttachment::Position] = {
+	attachment_infos[VulkanGBufferAttachment::Position] = {
 	    vk::Format::eR32G32B32A32Sfloat,
 	    vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled,
 	};
 
-	attachment_infos[GBufferAttachment::Normal] = {
+	attachment_infos[VulkanGBufferAttachment::Normal] = {
 	    vk::Format::eR16G16B16A16Sfloat,
 	    vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled,
 	};
 
-	attachment_infos[GBufferAttachment::Albedo] = {
+	attachment_infos[VulkanGBufferAttachment::Albedo] = {
 	    vk::Format::eR8G8B8A8Unorm,
 	    vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled,
 	};
 
-	attachment_infos[GBufferAttachment::Metallic] = {
+	attachment_infos[VulkanGBufferAttachment::Metallic] = {
 	    vk::Format::eR8Unorm,
 	    vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled,
 	};
 
-	attachment_infos[GBufferAttachment::Roughness] = {
+	attachment_infos[VulkanGBufferAttachment::Roughness] = {
 	    vk::Format::eR8Unorm,
 	    vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eSampled,
 	};
 
-	attachment_infos[GBufferAttachment::Depth] = {
+	attachment_infos[VulkanGBufferAttachment::Depth] = {
 	    vk::Format::eD32Sfloat,
 	    vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eSampled,
 	};
@@ -166,24 +166,24 @@ void GeometryPass::createFramebuffers()
 		return;
 
 	std::vector<vk::ImageView> gbuffer_attachments = {
-	    gbuffer->getImageView(GBufferAttachment::Position),
-	    gbuffer->getImageView(GBufferAttachment::Normal),
-	    gbuffer->getImageView(GBufferAttachment::Albedo),
-	    gbuffer->getImageView(GBufferAttachment::Metallic),
-	    gbuffer->getImageView(GBufferAttachment::Roughness),
-	    gbuffer->getImageView(GBufferAttachment::Depth)};
+	    gbuffer->getImageView(VulkanGBufferAttachment::Position),
+	    gbuffer->getImageView(VulkanGBufferAttachment::Normal),
+	    gbuffer->getImageView(VulkanGBufferAttachment::Albedo),
+	    gbuffer->getImageView(VulkanGBufferAttachment::Metallic),
+	    gbuffer->getImageView(VulkanGBufferAttachment::Roughness),
+	    gbuffer->getImageView(VulkanGBufferAttachment::Depth)};
 
 	std::vector<std::vector<vk::ImageView>> attachments_per_frame = {gbuffer_attachments};
 	pass->createFramebuffers(attachments_per_frame, extent);
 }
 
-void GeometryPass::initialize(Context& ctx, vk::Extent2D ext)
+void GeometryPass::initialize(VulkanContext& ctx, vk::Extent2D ext)
 {
 	context = &ctx;
 	extent = ext;
 
 	createAttachmentInfos();
-	pass = std::make_unique<RenderPass>(ctx, createConfig());
+	pass = std::make_unique<VulkanRenderPass>(ctx, createConfig());
 }
 
 void GeometryPass::cleanup()
@@ -206,13 +206,13 @@ void GeometryPass::resize(vk::Extent2D new_extent)
 		createFramebuffers();
 }
 
-void GeometryPass::setGBuffer(GBuffer& buffer)
+void GeometryPass::setGBuffer(VulkanGBuffer& buffer)
 {
 	gbuffer = &buffer;
 	createFramebuffers();
 }
 
-const std::unordered_map<GBufferAttachment, std::pair<vk::Format, vk::ImageUsageFlags>>& GeometryPass::getGBufferAttachmentInfos() const
+const std::unordered_map<VulkanGBufferAttachment, std::pair<vk::Format, vk::ImageUsageFlags>>& GeometryPass::getGBufferAttachmentInfos() const
 {
 	return attachment_infos;
 }

@@ -1,7 +1,7 @@
 #include "DeferredPath.hpp"
 
-#include "Runtime/Render/Backend/Device.hpp"
-#include "Runtime/Render/Backend/SwapChain.hpp"
+#include "Runtime/Render/Backend/VulkanDevice.hpp"
+#include "Runtime/Render/Backend/VulkanSwapChain.hpp"
 #include "Runtime/Render/Resources/GpuData.hpp"
 
 std::vector<vk::PipelineColorBlendAttachmentState> DeferredPath::color_blend_attachments = {};
@@ -16,7 +16,7 @@ DeferredPath::~DeferredPath()
 	cleanup();
 }
 
-void DeferredPath::initialize(Context& ctx)
+void DeferredPath::initialize(VulkanContext& ctx)
 {
 	context = &ctx;
 
@@ -29,7 +29,7 @@ void DeferredPath::initialize(Context& ctx)
 	lighting_pass->initialize(ctx, extent);
 
 	auto& attachment_infos = geometry_pass->getGBufferAttachmentInfos();
-	gbuffer = std::make_unique<GBuffer>(ctx, extent.width, extent.height, attachment_infos);
+	gbuffer = std::make_unique<VulkanGBuffer>(ctx, extent.width, extent.height, attachment_infos);
 	geometry_pass->setGBuffer(*gbuffer);
 }
 
@@ -67,12 +67,12 @@ void DeferredPath::resize(uint32_t width, uint32_t height)
 	}
 }
 
-GraphicsPipelineConfig DeferredPath::createGeometryPipelineConfig()
+VulkanGraphicsPipelineConfig DeferredPath::createGeometryPipelineConfig()
 {
-	GraphicsPipelineConfig config{};
+	VulkanGraphicsPipelineConfig config{};
 
 	// Color blend attachments
-	color_blend_attachments.resize(static_cast<size_t>(GBufferAttachment::Count) - 1);
+	color_blend_attachments.resize(static_cast<size_t>(VulkanGBufferAttachment::Count) - 1);
 	for (auto& attachment : color_blend_attachments)
 		attachment.setBlendEnable(vk::False)
 		    .setColorWriteMask(vk::ColorComponentFlagBits::eR
@@ -107,9 +107,9 @@ GraphicsPipelineConfig DeferredPath::createGeometryPipelineConfig()
 	return config;
 }
 
-GraphicsPipelineConfig DeferredPath::createLightingPipelineConfig()
+VulkanGraphicsPipelineConfig DeferredPath::createLightingPipelineConfig()
 {
-	GraphicsPipelineConfig config{};
+	VulkanGraphicsPipelineConfig config{};
 
 	// Depth stencil
 	config.depth_stencil
@@ -147,14 +147,14 @@ DeferredPath& DeferredPath::build(std::span<const vk::DescriptorSetLayout> geome
 	geometry_config.descriptor_layouts = {geometry_layouts.begin(), geometry_layouts.end()};
 	geometry_config.pipeline_layout.setSetLayouts(geometry_config.descriptor_layouts);
 	geometry_config.shader_stages = {geometry_stages.begin(), geometry_stages.end()};
-	geometry_pipeline = std::make_unique<GraphicsPipeline>(*context, geometry_pass->getPass(), std::move(geometry_config));
+	geometry_pipeline = std::make_unique<VulkanGraphicsPipeline>(*context, geometry_pass->getPass(), std::move(geometry_config));
 
 	auto lighting_config = createLightingPipelineConfig();
 	lighting_config.descriptor_layouts = {lighting_layouts.begin(), lighting_layouts.end()};
 	lighting_config.descriptor_layouts.push_back(lighting_pass->getGBufferLayout().get());
 	lighting_config.pipeline_layout.setSetLayouts(lighting_config.descriptor_layouts);
 	lighting_config.shader_stages = {lighting_stages.begin(), lighting_stages.end()};
-	lighting_pipeline = std::make_unique<GraphicsPipeline>(*context, lighting_pass->getPass(), std::move(lighting_config));
+	lighting_pipeline = std::make_unique<VulkanGraphicsPipeline>(*context, lighting_pass->getPass(), std::move(lighting_config));
 
 	return *this;
 }
@@ -169,17 +169,17 @@ LightingPass& DeferredPath::getLightingPass() const
 	return *lighting_pass;
 }
 
-GraphicsPipeline& DeferredPath::getGeometryPipeline() const
+VulkanGraphicsPipeline& DeferredPath::getGeometryPipeline() const
 {
 	return *geometry_pipeline;
 }
 
-GraphicsPipeline& DeferredPath::getLightingPipeline() const
+VulkanGraphicsPipeline& DeferredPath::getLightingPipeline() const
 {
 	return *lighting_pipeline;
 }
 
-GBuffer& DeferredPath::getGBuffer() const
+VulkanGBuffer& DeferredPath::getGBuffer() const
 {
 	return *gbuffer;
 }

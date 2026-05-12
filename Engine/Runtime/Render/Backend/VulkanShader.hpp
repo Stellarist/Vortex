@@ -4,9 +4,9 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "Context.hpp"
+#include "VulkanContext.hpp"
 
-class Shader {
+class VulkanShader {
 private:
 	vk::ShaderModule shader;
 
@@ -15,19 +15,19 @@ private:
 
 	std::unordered_map<vk::ShaderStageFlagBits, std::string> stages;
 
-	Context* context{};
+	VulkanContext* context{};
 
 public:
-	Shader(Context& context, std::string_view filename,
+	VulkanShader(VulkanContext& context, std::string_view filename,
 	    std::string_view vertex_entry = "vertexMain",
 	    std::string_view fragment_entry = "fragmentMain");
-	~Shader();
+	~VulkanShader();
 
-	Shader(const Shader&) = delete;
-	Shader& operator=(const Shader&) = delete;
+	VulkanShader(const VulkanShader&) = delete;
+	VulkanShader& operator=(const VulkanShader&) = delete;
 
-	Shader(Shader&&) noexcept = default;
-	Shader& operator=(Shader&&) noexcept = default;
+	VulkanShader(VulkanShader&&) noexcept = default;
+	VulkanShader& operator=(VulkanShader&&) noexcept = default;
 
 	void read();
 	void create();

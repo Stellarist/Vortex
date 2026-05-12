@@ -1,12 +1,12 @@
-#include "Descriptor.hpp"
+#include "VulkanDescriptor.hpp"
 
-#include "Device.hpp"
+#include "VulkanDevice.hpp"
 
-DescriptorSet::DescriptorSet(vk::DescriptorSet set) :
+VulkanDescriptorSet::VulkanDescriptorSet(vk::DescriptorSet set) :
     set(set)
 {}
 
-void DescriptorSet::update(const Device& device, uint32_t binding, vk::DescriptorType type, const Buffer* buffer) const
+void VulkanDescriptorSet::update(const VulkanDevice& device, uint32_t binding, vk::DescriptorType type, const VulkanBuffer* buffer) const
 {
 	if (!set || !buffer)
 		throw std::runtime_error("Invalid descriptor set or buffer");
@@ -30,7 +30,7 @@ void DescriptorSet::update(const Device& device, uint32_t binding, vk::Descripto
 	device.logical().updateDescriptorSets(write, {});
 }
 
-void DescriptorSet::update(const Device& device, uint32_t binding, vk::DescriptorType type, const Image* image) const
+void VulkanDescriptorSet::update(const VulkanDevice& device, uint32_t binding, vk::DescriptorType type, const VulkanImage* image) const
 {
 	if (!set || !image)
 		throw std::runtime_error("Invalid descriptor set or image");
@@ -52,13 +52,13 @@ void DescriptorSet::update(const Device& device, uint32_t binding, vk::Descripto
 	device.logical().updateDescriptorSets(write, {});
 }
 
-vk::DescriptorSet DescriptorSet::get() const&
+vk::DescriptorSet VulkanDescriptorSet::get() const&
 {
 	return set;
 }
 
-DescriptorSetLayout::DescriptorSetLayout(
-    Context&                                        context,
+VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(
+    VulkanContext&                                        context,
     std::span<const vk::DescriptorSetLayoutBinding> bindings,
     vk::DescriptorSetLayoutCreateFlags              flags) :
     context(&context)
@@ -70,18 +70,18 @@ DescriptorSetLayout::DescriptorSetLayout(
 	layout = context.getDevice().logical().createDescriptorSetLayout(create_info);
 }
 
-DescriptorSetLayout::~DescriptorSetLayout()
+VulkanDescriptorSetLayout::~VulkanDescriptorSetLayout()
 {
 	if (context && layout)
 		context->getDevice().logical().destroyDescriptorSetLayout(layout);
 }
 
-DescriptorSetLayout::DescriptorSetLayout(DescriptorSetLayout&& other) noexcept :
+VulkanDescriptorSetLayout::VulkanDescriptorSetLayout(VulkanDescriptorSetLayout&& other) noexcept :
     context(std::exchange(other.context, nullptr)),
     layout(std::exchange(other.layout, nullptr))
 {}
 
-DescriptorSetLayout& DescriptorSetLayout::operator=(DescriptorSetLayout&& other) noexcept
+VulkanDescriptorSetLayout& VulkanDescriptorSetLayout::operator=(VulkanDescriptorSetLayout&& other) noexcept
 {
 	if (this != &other) {
 		if (context && layout)
@@ -94,13 +94,13 @@ DescriptorSetLayout& DescriptorSetLayout::operator=(DescriptorSetLayout&& other)
 	return *this;
 }
 
-vk::DescriptorSetLayout DescriptorSetLayout::get() const&
+vk::DescriptorSetLayout VulkanDescriptorSetLayout::get() const&
 {
 	return layout;
 }
 
 DescriptorPool::DescriptorPool(
-    Context&                                context,
+    VulkanContext&                                context,
     uint32_t                                max_sets,
     std::span<const vk::DescriptorPoolSize> pool_sizes,
     vk::DescriptorPoolCreateFlags           flags) :
@@ -143,12 +143,12 @@ DescriptorPool& DescriptorPool::operator=(DescriptorPool&& other) noexcept
 	return *this;
 }
 
-DescriptorSet DescriptorPool::allocate(const DescriptorSetLayout& layout)
+VulkanDescriptorSet DescriptorPool::allocate(const VulkanDescriptorSetLayout& layout)
 {
 	return allocate({&layout, 1}).front();
 }
 
-std::vector<DescriptorSet> DescriptorPool::allocate(std::span<const DescriptorSetLayout> layouts)
+std::vector<VulkanDescriptorSet> DescriptorPool::allocate(std::span<const VulkanDescriptorSetLayout> layouts)
 {
 	if (!pool || layouts.empty())
 		throw std::runtime_error("Invalid descriptor pool or layouts");
@@ -167,7 +167,7 @@ std::vector<DescriptorSet> DescriptorPool::allocate(std::span<const DescriptorSe
 	    .setSetLayouts(descriptor_layouts);
 	auto vk_sets = context->getDevice().logical().allocateDescriptorSets(alloc_info);
 
-	std::vector<DescriptorSet> new_sets;
+	std::vector<VulkanDescriptorSet> new_sets;
 	new_sets.reserve(vk_sets.size());
 	for (const auto& vk_set : vk_sets) {
 		sets.emplace_back(vk_set);
@@ -177,12 +177,12 @@ std::vector<DescriptorSet> DescriptorPool::allocate(std::span<const DescriptorSe
 	return new_sets;
 }
 
-void DescriptorPool::free(DescriptorSet set)
+void DescriptorPool::free(VulkanDescriptorSet set)
 {
-	free(std::span<const DescriptorSet>{&set, 1});
+	free(std::span<const VulkanDescriptorSet>{&set, 1});
 }
 
-void DescriptorPool::free(std::span<const DescriptorSet> to_free)
+void DescriptorPool::free(std::span<const VulkanDescriptorSet> to_free)
 {
 	if (!pool || to_free.empty())
 		return;
@@ -193,7 +193,7 @@ void DescriptorPool::free(std::span<const DescriptorSet> to_free)
 		vk_sets.push_back(ds.get());
 	context->getDevice().logical().freeDescriptorSets(pool, vk_sets);
 
-	std::erase_if(sets, [&](DescriptorSet s) {
+	std::erase_if(sets, [&](VulkanDescriptorSet s) {
 		return std::find(to_free.begin(), to_free.end(), s) != to_free.end();
 	});
 }

@@ -1,21 +1,21 @@
-#include "RenderPass.hpp"
+#include "VulkanRenderPass.hpp"
 
-#include "Device.hpp"
+#include "VulkanDevice.hpp"
 
-RenderPass::RenderPass(Context& c, const RenderPassConfig& config) :
+VulkanRenderPass::VulkanRenderPass(VulkanContext& c, const VulkanRenderPassConfig& config) :
     context(&c)
 {
 	create(config);
 }
 
-RenderPass::~RenderPass()
+VulkanRenderPass::~VulkanRenderPass()
 {
 	for (auto& framebuffer : framebuffers)
 		context->getDevice().logical().destroyFramebuffer(framebuffer);
 	context->getDevice().logical().destroyRenderPass(render_pass);
 }
 
-void RenderPass::create(const RenderPassConfig& config)
+void VulkanRenderPass::create(const VulkanRenderPassConfig& config)
 {
 	vk::RenderPassCreateInfo render_pass_info{};
 	render_pass_info.setAttachments(config.attachments)
@@ -25,7 +25,7 @@ void RenderPass::create(const RenderPassConfig& config)
 	render_pass = context->getDevice().logical().createRenderPass(render_pass_info);
 }
 
-void RenderPass::createFramebuffers(std::span<const std::vector<vk::ImageView>> attachments_per_frame, vk::Extent2D extent)
+void VulkanRenderPass::createFramebuffers(std::span<const std::vector<vk::ImageView>> attachments_per_frame, vk::Extent2D extent)
 {
 	for (auto& framebuffer : framebuffers)
 		context->getDevice().logical().destroyFramebuffer(framebuffer);
@@ -43,7 +43,7 @@ void RenderPass::createFramebuffers(std::span<const std::vector<vk::ImageView>> 
 	}
 }
 
-void RenderPass::begin(vk::CommandBuffer command_buffer, uint32_t framebuffer_index,
+void VulkanRenderPass::begin(vk::CommandBuffer command_buffer, uint32_t framebuffer_index,
     const vk::Extent2D& extent, std::span<const vk::ClearValue> clear_values)
 {
 	vk::RenderPassBeginInfo begin_info{};
@@ -55,22 +55,22 @@ void RenderPass::begin(vk::CommandBuffer command_buffer, uint32_t framebuffer_in
 	command_buffer.beginRenderPass(begin_info, vk::SubpassContents::eInline);
 }
 
-void RenderPass::end(vk::CommandBuffer command_buffer)
+void VulkanRenderPass::end(vk::CommandBuffer command_buffer)
 {
 	command_buffer.endRenderPass();
 }
 
-void RenderPass::next(vk::CommandBuffer command_buffer)
+void VulkanRenderPass::next(vk::CommandBuffer command_buffer)
 {
 	command_buffer.nextSubpass(vk::SubpassContents::eInline);
 }
 
-vk::RenderPass RenderPass::get() const
+vk::RenderPass VulkanRenderPass::get() const
 {
 	return render_pass;
 }
 
-uint32_t RenderPass::getFramebufferCount() const
+uint32_t VulkanRenderPass::getFramebufferCount() const
 {
 	return static_cast<uint32_t>(framebuffers.size());
 }

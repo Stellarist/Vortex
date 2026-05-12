@@ -1,13 +1,13 @@
-#include "Context.hpp"
+#include "VulkanContext.hpp"
 
 #include <ranges>
 
-#include "Device.hpp"
-#include "SwapChain.hpp"
-#include "Command.hpp"
-#include "Sync.hpp"
+#include "VulkanDevice.hpp"
+#include "VulkanSwapChain.hpp"
+#include "VulkanCommand.hpp"
+#include "VulkanSync.hpp"
 
-Context::Context(Window& window) :
+VulkanContext::VulkanContext(Window& window) :
     window(&window)
 {
 	requestExtensions();
@@ -20,7 +20,7 @@ Context::Context(Window& window) :
 	createCommandPools();
 }
 
-Context::~Context()
+VulkanContext::~VulkanContext()
 {
 	transfer_command_pool.reset();
 	graphics_command_pool.reset();
@@ -30,7 +30,7 @@ Context::~Context()
 	instance.destroy();
 }
 
-void Context::createInstance()
+void VulkanContext::createInstance()
 {
 	auto layers = requestLayers();
 	auto extensions = requestExtensions();
@@ -48,7 +48,7 @@ void Context::createInstance()
 	instance = vk::createInstance(create_info);
 }
 
-void Context::createSurface()
+void VulkanContext::createSurface()
 {
 	VkSurfaceKHR csurface{};
 	if (!SDL_Vulkan_CreateSurface(window->get(), instance, nullptr, &csurface))
@@ -57,30 +57,30 @@ void Context::createSurface()
 	surface = std::move(csurface);
 }
 
-void Context::createDevice()
+void VulkanContext::createDevice()
 {
-	device = std::make_unique<Device>(*this);
+	device = std::make_unique<VulkanDevice>(*this);
 }
 
-void Context::createSwapChain()
+void VulkanContext::createSwapChain()
 {
-	swap_chain = std::make_unique<SwapChain>(*window, *this);
+	swap_chain = std::make_unique<VulkanSwapChain>(*window, *this);
 }
 
-void Context::createCommandPools()
+void VulkanContext::createCommandPools()
 {
-	graphics_command_pool = std::make_unique<CommandPool>(
+	graphics_command_pool = std::make_unique<VulkanCommandPool>(
 	    *this,
 	    device->graphicsQueueIndex(),
 	    vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
 
-	transfer_command_pool = std::make_unique<CommandPool>(
+	transfer_command_pool = std::make_unique<VulkanCommandPool>(
 	    *this,
 	    device->graphicsQueueIndex(),
 	    vk::CommandPoolCreateFlagBits::eTransient);
 }
 
-void Context::execute(std::function<void(CommandBuffer)> func)
+void VulkanContext::execute(std::function<void(VulkanCommandBuffer)> func)
 {
 	auto command = transfer_command_pool->allocate();
 
@@ -88,21 +88,21 @@ void Context::execute(std::function<void(CommandBuffer)> func)
 	func(command);
 	command.end();
 
-	Fence fence(*this, false);
+	VulkanFence fence(*this, false);
 	submit({command}, &fence);
 	fence.wait();
 
 	transfer_command_pool->free(command);
 }
 
-void Context::submit(const std::vector<CommandBuffer>& cmds, Fence* fence,
-    const std::vector<Semaphore*>&             waits,
-    const std::vector<Semaphore*>&             signals,
+void VulkanContext::submit(const std::vector<VulkanCommandBuffer>& cmds, VulkanFence* fence,
+    const std::vector<VulkanSemaphore*>&             waits,
+    const std::vector<VulkanSemaphore*>&             signals,
     const std::vector<vk::PipelineStageFlags>& stages)
 {
-	auto vk_cmds = cmds | std::views::transform([](const CommandBuffer& cmd) { return cmd.get(); }) | std::ranges::to<std::vector>();
-	auto vk_waits = waits | std::views::transform([](Semaphore* s) { return s->get(); }) | std::ranges::to<std::vector>();
-	auto vk_signals = signals | std::views::transform([](Semaphore* s) { return s->get(); }) | std::ranges::to<std::vector>();
+	auto vk_cmds = cmds | std::views::transform([](const VulkanCommandBuffer& cmd) { return cmd.get(); }) | std::ranges::to<std::vector>();
+	auto vk_waits = waits | std::views::transform([](VulkanSemaphore* s) { return s->get(); }) | std::ranges::to<std::vector>();
+	auto vk_signals = signals | std::views::transform([](VulkanSemaphore* s) { return s->get(); }) | std::ranges::to<std::vector>();
 
 	vk::SubmitInfo submit_info;
 	submit_info.setCommandBuffers(vk_cmds)
@@ -113,12 +113,12 @@ void Context::submit(const std::vector<CommandBuffer>& cmds, Fence* fence,
 	device->graphicsQueue().submit(submit_info, fence ? fence->get() : nullptr);
 }
 
-void Context::present(const std::vector<uint32_t>& images,
-    const std::vector<Semaphore*>&                 waits)
+void VulkanContext::present(const std::vector<uint32_t>& images,
+    const std::vector<VulkanSemaphore*>&                 waits)
 {
 	auto vk_sc = swap_chain->get();
 	auto vk_waits = waits
-	    | std::views::transform([](Semaphore* s) { return s->get(); })
+	    | std::views::transform([](VulkanSemaphore* s) { return s->get(); })
 	    | std::ranges::to<std::vector>();
 
 	vk::PresentInfoKHR present_info;
@@ -130,7 +130,7 @@ void Context::present(const std::vector<uint32_t>& images,
 		throw std::runtime_error("Failed to present swap chain image");
 }
 
-std::vector<const char*> Context::requestExtensions()
+std::vector<const char*> VulkanContext::requestExtensions()
 {
 	auto count = 0u;
 	auto sdl_extensions = SDL_Vulkan_GetInstanceExtensions(&count);
@@ -142,7 +142,7 @@ std::vector<const char*> Context::requestExtensions()
 	return extensions;
 }
 
-std::vector<const char*> Context::requestLayers()
+std::vector<const char*> VulkanContext::requestLayers()
 {
 	std::vector<const char*> layers = {
 	    "VK_LAYER_KHRONOS_validation",
@@ -151,32 +151,32 @@ std::vector<const char*> Context::requestLayers()
 	return layers;
 }
 
-vk::Instance Context::getInstance() const
+vk::Instance VulkanContext::getInstance() const
 {
 	return instance;
 }
 
-vk::SurfaceKHR Context::getSurface() const
+vk::SurfaceKHR VulkanContext::getSurface() const
 {
 	return surface;
 }
 
-Device& Context::getDevice() const
+VulkanDevice& VulkanContext::getDevice() const
 {
 	return *device;
 }
 
-SwapChain& Context::getSwapChain() const
+VulkanSwapChain& VulkanContext::getSwapChain() const
 {
 	return *swap_chain;
 }
 
-CommandPool& Context::getGraphicsCommandPool() const
+VulkanCommandPool& VulkanContext::getGraphicsCommandPool() const
 {
 	return *graphics_command_pool;
 }
 
-CommandPool& Context::getTransferCommandPool() const
+VulkanCommandPool& VulkanContext::getTransferCommandPool() const
 {
 	return *transfer_command_pool;
 }

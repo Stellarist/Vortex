@@ -1,7 +1,7 @@
 #include "LightingPass.hpp"
 
-#include "Runtime/Render/Backend/Device.hpp"
-#include "Runtime/Render/Backend/SwapChain.hpp"
+#include "Runtime/Render/Backend/VulkanDevice.hpp"
+#include "Runtime/Render/Backend/VulkanSwapChain.hpp"
 
 LightingPass::LightingPass()
 {
@@ -13,9 +13,9 @@ LightingPass::~LightingPass()
 	cleanup();
 }
 
-RenderPassConfig LightingPass::createConfig()
+VulkanRenderPassConfig LightingPass::createConfig()
 {
-	RenderPassConfig config;
+	VulkanRenderPassConfig config;
 
 	static vk::AttachmentReference color_ref{0, vk::ImageLayout::eColorAttachmentOptimal};
 
@@ -62,12 +62,12 @@ void LightingPass::createFramebuffers()
 	pass->createFramebuffers(attachments, extent);
 }
 
-void LightingPass::initialize(Context& ctx, vk::Extent2D ext)
+void LightingPass::initialize(VulkanContext& ctx, vk::Extent2D ext)
 {
 	context = &ctx;
 	extent = ext;
 
-	pass = std::make_unique<RenderPass>(ctx, createConfig());
+	pass = std::make_unique<VulkanRenderPass>(ctx, createConfig());
 	createFramebuffers();
 }
 
@@ -137,10 +137,10 @@ void LightingPass::createGBufferDescriptorSetLayout()
 	        .setDescriptorCount(1)
 	        .setStageFlags(vk::ShaderStageFlagBits::eFragment));
 
-	gbuffer_layout = std::make_unique<DescriptorSetLayout>(*context, bindings);
+	gbuffer_layout = std::make_unique<VulkanDescriptorSetLayout>(*context, bindings);
 }
 
-void LightingPass::createGBufferDescriptorSet(const GBuffer& gbuffer)
+void LightingPass::createGBufferDescriptorSet(const VulkanGBuffer& gbuffer)
 {
 	if (!gbuffer_layout)
 		createGBufferDescriptorSetLayout();
@@ -153,27 +153,27 @@ void LightingPass::createGBufferDescriptorSet(const GBuffer& gbuffer)
 	updateGBufferDescriptorSet(gbuffer);
 }
 
-void LightingPass::updateGBufferDescriptorSet(const GBuffer& gbuffer)
+void LightingPass::updateGBufferDescriptorSet(const VulkanGBuffer& gbuffer)
 {
 	auto& device = context->getDevice();
 
 	gbuffer_descriptor.update(device, 0, vk::DescriptorType::eCombinedImageSampler,
-	    gbuffer.getImage(GBufferAttachment::Position));
+	    gbuffer.getImage(VulkanGBufferAttachment::Position));
 
 	gbuffer_descriptor.update(device, 1, vk::DescriptorType::eCombinedImageSampler,
-	    gbuffer.getImage(GBufferAttachment::Normal));
+	    gbuffer.getImage(VulkanGBufferAttachment::Normal));
 
 	gbuffer_descriptor.update(device, 2, vk::DescriptorType::eCombinedImageSampler,
-	    gbuffer.getImage(GBufferAttachment::Albedo));
+	    gbuffer.getImage(VulkanGBufferAttachment::Albedo));
 
 	gbuffer_descriptor.update(device, 3, vk::DescriptorType::eCombinedImageSampler,
-	    gbuffer.getImage(GBufferAttachment::Metallic));
+	    gbuffer.getImage(VulkanGBufferAttachment::Metallic));
 
 	gbuffer_descriptor.update(device, 4, vk::DescriptorType::eCombinedImageSampler,
-	    gbuffer.getImage(GBufferAttachment::Roughness));
+	    gbuffer.getImage(VulkanGBufferAttachment::Roughness));
 }
 
-void LightingPass::setupGBuffer(const GBuffer& gbuffer)
+void LightingPass::setupGBuffer(const VulkanGBuffer& gbuffer)
 {
 	createGBufferDescriptorSet(gbuffer);
 }
@@ -188,7 +188,7 @@ void LightingPass::bindGBufferDescriptor(vk::CommandBuffer command, vk::Pipeline
 	    {});
 }
 
-const DescriptorSetLayout& LightingPass::getGBufferLayout() const
+const VulkanDescriptorSetLayout& LightingPass::getGBufferLayout() const
 {
 	return *gbuffer_layout;
 }

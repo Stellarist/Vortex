@@ -1,11 +1,11 @@
 #include "GpuMaterial.hpp"
 
-GpuMaterial::GpuMaterial(Context& context,
+GpuMaterial::GpuMaterial(VulkanContext& context,
     std::shared_ptr<Material>     material,
-    DescriptorSetLayout&          layout,
+    VulkanDescriptorSetLayout&          layout,
     DescriptorPool&               pool,
-    Image*                        base_color,
-    Image*                        metallic_roughness) :
+    VulkanImage*                        base_color,
+    VulkanImage*                        metallic_roughness) :
     source_material(material),
     context(&context),
     base_color_texture(base_color),
@@ -17,7 +17,7 @@ GpuMaterial::GpuMaterial(Context& context,
 		material_data.roughness = mat->getRoughness();
 	}
 
-	material_uniform = Buffer::createDynamic(
+	material_uniform = VulkanBuffer::createDynamic(
 	    context,
 	    vk::BufferUsageFlagBits::eUniformBuffer,
 	    &material_data,
@@ -50,7 +50,7 @@ void GpuMaterial::bind(vk::CommandBuffer command_buffer, vk::PipelineLayout pipe
 	    {});
 }
 
-DescriptorSet GpuMaterial::getDescriptor()
+VulkanDescriptorSet GpuMaterial::getDescriptor()
 {
 	return material_descriptor.get();
 }

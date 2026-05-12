@@ -6,9 +6,9 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
 
-#include "Backend/Context.hpp"
-#include "Backend/Command.hpp"
-#include "Backend/Sync.hpp"
+#include "Backend/VulkanContext.hpp"
+#include "Backend/VulkanCommand.hpp"
+#include "Backend/VulkanSync.hpp"
 #include "Resources/GpuScene.hpp"
 #include "Paths/ForwardPath.hpp"
 #include "Paths/DeferredPath.hpp"
@@ -21,16 +21,16 @@ struct Frame {
 	uint32_t image_index{};
 	uint32_t current_frame{};
 
-	std::vector<CommandBuffer>              commands{};
-	std::vector<std::unique_ptr<Semaphore>> image_available_semaphores{};
-	std::vector<std::unique_ptr<Semaphore>> render_finished_semaphores{};
-	std::vector<std::unique_ptr<Fence>>     in_flight_fences{};
+	std::vector<VulkanCommandBuffer>        commands{};
+	std::vector<std::unique_ptr<VulkanSemaphore>> image_available_semaphores{};
+	std::vector<std::unique_ptr<VulkanSemaphore>> render_finished_semaphores{};
+	std::vector<std::unique_ptr<VulkanFence>>     in_flight_fences{};
 
-	CommandBuffer currentCommand() const;
+	VulkanCommandBuffer currentCommand() const;
 };
 
 class Renderer {
-	std::unique_ptr<Context> context;
+	std::unique_ptr<VulkanContext> context;
 
 	std::unique_ptr<ForwardPath>  forward_pipeline;
 	std::unique_ptr<DeferredPath> deferred_pipeline;
@@ -66,8 +66,8 @@ public:
 	auto getActiveWorld() const -> World*;
 	void setActiveWorld(World& world);
 
-	Context&    getContext() const;
+	VulkanContext&    getContext() const;
 	GpuScene&   getGpuScene() const;
 	Frame&      getCurrentFrame() const;
-	RenderPass* getUIPass() const;
+	VulkanRenderPass* getUIPass() const;
 };

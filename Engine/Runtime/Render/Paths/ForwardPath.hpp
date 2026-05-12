@@ -1,22 +1,22 @@
 #pragma once
 
 #include "BasePath.hpp"
-#include "Runtime/Render/Backend/GraphicsPipeline.hpp"
+#include "Runtime/Render/Backend/VulkanGraphicsPipeline.hpp"
 #include "Runtime/Render/Passes/ForwardPass.hpp"
 
 class ForwardPath : public BasePath {
 private:
 	std::unique_ptr<ForwardPass> forward_pass;
 
-	std::unique_ptr<GraphicsPipeline> forward_pipeline;
+	std::unique_ptr<VulkanGraphicsPipeline> forward_pipeline;
 
-	GraphicsPipelineConfig createPipelineConfig();
+	VulkanGraphicsPipelineConfig createPipelineConfig();
 
 public:
 	ForwardPath();
 	~ForwardPath() override;
 
-	void initialize(Context& context) override;
+	void initialize(VulkanContext& context) override;
 	void cleanup() override;
 	void resize(uint32_t width, uint32_t height) override;
 
@@ -26,5 +26,5 @@ public:
 	ForwardPath& build(std::span<const vk::DescriptorSetLayout> forward_layouts, std::span<const vk::PipelineShaderStageCreateInfo> forward_stages);
 
 	ForwardPass&      getForwardPass() const;
-	GraphicsPipeline& getForwardPipeline() const;
+	VulkanGraphicsPipeline& getForwardPipeline() const;
 };

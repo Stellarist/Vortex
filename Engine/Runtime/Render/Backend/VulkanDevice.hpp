@@ -2,16 +2,16 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "Context.hpp"
+#include "VulkanContext.hpp"
 
-struct QueueFamilyIndices {
+struct VulkanQueueFamilyIndices {
 	std::optional<uint32_t> graphics_family;
 	std::optional<uint32_t> present_family;
 
 	operator bool() const;
 };
 
-class Device {
+class VulkanDevice {
 private:
 	vk::PhysicalDevice physical_device;
 	vk::Device         logical_device;
@@ -21,9 +21,9 @@ private:
 	std::vector<std::string> extensions{};
 	std::vector<std::string> layers{};
 
-	QueueFamilyIndices queue_family_indices;
+	VulkanQueueFamilyIndices queue_family_indices;
 
-	Context* context{};
+	VulkanContext* context{};
 
 	void queryQueueFamilyIndices();
 
@@ -31,14 +31,14 @@ private:
 	std::vector<const char*> requestLayers();
 
 public:
-	Device(Context& context);
-	~Device();
+	VulkanDevice(VulkanContext& context);
+	~VulkanDevice();
 
-	Device(const Device&) = delete;
-	Device& operator=(const Device&) = delete;
+	VulkanDevice(const VulkanDevice&) = delete;
+	VulkanDevice& operator=(const VulkanDevice&) = delete;
 
-	Device(Device&&) noexcept = default;
-	Device& operator=(Device&&) noexcept = default;
+	VulkanDevice(VulkanDevice&&) noexcept = default;
+	VulkanDevice& operator=(VulkanDevice&&) noexcept = default;
 
 	void pickPhysicalDevice();
 	void createLogicalDevice();

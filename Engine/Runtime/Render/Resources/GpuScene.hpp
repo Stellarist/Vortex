@@ -6,9 +6,9 @@
 
 #include "GpuMesh.hpp"
 #include "GpuTexture.hpp"
-#include "Runtime/Render/Backend/Buffer.hpp"
-#include "Runtime/Render/Backend/Context.hpp"
-#include "Runtime/Render/Backend/Descriptor.hpp"
+#include "Runtime/Render/Backend/VulkanBuffer.hpp"
+#include "Runtime/Render/Backend/VulkanContext.hpp"
+#include "Runtime/Render/Backend/VulkanDescriptor.hpp"
 #include "Runtime/Render/Resources/GpuMaterial.hpp"
 #include "Runtime/World/World.hpp"
 #include "Runtime/World/Resources/Texture.hpp"
@@ -18,23 +18,23 @@ private:
 	const World* world{};
 
 	// Set 0: Scene-level descriptor
-	DescriptorSet                        scene_descriptor;
-	std::unique_ptr<DescriptorSetLayout> scene_layout;
+	VulkanDescriptorSet                        scene_descriptor;
+	std::unique_ptr<VulkanDescriptorSetLayout> scene_layout;
 	std::unique_ptr<DescriptorPool>      scene_pool;
-	std::unique_ptr<Buffer>              scene_uniform;
+	std::unique_ptr<VulkanBuffer>        scene_uniform;
 	GpuSceneData                         scene_data;
 
 	// Set 1: Material-level
-	std::unique_ptr<DescriptorSetLayout>      material_layout;
+	std::unique_ptr<VulkanDescriptorSetLayout>      material_layout;
 	std::unique_ptr<DescriptorPool>           material_pool;
-	std::shared_ptr<Sampler>                  default_sampler;
+	std::shared_ptr<VulkanSampler>                  default_sampler;
 	std::vector<std::unique_ptr<GpuMaterial>> gpu_materials;
 	std::vector<std::unique_ptr<GpuTexture>>  gpu_textures;
 
 	std::unordered_map<std::shared_ptr<Texture>, GpuTexture*> texture_to_gpu_texture;
 
 	// Set 2: Object-level
-	std::unique_ptr<DescriptorSetLayout>  object_layout;
+	std::unique_ptr<VulkanDescriptorSetLayout>  object_layout;
 	std::unique_ptr<DescriptorPool>       object_pool;
 	std::vector<std::unique_ptr<GpuMesh>> gpu_meshes;
 
@@ -45,7 +45,7 @@ private:
 	size_t last_texture_count{0};
 	size_t last_material_count{0};
 
-	Context* context{};
+	VulkanContext* context{};
 
 	void createDescriptorLayouts();
 	void createDescriptorPools();
@@ -65,7 +65,7 @@ private:
 
 public:
 	GpuScene() = default;
-	GpuScene(Context& context, const World& world);
+	GpuScene(VulkanContext& context, const World& world);
 	~GpuScene() = default;
 
 	GpuScene(const GpuScene&) = delete;
@@ -80,10 +80,10 @@ public:
 
 	std::vector<vk::DescriptorSetLayout> getDescriptorSetLayouts() const;
 
-	DescriptorSet        getSceneDescriptor();
-	DescriptorSetLayout* getSceneLayout();
-	DescriptorSetLayout* getMaterialLayout();
-	DescriptorSetLayout* getObjectLayout();
+	VulkanDescriptorSet        getSceneDescriptor();
+	VulkanDescriptorSetLayout* getSceneLayout();
+	VulkanDescriptorSetLayout* getMaterialLayout();
+	VulkanDescriptorSetLayout* getObjectLayout();
 
 	const World* getWorld() const;
 };

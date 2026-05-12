@@ -3,29 +3,29 @@
 #include "BasePath.hpp"
 #include "Runtime/Render/Passes/GeometryPass.hpp"
 #include "Runtime/Render/Passes/LightingPass.hpp"
-#include "Runtime/Render/Backend/GraphicsPipeline.hpp"
-#include "Runtime/Render/Backend/GBuffer.hpp"
+#include "Runtime/Render/Backend/VulkanGraphicsPipeline.hpp"
+#include "Runtime/Render/Backend/VulkanGBuffer.hpp"
 
 class DeferredPath : public BasePath {
 private:
 	std::unique_ptr<GeometryPass> geometry_pass;
 	std::unique_ptr<LightingPass> lighting_pass;
 
-	std::unique_ptr<GraphicsPipeline> geometry_pipeline;
-	std::unique_ptr<GraphicsPipeline> lighting_pipeline;
+	std::unique_ptr<VulkanGraphicsPipeline> geometry_pipeline;
+	std::unique_ptr<VulkanGraphicsPipeline> lighting_pipeline;
 
-	std::unique_ptr<GBuffer> gbuffer;
+	std::unique_ptr<VulkanGBuffer> gbuffer;
 
 	static std::vector<vk::PipelineColorBlendAttachmentState> color_blend_attachments;
 
-	GraphicsPipelineConfig createGeometryPipelineConfig();
-	GraphicsPipelineConfig createLightingPipelineConfig();
+	VulkanGraphicsPipelineConfig createGeometryPipelineConfig();
+	VulkanGraphicsPipelineConfig createLightingPipelineConfig();
 
 public:
 	DeferredPath();
 	~DeferredPath() override;
 
-	void initialize(Context& context) override;
+	void initialize(VulkanContext& context) override;
 	void cleanup() override;
 	void resize(uint32_t width, uint32_t height) override;
 
@@ -43,8 +43,8 @@ public:
 	GeometryPass& getGeometryPass() const;
 	LightingPass& getLightingPass() const;
 
-	GraphicsPipeline& getGeometryPipeline() const;
-	GraphicsPipeline& getLightingPipeline() const;
+	VulkanGraphicsPipeline& getGeometryPipeline() const;
+	VulkanGraphicsPipeline& getLightingPipeline() const;
 
-	GBuffer& getGBuffer() const;
+	VulkanGBuffer& getGBuffer() const;
 };
