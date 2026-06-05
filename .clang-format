@@ -2,8 +2,12 @@ Language: Cpp
 AccessModifierOffset: -4
 AlignAfterOpenBracket: DontAlign
 AlignConsecutiveDeclarations: true
-AlignOperands: false
+AlignOperands: DontAlign
 AlignTrailingComments: true
+AllowShortBlocksOnASingleLine: Always
+AllowShortFunctionsOnASingleLine: All
+BinPackArguments: false
+BinPackParameters: false
 BraceWrapping:
     AfterCaseLabel: true
     AfterClass: false
@@ -21,7 +25,7 @@ BraceWrapping:
     SplitEmptyFunction: false
     SplitEmptyRecord: false
     SplitEmptyNamespace: false
-BreakBeforeBinaryOperators: NonAssignment
+BreakBeforeBinaryOperators: None
 BreakBeforeBraces: Custom
 BreakBeforeInheritanceComma: false
 BreakBeforeTernaryOperators: false
@@ -42,12 +46,13 @@ FixNamespaceComments: true
 IncludeBlocks: Preserve
 IndentPPDirectives: AfterHash
 IndentWidth: 4
-IndentWrappedFunctionNames: true
+IndentWrappedFunctionNames: false
 KeepEmptyLinesAtTheStartOfBlocks: false
-MaxEmptyLinesToKeep: 1
+MaxEmptyLinesToKeep: 2
 NamespaceIndentation: None
-PenaltyBreakAssignment: 2
-PenaltyBreakBeforeFirstCallParameter: 19
+PackConstructorInitializers: BinPack
+PenaltyBreakAssignment: 100
+PenaltyBreakBeforeFirstCallParameter: 20
 PenaltyBreakComment: 300
 PenaltyBreakFirstLessLess: 120
 PenaltyBreakString: 1000
