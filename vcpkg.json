@@ -8,15 +8,17 @@
         "vulkan-binding"
       ]
     },
+    "nlohmann-json",
     {
       "name": "sdl3",
       "features": [
         "vulkan"
       ]
     },
+    "spdlog",
     "tinygltf",
     "vulkan",
-    "spdlog",
-    "nlohmann-json"
+    "vulkan-memory-allocator",
+    "vk-bootstrap"
   ]
 }

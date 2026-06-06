@@ -14,6 +14,8 @@ find_package(glm REQUIRED)
 find_package(imgui REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(nlohmann_json REQUIRED)
+find_package(vk-bootstrap REQUIRED)
+find_package(VulkanMemoryAllocator REQUIRED)
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
 add_executable(Vortex
@@ -36,6 +38,8 @@ target_link_libraries(Vortex
 	imgui::imgui
 	spdlog::spdlog
 	nlohmann_json::nlohmann_json
+	vk-bootstrap::vk-bootstrap
+	GPUOpen::VulkanMemoryAllocator
 )
 
 add_custom_target(build_shaders ALL
@@ -47,22 +51,10 @@ add_custom_target(build_shaders ALL
 add_custom_target(copy_resources ALL
 	COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Scripts/copy_resources.py ${CMAKE_SOURCE_DIR} "$<TARGET_FILE_DIR:Vortex>"
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-	DEPENDS build_shaders
 	COMMENT "Copying resources..."
 )
 
 add_dependencies(Vortex
 	build_shaders
 	copy_resources
-)
-
-install(TARGETS Vortex
-	RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}
-)
-
-install(DIRECTORY
-	${CMAKE_BINARY_DIR}/Assets 
-	${CMAKE_BINARY_DIR}/Configs
-	${CMAKE_BINARY_DIR}/Shaders
-	DESTINATION ${CMAKE_INSTALL_PREFIX}
 )
