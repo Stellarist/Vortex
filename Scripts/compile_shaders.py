@@ -1,92 +1,59 @@
+import re
 import subprocess
-import os
 import sys
-import glob
+from pathlib import Path
 
 SLANGC = "slangc"
+ENTRY_POINT_PATTERN = re.compile(r"\[\s*shader\s*\(")
 
-def compile_shader(src_path, source_root=".", output_root=None):
-    if not os.path.exists(src_path):
-        print(f"Error: File not found: {src_path}")
-        return False
-    
-    if not src_path.endswith(".slang"):
-        print(f"Error: File must have .slang extension: {src_path}")
-        return False
-    
-    src_dir = os.path.dirname(src_path)
-    if not src_dir:
-        src_dir = "."
-    filename = os.path.basename(src_path)
-    name_wo_ext = os.path.splitext(filename)[0]
 
-    if output_root:
-        rel_dir = os.path.relpath(src_dir, source_root)
-        if rel_dir == ".":
-            out_dir = output_root
-        else:
-            out_dir = os.path.join(output_root, rel_dir)
-    else:
-        out_dir = src_dir
+def compile_shader(src_path, source_root, output_root):
+    rel_path = src_path.relative_to(source_root)
+    out_path = (output_root / rel_path).with_suffix(".spv")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    os.makedirs(out_dir, exist_ok=True)
-    out_path = os.path.join(out_dir, f"{name_wo_ext}.spv")
-    
-    cmd = [SLANGC, src_path, "-o", out_path]
-    print("Compiling:", " ".join(cmd))
-    result = subprocess.run(cmd)
+    result = subprocess.run([SLANGC, str(src_path), "-o", str(out_path)])
     if result.returncode != 0:
-        print(f"Error compiling {filename}")
+        print(f"Error: failed to compile {src_path}")
         return False
+
     return True
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        output_root = None
-        patterns = sys.argv[1:]
+    args = sys.argv[1:]
+    output_root = Path(".")
 
-        if "--output-dir" in patterns:
-            idx = patterns.index("--output-dir")
-            if idx + 1 >= len(patterns):
-                print("Error: --output-dir requires a path argument")
-                exit(1)
-            output_root = patterns[idx + 1]
-            patterns = patterns[:idx] + patterns[idx + 2:]
+    if args:
+        if len(args) != 2 or args[0] != "--output-dir":
+            print("Usage: python compile_shaders.py [--output-dir <path>]")
+            sys.exit(1)
 
-        source_root = os.getcwd()
-        success = True
-        compiled = 0
-        
-        # Expand wildcards/globs
-        all_files = []
-        for pattern in patterns:
-            matches = glob.glob(pattern, recursive=True)
-            if matches:
-                all_files.extend(matches)
-            else:
-                # If no matches, treat as literal filename
-                all_files.append(pattern)
-        
-        if not all_files:
-            print("Warning: No shader files found matching the patterns.")
-            exit(0)
-        
-        for file_path in all_files:
-            if compile_shader(file_path, source_root, output_root):
-                compiled += 1
-            else:
-                success = False
-        
-        if success and compiled > 0:
-            print(f"Successfully compiled {compiled} shader(s)!")
-            exit(0)
+        output_root = Path(args[1])
+
+    source_root = Path.cwd()
+    shader_files = sorted(source_root.rglob("*.slang"))
+
+    if not shader_files:
+        print("Warning: no shader files found")
+        sys.exit(0)
+
+    success = True
+    compiled = 0
+    skipped = 0
+
+    for src_path in shader_files:
+        if ENTRY_POINT_PATTERN.search(src_path.read_text(encoding="utf-8")) is None:
+            skipped += 1
+            continue
+
+        if compile_shader(src_path, source_root, output_root):
+            compiled += 1
         else:
-            exit(1)
-    else:
-        print("Warning: No shader files specified.")
-        print("Usage: python compile_shaders.py [--output-dir <path>] <pattern> [pattern2 ...]")
-        print("Examples:")
-        print("  python compile_shaders.py --output-dir ../Build/Shaders Deferred/*.slang")
-        print("  python compile_shaders.py Forward/pbr.slang Deferred/*.slang")
-        exit(0)
+            success = False
+
+    if success:
+        print(f"Success: compiled {compiled} shader(s) successfully, skipped {skipped} include-only file(s)")
+        sys.exit(0)
+
+    sys.exit(1)

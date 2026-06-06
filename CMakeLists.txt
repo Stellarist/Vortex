@@ -38,13 +38,8 @@ target_link_libraries(Vortex
 	nlohmann_json::nlohmann_json
 )
 
-set(SHADER_LIST
-	Forward/*.slang
-	Deferred/*.slang
-)
-
 add_custom_target(build_shaders ALL
-	COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Scripts/compile_shaders.py --output-dir "$<TARGET_FILE_DIR:Vortex>/Shaders" ${SHADER_LIST}
+	COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Scripts/compile_shaders.py --output-dir "$<TARGET_FILE_DIR:Vortex>/Shaders"
 	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/Engine/Shaders
 	COMMENT "Compiling shaders..."
 )
