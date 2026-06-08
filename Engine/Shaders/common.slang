@@ -1,5 +1,6 @@
-static constexpr float PI = 3.14159265359;
-static const float     LUMINOUS_EFFICIENCY = 683.0;
+static const float PI = 3.14159265359;
+static const float LUMINOUS_EFFICIENCY = 683.0;
+static const int MAX_LIGHTS_COUNT = 32;
 
 struct VSInput {
 	float3 pos : POSITION;
@@ -41,7 +42,7 @@ struct MaterialData {
 
 struct SceneData {
 	CameraData camera;
-	LightData  lights[16];
+	LightData  lights[MAX_LIGHTS_COUNT];
 	float4     ambient_color;
 	uint       light_count;
 };
@@ -80,7 +81,7 @@ LightSample sampleLight(LightData light, float3 world_pos)
 		float irradiance = intensity / LUMINOUS_EFFICIENCY;
 		result.radiance = light_color * irradiance;
 
-		// Point light (Intensity unit: candela (lm/sr))
+	// Point light (Intensity unit: candela (lm/sr))
 	} else if (light_type == 1) {
 		float3 to_light = light.position.xyz - world_pos;
 		float  distance = length(to_light);
@@ -91,8 +92,8 @@ LightSample sampleLight(LightData light, float3 world_pos)
 		float irradiance = illuminance / LUMINOUS_EFFICIENCY;
 		result.radiance = light_color * irradiance;
 
-		// Spot light (Intensity unit: candela (lm/sr))
-	} else {
+	// Spot light (Intensity unit: candela (lm/sr))
+	} else if(light_type == 2) {
 		float3 to_light = light.position.xyz - world_pos;
 		float  distance = length(to_light);
 		result.direction = normalize(to_light);
@@ -148,7 +149,7 @@ float3 F_Schlick(float cosTheta, float3 F0)
 }
 
 // Cook-Torrance BRDF
-float3 BRDF_CT(float3 L, float3 V, float3 N, float3 albedo, float metallic, float roughness)
+float3 BRDF_Cook(float3 L, float3 V, float3 N, float3 albedo, float metallic, float roughness)
 {
 	float3 H = normalize(V + L);
 	float  NdotH = max(dot(N, H), 0.0);
@@ -176,7 +177,7 @@ float3 BRDF_CT(float3 L, float3 V, float3 N, float3 albedo, float metallic, floa
 }
 
 // Oren-Nayar BRDF
-float BRDF_ON(float3 L, float3 V, float3 N, float roughness)
+float BRDF_Oren(float3 L, float3 V, float3 N, float roughness)
 {
 	float NdotL = max(dot(N, L), 0.0);
 	float NdotV = max(dot(N, V), 0.0);

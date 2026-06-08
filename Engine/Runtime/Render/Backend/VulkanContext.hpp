@@ -1,65 +1,99 @@
 #pragma once
 
-#include <functional>
+#include <memory>
+#include <optional>
+#include <vector>
 
 #include <vulkan/vulkan.hpp>
 
 #include "Editor/Window.hpp"
+#include "Runtime/Render/RHI/RHIDevice.hpp"
 
-class VulkanBuffer;
 class VulkanDevice;
-class VulkanSwapChain;
-class VulkanCommandBuffer;
-class VulkanCommandPool;
-class VulkanSemaphore;
-class VulkanFence;
+class VulkanContext;
 
-class VulkanContext {
+struct VulkanQueueIndices {
+	std::optional<uint32_t> graphics_family{};
+};
+
+struct VulkanSwapchainImages {
+	std::vector<vk::Image>     images{};
+	std::vector<vk::ImageView> image_views{};
+};
+
+class VulkanFrame {
 private:
-	vk::Instance   instance;
-	vk::SurfaceKHR surface;
+	std::vector<std::unique_ptr<RHICommandList>> frame_commands{};
+	std::vector<std::unique_ptr<RHITexture>>     backbuffers{};
 
-	std::unique_ptr<VulkanDevice>      device;
-	std::unique_ptr<VulkanSwapChain>   swap_chain;
-	std::unique_ptr<VulkanCommandPool> graphics_command_pool;
-	std::unique_ptr<VulkanCommandPool> transfer_command_pool;
+	std::vector<vk::Semaphore> image_available_semaphores{};
+	std::vector<vk::Semaphore> render_finished_semaphores{};
+	std::vector<vk::Fence>     in_flight_fences{};
+
+	uint32_t current_frame{};
+	uint32_t image_index{};
+
+	VulkanContext& context;
+
+	static constexpr uint32_t FRAMES_IN_FLIGHT = 2;
+
+	friend class VulkanContext;
+
+	static void transitionSwapchainImage(vk::CommandBuffer command, vk::Image image, vk::ImageLayout old_layout, vk::ImageLayout new_layout);
+	static void blitToSwapchain(vk::CommandBuffer command, vk::Image src, vk::Image dst, const RHIExtent& extent);
+
+public:
+	VulkanFrame(VulkanContext& context);
+	~VulkanFrame();
+
+	void blit();
+	void submit();
+	void present();
+	void advance();
+
+	RHICommandList& getCommand() { return *frame_commands[current_frame]; }
+	RHITexture&     getBackbuffer() { return *backbuffers[image_index]; }
+};
+
+class VulkanContext : public RHIContext {
+private:
+	RHIContextDesc desc{};
+
+	vk::Instance       instance{};
+	vk::SurfaceKHR     surface{};
+	vk::PhysicalDevice physical_device{};
+	vk::SwapchainKHR   swapchain{};
+
+	std::unique_ptr<VulkanDevice> device{};
+	std::unique_ptr<VulkanFrame>  frame{};
+
+	VulkanQueueIndices    queue_indices{};
+	VulkanSwapchainImages swapchain_images{};
 
 	Window* window{};
-
-	void createInstance();
-	void createSurface();
-	void createDevice();
-	void createSwapChain();
-	void createCommandPools();
-
-	std::vector<const char*> requestExtensions();
-	std::vector<const char*> requestLayers();
 
 public:
 	VulkanContext(Window& window);
 	~VulkanContext();
 
-	VulkanContext(const VulkanContext&) = delete;
-	VulkanContext& operator=(const VulkanContext&) = delete;
+	void beginFrame() override;
+	void endFrame() override;
 
-	VulkanContext(VulkanContext&&) noexcept = default;
-	VulkanContext& operator=(VulkanContext&&) noexcept = default;
+	RHICommandList& getCommand() override { return frame->getCommand(); }
+	RHITexture&     getBackbuffer() override { return frame->getBackbuffer(); }
 
-	void execute(std::function<void(VulkanCommandBuffer)> func);
+	RHIDevice& getDevice() override;
 
-	void submit(const std::vector<VulkanCommandBuffer>& cmds, VulkanFence* fence = {},
-	    const std::vector<VulkanSemaphore*>&             waits = {},
-	    const std::vector<VulkanSemaphore*>&             signals = {},
-	    const std::vector<vk::PipelineStageFlags>& stages = {});
+	RHIFormat getFormat() const override { return desc.format; }
+	RHIExtent getExtent() const override { return desc.extent; }
 
-	void present(const std::vector<uint32_t>& images,
-	    const std::vector<VulkanSemaphore*>&        waits = {});
+	VulkanFrame* getFrame() { return frame.get(); }
 
-	vk::Instance   getInstance() const;
-	vk::SurfaceKHR getSurface() const;
+	vk::Instance       getInstance() const { return instance; }
+	vk::SurfaceKHR     getSurface() const { return surface; }
+	vk::PhysicalDevice getPhysicalDevice() const { return physical_device; }
+	vk::SwapchainKHR   getSwapchain() const { return swapchain; }
 
-	VulkanDevice&      getDevice() const;
-	VulkanSwapChain&   getSwapChain() const;
-	VulkanCommandPool& getGraphicsCommandPool() const;
-	VulkanCommandPool& getTransferCommandPool() const;
+	const VulkanQueueIndices&    getQueueIndices() const { return queue_indices; }
+	const VulkanSwapchainImages& getSwapchainImages() const { return swapchain_images; }
 };

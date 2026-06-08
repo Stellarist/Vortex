@@ -25,12 +25,12 @@ Application::Application()
 		widget->pollEvent(*window->getEvent());
 	});
 
-	renderer->hook([this]() {
-		widget->drawFrame(renderer->getCurrentFrame().currentCommand());
-	});
-
 	widget->hook([this]() {
 		widget->drawSceneGraph(world.get(), clock.getDeltaTime());
+	});
+
+	renderer->hook([this](RHICommandList& command) {
+		widget->drawFrame(renderer->getContext().getCommand());
 	});
 }
 
@@ -57,7 +57,6 @@ void Application::run()
 void Application::tickGui(float dt)
 {
 	window->pollEvent();
-
 	widget->newFrame();
 }
 

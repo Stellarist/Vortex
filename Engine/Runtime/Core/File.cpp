@@ -95,7 +95,7 @@ std::string FileSystem::readTextFile(const std::filesystem::path& path)
 	return buffer.str();
 }
 
-std::vector<uint8_t> FileSystem::readBinaryFile(const std::filesystem::path& path)
+std::vector<std::byte> FileSystem::readBinaryFile(const std::filesystem::path& path)
 {
 	if (!exists(path))
 		throw std::runtime_error("File does not exist: " + path.string());
@@ -107,7 +107,7 @@ std::vector<uint8_t> FileSystem::readBinaryFile(const std::filesystem::path& pat
 	auto size = file.tellg();
 	file.seekg(0, std::ios::beg);
 
-	std::vector<uint8_t> buffer(size);
+	std::vector<std::byte> buffer(size);
 	file.read(reinterpret_cast<char*>(buffer.data()), size);
 
 	return buffer;
@@ -128,7 +128,7 @@ bool FileSystem::writeTextFile(const std::filesystem::path& path, const std::str
 	return file.good();
 }
 
-bool FileSystem::writeBinaryFile(const std::filesystem::path& path, const std::vector<uint8_t>& data)
+bool FileSystem::writeBinaryFile(const std::filesystem::path& path, const std::vector<std::byte>& data)
 {
 	auto parentPath = path.parent_path();
 	if (!parentPath.empty() && !exists(parentPath))

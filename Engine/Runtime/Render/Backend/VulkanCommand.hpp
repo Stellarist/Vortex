@@ -1,54 +1,113 @@
 #pragma once
 
-#include <vulkan/vulkan.hpp>
+#include <deque>
 
-#include "VulkanContext.hpp"
+#include "VulkanDevice.hpp"
+#include "Runtime/Render/RHI/RHICommand.hpp"
 
+class VulkanCommandPool;
+
+// command buffer
 class VulkanCommandBuffer {
 private:
-	vk::CommandBuffer command{};
+	vk::CommandBuffer buffer{};
+
+	std::vector<std::shared_ptr<RHIResource>> tracked_resources{};
+
+	VulkanDevice&      device;
+	VulkanCommandPool& pool;
 
 public:
-	VulkanCommandBuffer() = default;
-	VulkanCommandBuffer(vk::CommandBuffer command);
-	~VulkanCommandBuffer() = default;
+	VulkanCommandBuffer(VulkanDevice& device, VulkanCommandPool& pool);
+	~VulkanCommandBuffer();
 
-	void begin(vk::CommandBufferUsageFlags flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-	void end();
+	void allocMemory();
+	void freeMemory();
 
-	vk::CommandBuffer get() const&;
-	vk::CommandBuffer get() const&& = delete;
+	void beginRendering(const vk::RenderingInfo& render_info);
+	void endRendering();
 
-	bool operator==(const VulkanCommandBuffer& other) const = default;
+	void trackResource(std::shared_ptr<RHIResource> resource);
+	void resetResources();
+
+	vk::CommandBuffer getHandle() const { return buffer; }
+
+	VulkanCommandPool& getPool() const { return pool; }
 };
 
+
+// command pool
 class VulkanCommandPool {
 private:
-	vk::CommandPool            pool{};
-	std::vector<VulkanCommandBuffer> buffers;
+	vk::CommandPool pool{};
 
-	VulkanContext* context{};
+	std::deque<VulkanCommandBuffer*> cmd_buffers{};
+	std::deque<VulkanCommandBuffer*> free_cmd_buffers{};
+
+	VulkanDevice& device;
+	VulkanQueue&  queue;
 
 public:
-	VulkanCommandPool(VulkanContext&           context,
-	    uint32_t                   queue_family_index,
-	    vk::CommandPoolCreateFlags flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
+	VulkanCommandPool(VulkanDevice& device, VulkanQueue& queue);
 	~VulkanCommandPool();
 
-	VulkanCommandPool(const VulkanCommandPool&) = delete;
-	VulkanCommandPool& operator=(const VulkanCommandPool&) = delete;
+	VulkanCommandBuffer* createCommandBuffer();
 
-	VulkanCommandPool(VulkanCommandPool&& other) noexcept;
-	VulkanCommandPool& operator=(VulkanCommandPool&& other) noexcept;
+	void releaseCommandBuffer(VulkanCommandBuffer* cmd_buffer);
 
-	auto allocate(vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary) -> VulkanCommandBuffer;
-	auto allocate(uint32_t count, vk::CommandBufferLevel level = vk::CommandBufferLevel::ePrimary) -> std::vector<VulkanCommandBuffer>;
+	vk::CommandPool getHandle() const { return pool; }
 
-	void free(VulkanCommandBuffer buffer);
-	void free(std::span<const VulkanCommandBuffer> buffers);
+	VulkanQueue& getQueue() const { return queue; }
+};
 
-	void reset(vk::CommandPoolResetFlags flags = {});
 
-	vk::CommandPool get() const&;
-	vk::CommandPool get() const&& = delete;
+// command list
+class VulkanCommandList : public RHICommandList {
+private:
+	RHICommandListDesc desc{};
+
+	RHIGraphicsState graphics_state{};
+
+	std::shared_ptr<VulkanCommandBuffer> current_command{};
+
+	vk::PipelineLayout   current_layout{};
+	vk::ShaderStageFlags current_visibility{};
+
+	bool rendering{};
+
+	VulkanDevice& device;
+
+	void beginRenderPass(RHIFrameBuffer& framebuffer);
+	void endRenderPass();
+
+public:
+	VulkanCommandList(VulkanDevice& device, RHICommandListDesc desc) : desc(std::move(desc)), device(device) {}
+	~VulkanCommandList() override = default;
+
+	const RHICommandListDesc& getDesc() const { return desc; }
+
+	std::shared_ptr<VulkanCommandBuffer> getCurrentCommand() const { return current_command; }
+
+	void open() override;
+	void close() override;
+	void clear() override;
+
+	void clearTexture(RHITexture* texture, const RHIColor& clear_color) override;
+	void clearDepthTexture(RHITexture* texture, bool clear_depth, float depth, bool clear_stencil, uint8_t stencil) override;
+	void copyTexture(RHITexture* dst_texture, const RHITextureSlice& dst_slice, RHITexture* src_texture, const RHITextureSlice& src_slice) override;
+	void copyTexture(RHIStagingTexture* dst_staging, const RHITextureSlice& dst_slice, RHITexture* src_texture, const RHITextureSlice& src_slice) override;
+	void copyTexture(RHITexture* dst_texture, const RHITextureSlice& dst_slice, RHIStagingTexture* src_staging, const RHITextureSlice& src_slice) override;
+	void writeTexture(RHITexture* texture, const RHITextureSlice& slice, const void* data, uint64_t size) override;
+	void transitionTexture(RHITexture* texture, RHIResourceState new_state) override;
+
+	void clearBuffer(RHIBuffer* buffer, uint32_t clear_value) override;
+	void copyBuffer(RHIBuffer* dst_buffer, uint64_t dst_offset, RHIBuffer* src_buffer, uint64_t src_offset, uint64_t size) override;
+	void writeBuffer(RHIBuffer* buffer, uint64_t offset, const void* data, uint64_t size) override;
+	void transitionBuffer(RHIBuffer* buffer, RHIResourceState new_state) override;
+
+	void pushConstants(const void* data, size_t size) override;
+	void draw(const RHIDrawArguments& args) override;
+	void drawIndexed(const RHIDrawArguments& args) override;
+
+	void setGraphicsState(const RHIGraphicsState& state) override;
 };

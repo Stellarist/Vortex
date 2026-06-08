@@ -1,73 +1,55 @@
 #pragma once
 
-#include <functional>
-
-#include <vulkan/vulkan.hpp>
-#include <SDL3/SDL.h>
-#include <SDL3/SDL_vulkan.h>
-
-#include "Backend/VulkanContext.hpp"
-#include "Backend/VulkanCommand.hpp"
-#include "Backend/VulkanSync.hpp"
-#include "Resources/GpuScene.hpp"
-#include "Paths/ForwardPath.hpp"
-#include "Paths/DeferredPath.hpp"
+#include "RHI/RHICommand.hpp"
+#include "RHI/RHIPipeline.hpp"
+#include "RHI/RHIResources.hpp"
 #include "Runtime/World/World.hpp"
 
-struct Frame {
-	static constexpr int FRAMES_IN_FLIGHT = 2;
+class Window;
+class RenderScene;
 
-	uint32_t image_count{};
-	uint32_t image_index{};
-	uint32_t current_frame{};
-
-	std::vector<VulkanCommandBuffer>        commands{};
-	std::vector<std::unique_ptr<VulkanSemaphore>> image_available_semaphores{};
-	std::vector<std::unique_ptr<VulkanSemaphore>> render_finished_semaphores{};
-	std::vector<std::unique_ptr<VulkanFence>>     in_flight_fences{};
-
-	VulkanCommandBuffer currentCommand() const;
+enum class RenderPathType : uint8_t {
+	Forward,
+	Deferred,
 };
 
 class Renderer {
-	std::unique_ptr<VulkanContext> context;
+	RHIExtent extent{};
 
-	std::unique_ptr<ForwardPath>  forward_pipeline;
-	std::unique_ptr<DeferredPath> deferred_pipeline;
-	std::unique_ptr<GpuScene>     render_scene;
+	std::unique_ptr<RHIContext>  context;
+	std::unique_ptr<RenderScene> render_scene;
+
+	std::unique_ptr<RHIInputLayout>      scene_input_layout;
+	std::unique_ptr<RHIShader>           scene_vertex_shader;
+	std::unique_ptr<RHIShader>           scene_fragment_shader;
+	std::unique_ptr<RHIGraphicsPipeline> scene_pipeline;
+	std::unique_ptr<RHIFrameBuffer>      frame_buffer;
+	std::unique_ptr<RHITexture>          depth_buffer;
 
 	World* active_world{};
 
-	Frame frame{};
+	RenderPathType path_type{RenderPathType::Forward};
 
-	PathType type{PathType::Deferred};
+	std::vector<std::function<void(RHICommandList&)>> render_callbacks;
 
-	std::vector<std::function<void()>> render_callbacks;
+	void createScenePipeline(RHIFrameBuffer& framebuffer);
+	void drawScene(RHICommandList& command);
 
 public:
 	Renderer(Window& window);
 	~Renderer();
 
-	Renderer(const Renderer&) = delete;
-	Renderer& operator=(const Renderer&) = delete;
-
-	Renderer(Renderer&&) noexcept = default;
-	Renderer& operator=(Renderer&&) noexcept = default;
-
-	void begin();
-	void end();
+	void render();
 	void wait();
-	void draw();
-	void call();
-	void hook(std::function<void()> callback);
+	void draw(RHICommandList& command);
+	void hook(std::function<void(RHICommandList&)> callback);
 
 	void tick(float dt);
 
-	auto getActiveWorld() const -> World*;
 	void setActiveWorld(World& world);
+	void setRenderPath(RenderPathType new_path_type);
 
-	VulkanContext&    getContext() const;
-	GpuScene&   getGpuScene() const;
-	Frame&      getCurrentFrame() const;
-	VulkanRenderPass* getUIPass() const;
+	World* getActiveWorld() const { return active_world; }
+
+	RHIContext& getContext() const { return *context; }
 };

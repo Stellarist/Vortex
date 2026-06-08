@@ -21,11 +21,11 @@ public:
 	static bool moveFile(const std::filesystem::path& src, const std::filesystem::path& dst);
 	static bool deleteFile(const std::filesystem::path& path);
 
-	static std::string          readTextFile(const std::filesystem::path& path);
-	static std::vector<uint8_t> readBinaryFile(const std::filesystem::path& path);
+	static std::string            readTextFile(const std::filesystem::path& path);
+	static std::vector<std::byte> readBinaryFile(const std::filesystem::path& path);
 
 	static bool writeTextFile(const std::filesystem::path& path, const std::string& content);
-	static bool writeBinaryFile(const std::filesystem::path& path, const std::vector<uint8_t>& data);
+	static bool writeBinaryFile(const std::filesystem::path& path, const std::vector<std::byte>& data);
 };
 
 class JsonParser {

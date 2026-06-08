@@ -6,7 +6,10 @@
 #include <imgui_impl_sdl3.h>
 #include <imgui_impl_vulkan.h>
 
-#include "Runtime/Render/Backend/VulkanDevice.hpp"
+#include "Runtime/Render/Backend/VulkanContext.hpp"
+#include "Runtime/Render/Backend/VulkanQueue.hpp"
+#include "Runtime/Render/Backend/VulkanTypes.hpp"
+#include "Runtime/Render/Backend/VulkanResources.hpp"
 #include "Runtime/Core/Clock.hpp"
 #include "Runtime/World/Base/Node.hpp"
 #include "Runtime/World/Components/Camera.hpp"
@@ -17,7 +20,7 @@
 #include "Runtime/World/Resources/SubMesh.hpp"
 
 Widget::Widget(Window& window, Renderer& renderer) :
-    window(&window)
+    window(&window), renderer(&renderer)
 {
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -34,32 +37,107 @@ Widget::Widget(Window& window, Renderer& renderer) :
 	        vk::DescriptorType::eCombinedImageSampler,
 	        100},
 	};
-	uint32_t max_sets = std::reduce(pool_size.begin(), pool_size.end(), 0u,
-	    [](uint32_t sum, const vk::DescriptorPoolSize& size) {
-		    return sum + size.descriptorCount;
-	    });
 
-	auto& context = renderer.getContext();
-	descriptor_pool = std::make_unique<DescriptorPool>(
-	    context,
-	    max_sets,
-	    pool_size,
-	    vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet);
+	uint32_t max_sets = std::reduce(pool_size.begin(), pool_size.end(), 0u, [](uint32_t sum, const vk::DescriptorPoolSize& size) {
+		return sum + size.descriptorCount;
+	});
+
+	auto& context = dynamic_cast<VulkanContext&>(renderer.getContext());
+	auto& vulkan_device = static_cast<VulkanDevice&>(context.getDevice());
+	device = vulkan_device.getHandle();
+
+	vk::DescriptorPoolCreateInfo pool_info{};
+	pool_info.setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet)
+	    .setMaxSets(max_sets)
+	    .setPoolSizes(pool_size);
+	descriptor_pool = device.createDescriptorPool(pool_info);
+
+	VkFormat color_format =
+	    static_cast<VkFormat>(toVkFormat(context.getFormat()));
+	VkPipelineRenderingCreateInfo rendering_info{
+	    .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+	    .colorAttachmentCount = 1,
+	    .pColorAttachmentFormats = &color_format,
+	};
 
 	ImGui_ImplVulkan_InitInfo init_info{
 	    .Instance = context.getInstance(),
-	    .PhysicalDevice = context.getDevice().physical(),
-	    .Device = context.getDevice().logical(),
-	    .QueueFamily = context.getDevice().graphicsQueueIndex(),
-	    .Queue = context.getDevice().graphicsQueue(),
-	    .DescriptorPool = descriptor_pool->get(),
-	    .RenderPass = renderer.getUIPass()->get(),
+	    .PhysicalDevice = context.getPhysicalDevice(),
+	    .Device = device,
+	    .QueueFamily = context.getQueueIndices().graphics_family.value(),
+	    .Queue = vulkan_device.getQueue().getHandle(),
+	    .DescriptorPool = descriptor_pool,
 	    .MinImageCount = 3,
 	    .ImageCount = 3,
+	    .UseDynamicRendering = true,
+	    .PipelineRenderingCreateInfo = rendering_info,
 	};
 
 	if (!ImGui_ImplVulkan_Init(&init_info))
 		throw std::runtime_error("Failed to initialize ImGui Vulkan backend");
+}
+
+Widget::~Widget()
+{
+	ImGui_ImplVulkan_Shutdown();
+	if (device && descriptor_pool)
+		device.destroyDescriptorPool(descriptor_pool);
+	ImGui_ImplSDL3_Shutdown();
+	ImGui::DestroyContext();
+}
+
+void Widget::newFrame()
+{
+	ImGui_ImplVulkan_NewFrame();
+	ImGui_ImplSDL3_NewFrame();
+	ImGui::NewFrame();
+
+	for (const auto& callback : draw_callbacks)
+		callback();
+}
+
+void Widget::drawFrame(RHICommandList& command)
+{
+	ImGui::Render();
+
+	auto* vk_command = dynamic_cast<VulkanCommandList*>(&command);
+	if (!vk_command || !vk_command->getCurrentCommand())
+		return;
+
+	auto* backbuffer = dynamic_cast<VulkanTexture*>(&renderer->getContext().getBackbuffer());
+	if (!backbuffer)
+		return;
+
+	vk_command->transitionTexture(backbuffer, RenderTarget);
+
+	vk::RenderingAttachmentInfo color_attachment{};
+	color_attachment.setImageView(backbuffer->getView())
+	    .setImageLayout(vk::ImageLayout::eColorAttachmentOptimal)
+	    .setLoadOp(vk::AttachmentLoadOp::eLoad)
+	    .setStoreOp(vk::AttachmentStoreOp::eStore);
+
+	vk::RenderingInfo rendering_info{};
+	rendering_info.setRenderArea(vk::Rect2D({0, 0}, {backbuffer->getDesc().width, backbuffer->getDesc().height}))
+	    .setLayerCount(1)
+	    .setColorAttachments(color_attachment);
+
+	auto command_buffer = vk_command->getCurrentCommand()->getHandle();
+	if (!command_buffer)
+		return;
+
+	command_buffer.beginRendering(rendering_info);
+	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer);
+	command_buffer.endRendering();
+}
+
+bool Widget::pollEvent(const SDL_Event& event)
+{
+	return ImGui_ImplSDL3_ProcessEvent(&event);
+}
+
+void Widget::hook(std::function<void()> callback)
+{
+	draw_callbacks.push_back(callback);
 }
 
 void Widget::drawSceneGraph(const World* world, float dt)
@@ -324,38 +402,4 @@ void Widget::drawSceneResources(const Scene* scene)
 		ImGui::Unindent();
 		ImGui::TreePop();
 	}
-}
-
-Widget::~Widget()
-{
-	ImGui_ImplVulkan_Shutdown();
-	ImGui_ImplSDL3_Shutdown();
-	ImGui::DestroyContext();
-}
-
-void Widget::newFrame()
-{
-	ImGui_ImplVulkan_NewFrame();
-	ImGui_ImplSDL3_NewFrame();
-	ImGui::NewFrame();
-
-	for (const auto& callback : draw_callbacks)
-		callback();
-}
-
-void Widget::drawFrame(VulkanCommandBuffer command)
-{
-	ImGui::Render();
-
-	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command.get());
-}
-
-bool Widget::pollEvent(const SDL_Event& event)
-{
-	return ImGui_ImplSDL3_ProcessEvent(&event);
-}
-
-void Widget::hook(std::function<void()> callback)
-{
-	draw_callbacks.push_back(callback);
 }

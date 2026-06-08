@@ -1,117 +1,44 @@
 #include "Renderer.hpp"
 
-#include <vulkan/vulkan.hpp>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
-#include "Backend/VulkanDevice.hpp"
-#include "Backend/VulkanSwapChain.hpp"
-#include "Paths/ForwardPath.hpp"
-#include "Paths/DeferredPath.hpp"
+#include "Backend/VulkanContext.hpp"
+#include "RHI/RHIDevice.hpp"
+#include "Proxy/RenderScene.hpp"
 #include "Runtime/Core/File.hpp"
+#include "Editor/Window.hpp"
 
 Renderer::Renderer(Window& window)
 {
 	context = std::make_unique<VulkanContext>(window);
-
-	frame.image_count = context->getSwapChain().getImageCount();
-	frame.commands.resize(Frame::FRAMES_IN_FLIGHT);
-	frame.image_available_semaphores.resize(Frame::FRAMES_IN_FLIGHT);
-	frame.render_finished_semaphores.resize(frame.image_count);
-	frame.in_flight_fences.resize(frame.FRAMES_IN_FLIGHT);
-
-	for (uint32_t i = 0; i < frame.FRAMES_IN_FLIGHT; ++i) {
-		frame.commands[i] = context->getGraphicsCommandPool().allocate();
-		frame.image_available_semaphores[i] = std::make_unique<VulkanSemaphore>(*context);
-		frame.in_flight_fences[i] = std::make_unique<VulkanFence>(*context, true);
-	}
-
-	for (uint32_t i = 0; i < frame.image_count; ++i)
-		frame.render_finished_semaphores[i] = std::make_unique<VulkanSemaphore>(*context);
 }
 
 Renderer::~Renderer()
 {
-	if (context)
-		wait();
+	wait();
 }
 
-void Renderer::begin()
+void Renderer::render()
 {
-	auto fence = frame.in_flight_fences[frame.current_frame].get();
-	fence->wait();
-
-	auto& image = frame.image_index;
-	auto  wait = frame.image_available_semaphores[frame.current_frame].get();
-	image = context->getSwapChain().acquireNextImage(wait->get(), nullptr);
-	fence->reset();
-
-	auto& command = frame.commands[frame.current_frame];
-	command.get().reset();
-	command.begin();
-}
-
-void Renderer::end()
-{
-	auto& command = frame.commands[frame.current_frame];
-	command.end();
-
-	auto wait = frame.image_available_semaphores[frame.current_frame].get();
-	auto signal = frame.render_finished_semaphores[frame.image_index].get();
-	auto fence = frame.in_flight_fences[frame.current_frame].get();
-	auto stage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-
-	context->submit({command}, fence, {wait}, {signal}, {stage});
-	context->present({frame.image_index}, {signal});
-	frame.current_frame = (frame.current_frame + 1) % Frame::FRAMES_IN_FLIGHT;
-}
-
-void Renderer::call()
-{
-	for (auto& callback : render_callbacks)
-		callback();
+	context->beginFrame();
+	auto& command = context->getCommand();
+	command.clearTexture(&context->getBackbuffer(), RHIColor{0.1f, 0.1f, 0.1f, 1.0f});
+	context->endFrame();
 }
 
 void Renderer::wait()
 {
-	context->getDevice().logical().waitIdle();
+	context->getDevice().waitIdle();
 }
 
-void Renderer::draw()
+void Renderer::draw(RHICommandList& command)
 {
-	auto command = frame.commands[frame.current_frame].get();
-
-	switch (type) {
-	case PathType::Forward:
-		forward_pipeline->beginForwardPass(command, frame.image_index, context->getSwapChain().getExtent());
-		command.bindPipeline(vk::PipelineBindPoint::eGraphics, forward_pipeline->getForwardPipeline().get());
-		render_scene->draw(command, forward_pipeline->getForwardPipeline().getLayout());
-		call();
-		forward_pipeline->endForwardPass(command);
-
-		break;
-
-	case PathType::Deferred:
-		deferred_pipeline->beginGeometryPass(command, context->getSwapChain().getExtent());
-		command.bindPipeline(vk::PipelineBindPoint::eGraphics, deferred_pipeline->getGeometryPipeline().get());
-		render_scene->draw(command, deferred_pipeline->getGeometryPipeline().getLayout());
-		deferred_pipeline->endGeometryPass(command);
-
-		deferred_pipeline->beginLightingPass(command, frame.image_index, context->getSwapChain().getExtent());
-		command.bindPipeline(vk::PipelineBindPoint::eGraphics, deferred_pipeline->getLightingPipeline().get());
-		deferred_pipeline->bindDescriptor(command);
-		command.draw(3, 1, 0, 0);
-		call();
-		deferred_pipeline->endLightingPass(command);
-
-		break;
-
-	default:
-		throw std::runtime_error("Unknown render pipeline type");
+	if (path_type == RenderPathType::Forward || path_type == RenderPathType::Deferred) {
+		drawScene(command);
+		for (auto& callback : render_callbacks)
+			callback(command);
 	}
 }
 
-void Renderer::hook(std::function<void()> callback)
+void Renderer::hook(std::function<void(RHICommandList&)> callback)
 {
 	render_callbacks.push_back(std::move(callback));
 }
@@ -121,71 +48,125 @@ void Renderer::tick(float dt)
 	if (!active_world)
 		return;
 
-	if (render_scene)
-		render_scene->update(dt);
+	if (!render_scene)
+		render_scene = std::make_unique<RenderScene>(*context, *active_world);
+	render_scene->update(dt);
 
-	begin();
-	draw();
-	end();
-}
-
-World* Renderer::getActiveWorld() const
-{
-	return active_world;
+	context->beginFrame();
+	auto& command = context->getCommand();
+	command.clearTexture(&context->getBackbuffer(), RHIColor{0.1f, 0.1f, 0.1f, 1.0f});
+	draw(command);
+	context->endFrame();
 }
 
 void Renderer::setActiveWorld(World& world)
 {
 	active_world = &world;
-
-	render_scene = std::make_unique<GpuScene>(*context, *active_world);
-
-	auto descriptor_layouts = render_scene->getDescriptorSetLayouts();
-
-	const auto& shaders_config = PathResolver::getConfigsDir() / "config.json";
-	const auto& config_data = JsonParser::readJson(shaders_config);
-
-	auto forward_path = PathResolver::getShadersDir() / config_data["forward_shader"].get<std::string>();
-	auto geometry_path = PathResolver::getShadersDir() / config_data["deferred_geometry_shader"].get<std::string>();
-	auto lighting_path = PathResolver::getShadersDir() / config_data["deferred_lighting_shader"].get<std::string>();
-
-	auto forward_shader = std::make_shared<VulkanShader>(*context, forward_path.string());
-	auto geometry_shader = std::make_shared<VulkanShader>(*context, geometry_path.string());
-	auto lighting_shader = std::make_shared<VulkanShader>(*context, lighting_path.string());
-
-	forward_pipeline = std::make_unique<ForwardPath>();
-	forward_pipeline->initialize(*context);
-	forward_pipeline->build(descriptor_layouts, forward_shader->getStages());
-
-	deferred_pipeline = std::make_unique<DeferredPath>();
-	deferred_pipeline->initialize(*context);
-	deferred_pipeline->build(descriptor_layouts, geometry_shader->getStages(), descriptor_layouts, lighting_shader->getStages());
+	render_scene.reset();
+	scene_pipeline.reset();
 }
 
-VulkanContext& Renderer::getContext() const
+void Renderer::setRenderPath(RenderPathType new_path_type)
 {
-	return *context;
+	if (path_type == new_path_type)
+		return;
+
+	context->getDevice().waitIdle();
+	path_type = new_path_type;
+	scene_vertex_shader.reset();
+	scene_fragment_shader.reset();
+	scene_pipeline.reset();
 }
 
-GpuScene& Renderer::getGpuScene() const
+void Renderer::createScenePipeline(RHIFrameBuffer& framebuffer)
 {
-	return *render_scene;
+	if (!scene_input_layout) {
+		RHIInputLayoutDesc desc{};
+		desc.addBindingDesc(RenderVertex::binding())
+		    .setAttributeDescs(RenderVertex::attributes());
+
+		scene_input_layout = context->getDevice().createInputLayout(desc);
+	}
+
+	if (!scene_vertex_shader || !scene_fragment_shader) {
+		auto shader_name = path_type == RenderPathType::Forward ? std::string{"Forward"} : std::string{"Deferred"};
+		auto shader_data = FileSystem::readBinaryFile(PathResolver::getShadersDir() / (shader_name + ".spv"));
+
+		RHIShaderDesc vs_desc{};
+		vs_desc.setType(RHIShaderType::Vertex)
+		    .setEntryPoint("vertexMain")
+		    .setShaderName(shader_name)
+		    .setCodes(shader_data);
+		scene_vertex_shader = context->getDevice().createShader(std::move(vs_desc));
+
+		RHIShaderDesc fs_desc{};
+		fs_desc.setType(RHIShaderType::Fragment)
+		    .setEntryPoint("fragmentMain")
+		    .setShaderName(shader_name)
+		    .setCodes(shader_data);
+		scene_fragment_shader = context->getDevice().createShader(std::move(fs_desc));
+	}
+
+	RHIGraphicsPipelineDesc pipeline_desc{};
+	pipeline_desc.setInputLayout(*scene_input_layout)
+	    .setVertexShader(*scene_vertex_shader)
+	    .setFragmentShader(*scene_fragment_shader)
+	    .addBindingLayout(*render_scene->getSceneLayout())
+	    .addBindingLayout(*render_scene->getMaterialLayout())
+	    .addBindingLayout(*render_scene->getObjectLayout());
+
+	RHIRasterState raster_state{};
+	raster_state.setCullMode(RHICullMode::None);
+	pipeline_desc.setRasterState(raster_state);
+
+	RHIDepthStencilState depth_state{};
+	depth_state.setDepthTestEnable(true)
+	    .setDepthWriteEnable(true)
+	    .setDepthCompareOp(RHICompareOp::LessOrEqual);
+	pipeline_desc.setDepthStencilState(depth_state);
+
+	scene_pipeline = context->getDevice().createGraphicsPipeline(pipeline_desc, framebuffer);
 }
 
-Frame& Renderer::getCurrentFrame() const
+void Renderer::drawScene(RHICommandList& command)
 {
-	return const_cast<Frame&>(frame);
-}
+	if (!render_scene)
+		return;
 
-VulkanRenderPass* Renderer::getUIPass() const
-{
-	if (type == PathType::Deferred)
-		return &deferred_pipeline->getLightingPass().getPass();
-	else
-		return &forward_pipeline->getForwardPass().getPass();
-}
+	auto extent = context->getExtent();
+	if (!depth_buffer || depth_buffer->getDesc().width != extent.width || depth_buffer->getDesc().height != extent.height) {
+		RHITextureDesc depth_desc{};
+		depth_desc.setWidth(extent.width)
+		    .setHeight(extent.height)
+		    .setFormat(RHIFormat::D32_FLOAT)
+		    .setUsage(RHITextureUsage::DepthStencil | RHITextureUsage::CopyDst);
+		depth_buffer = context->getDevice().createTexture(depth_desc);
+		scene_pipeline.reset();
+	}
 
-VulkanCommandBuffer Frame::currentCommand() const
-{
-	return commands[current_frame];
+	RHIFrameBufferDesc framebuffer_desc{};
+	framebuffer_desc.setWidth(extent.width)
+	    .setHeight(extent.height)
+	    .addColorAttachment(RHIFrameBufferAttachment()
+	            .setTexture(&context->getBackbuffer())
+	            .setFormat(context->getFormat()))
+	    .setDepthAttachment(depth_buffer.get());
+	frame_buffer = context->getDevice().createFrameBuffer(framebuffer_desc);
+
+	if (!scene_pipeline)
+		createScenePipeline(*frame_buffer);
+
+	command.clearDepthTexture(depth_buffer.get(), true, 1.0f, false, 0);
+
+	RHIViewportState viewport_state{};
+	viewport_state.addViewport(RHIViewport(static_cast<float>(extent.width), static_cast<float>(extent.height)))
+	    .addScissor(RHIRect(static_cast<int>(extent.width), static_cast<int>(extent.height)));
+
+	RHIGraphicsState graphics_state{};
+	graphics_state.setFrameBuffer(frame_buffer.get())
+	    .setPipeline(scene_pipeline.get())
+	    .setViewport(viewport_state);
+
+	render_scene->draw(command, graphics_state);
+	command.clear();
 }

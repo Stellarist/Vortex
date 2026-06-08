@@ -1,83 +1,62 @@
 #pragma once
 
-#include <vulkan/vulkan.hpp>
+#include "VulkanDevice.hpp"
+#include "Runtime/Render/RHI/RHIDescriptor.hpp"
 
-#include "VulkanContext.hpp"
-#include "VulkanBuffer.hpp"
-#include "VulkanImage.hpp"
-
-class VulkanDescriptorSet {
+// descriptor layout
+class VulkanDescriptorLayout : public RHIDescriptorLayout {
 private:
-	vk::DescriptorSet set{};
+	RHIDescriptorLayoutDesc desc{};
 
-public:
-	VulkanDescriptorSet() = default;
-	VulkanDescriptorSet(vk::DescriptorSet set);
-	~VulkanDescriptorSet() = default;
-
-	void update(const VulkanDevice& device, uint32_t binding, vk::DescriptorType type, const VulkanBuffer* buffer = {}) const;
-	void update(const VulkanDevice& device, uint32_t binding, vk::DescriptorType type, const VulkanImage* image = {}) const;
-
-	vk::DescriptorSet get() const&;
-	vk::DescriptorSet get() const&& = delete;
-
-	bool operator==(const VulkanDescriptorSet& other) const = default;
-};
-
-class VulkanDescriptorSetLayout {
-private:
 	vk::DescriptorSetLayout layout{};
 
-	VulkanContext* context{};
+	std::vector<vk::DescriptorSetLayoutBinding> bindings{};
+	std::vector<vk::DescriptorPoolSize>         pool_sizes{};
+
+	VulkanDevice& device;
+
+	friend class VulkanDevice;
 
 public:
-	VulkanDescriptorSetLayout(VulkanContext&                        context,
-	    std::span<const vk::DescriptorSetLayoutBinding> bindings,
-	    vk::DescriptorSetLayoutCreateFlags              flags = {});
-	~VulkanDescriptorSetLayout();
+	VulkanDescriptorLayout(VulkanDevice& device, RHIDescriptorLayoutDesc desc) : device(device), desc(std::move(desc)) {}
+	~VulkanDescriptorLayout() override { device.destroyDescriptorLayout(this); }
 
-	VulkanDescriptorSetLayout(const VulkanDescriptorSetLayout&) = delete;
-	VulkanDescriptorSetLayout& operator=(const VulkanDescriptorSetLayout&) = delete;
+	const RHIDescriptorLayoutDesc& getDesc() const override { return desc; }
 
-	VulkanDescriptorSetLayout(VulkanDescriptorSetLayout&& other) noexcept;
-	VulkanDescriptorSetLayout& operator=(VulkanDescriptorSetLayout&& other) noexcept;
+	vk::DescriptorSetLayout getHandle() const { return layout; }
 
-	vk::DescriptorSetLayout get() const&;
-	vk::DescriptorSetLayout get() const&& = delete;
+	const std::vector<vk::DescriptorSetLayoutBinding>& getBindings() const { return bindings; }
+	const std::vector<vk::DescriptorPoolSize>&         getPoolSizes() const { return pool_sizes; }
 };
 
-class DescriptorPool {
-private:
-	vk::DescriptorPool         pool{};
-	std::vector<VulkanDescriptorSet> sets;
-	uint32_t                   max_sets{};
 
-	VulkanContext* context{};
+// binding set
+class VulkanDescriptorSet : public RHIDescriptorSet {
+private:
+	RHIDescriptorSetDesc desc{};
+
+	const RHIDescriptorLayout* layout{};
+
+	vk::DescriptorSet  set{};
+	vk::DescriptorPool pool{};
+
+	std::vector<RHIResource*> resources{};
+
+	VulkanDevice& device;
+
+	friend class VulkanDevice;
 
 public:
-	DescriptorPool(
-	    VulkanContext&                                context,
-	    uint32_t                                max_sets,
-	    std::span<const vk::DescriptorPoolSize> pool_sizes,
-	    vk::DescriptorPoolCreateFlags           flags = {});
-	~DescriptorPool();
+	VulkanDescriptorSet(VulkanDevice& device, RHIDescriptorSetDesc desc, const RHIDescriptorLayout& layout) : device(device), desc(std::move(desc)), layout(&layout) {}
+	~VulkanDescriptorSet() override { device.destroyDescriptorSet(this); }
 
-	DescriptorPool(const DescriptorPool&) = delete;
-	DescriptorPool& operator=(const DescriptorPool&) = delete;
+	void allocSet();
+	void freeSet();
 
-	DescriptorPool(DescriptorPool&& other) noexcept;
-	DescriptorPool& operator=(DescriptorPool&& other) noexcept;
+	const RHIDescriptorSetDesc& getDesc() const override { return desc; }
 
-	auto allocate(const VulkanDescriptorSetLayout& layout) -> VulkanDescriptorSet;
-	auto allocate(std::span<const VulkanDescriptorSetLayout> layouts) -> std::vector<VulkanDescriptorSet>;
+	vk::DescriptorSet  getHandle() const { return set; }
+	vk::DescriptorPool getPool() const { return pool; }
 
-	void free(VulkanDescriptorSet set);
-	void free(std::span<const VulkanDescriptorSet> sets);
-
-	void reset();
-
-	size_t setsCount() const;
-
-	vk::DescriptorPool get() const&;
-	vk::DescriptorPool get() const&& = delete;
+	const RHIDescriptorLayout* getLayout() const override { return layout; }
 };
