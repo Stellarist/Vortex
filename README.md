@@ -2,324 +2,205 @@
 
 Maybe a toy Vulkan Engine in future, but just a toy Demo at now.
 
-Until Version 2.0:
+Until Version 3.0:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              LAYERS                                         │
+│                                  LAYERS                                     │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ Layer 5: APPLICATION LAYER (Orchestration)                                  │
+│ Layer 6: APPLICATION / EDITOR                                               │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  Application, Window, Widget                                                │
-│  • Entry point & main loop                                                  │
-│  • Connects World ←→ Renderer (data flow)                                   │
-│  • UI integration                                                           │
+│  Application                     Window                    Widget            │
+│  • Main loop                     • SDL3 window             • ImGui frame     │
+│  • Logic/render orchestration    • Input/events            • Scene UI       │
+│  • World/Renderer lifetime       • Vulkan surface          • Render callback│
 └─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                    ┌───────────────┼───────────────┐
-                    ▼               ▼               ▼
+                    │                    │                    │
+                    └────────────────────┼────────────────────┘
+                                         ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ Layer 4: HIGH-LEVEL SYSTEMS (Parallel, Independent)                         │
-├─────────────────────────────┬─┬─────────────────────────────────────────────┤
-│  SCENE SYSTEM               │ │  RENDERING SYSTEM                           │
-│  (World/Scene)              │ │  (Renderer)                                 │
-│                             │ │                                             │
-│  ┌────────────────────────┐ │ │  ┌───────────────────────────────────────┐  │
-│  │  World                 │ │ │  │  Renderer                             │  │
-│  │  • Active Scene        │ │ │  │  • Frame Management                   │  │
-│  │  • Active Camera       │ │ │  │  • Render Loop Control                │  │
-│  └────────────────────────┘ │ │  │  • Path Selection (Forward/Deferred)  │  │
-│  ┌────────────────────────┐ │ │  └───────────────────────────────────────┘  │
-│  │  Scene                 │ │ │  ┌───────────────────────────────────────┐  │
-│  │  • Scene Graph (Nodes) │ │ │  │  RenderScene (Adapter/Bridge)         │  │
-│  │  • Component Registry  │ │ │  │  • Reads World/Scene                  │  │
-│  │  • Resource Registry   │ │ │  │  • Converts to GPU representation     │  │
-│  │  • Behaviour System    │ │ │  │  • Manages GPU resources lifecycle    │  │
-│  └────────────────────────┘ │ │  └───────────────────────────────────────┘  │
-│  ┌────────────────────────┐ │ │  ┌───────────────────────────────────────┐  │
-│  │  Node (Scene Graph)    │ │ │  │  Rendering Paths                      │  │
-│  │  • Transform           │ │ │  │  • ForwardPath                        │  │
-│  │  • Parent/Children     │ │ │  │  • DeferredPath                       │  │
-│  │  • Components          │ │ │  │  • Passes (Geometry, Lighting, etc.)  │  │
-│  └────────────────────────┘ │ │  └───────────────────────────────────────┘  │
-│  ┌────────────────────────┐ │ │                                             │
-│  │  Components            │ │ │  Asset Import (Creates Scene Objects)       │
-│  │  • Transform           │ │ │  ┌───────────────────────────────────────┐  │
-│  │  • Mesh                │ │ │  │  AssetImporter                        │  │
-│  │  • Camera              │ │ │  │  • glTF 2.0 Parser                    │  │
-│  │  • Light               │ │ │  │  • Creates Scene/Nodes/Components     │  │
-│  └────────────────────────┘ │ │  │  • Creates Resources (Materials, etc.)│  │
-│  ┌────────────────────────┐ │ │  └───────────────────────────────────────┘  │
-│  │  Resources             │ │ │                                             │
-│  │  • Material (PBR)      │ │ │                                             │
-│  │  • Texture             │ │ │                                             │
-│  │  • SubMesh (Geometry)  │ │ │                                             │
-│  └────────────────────────┘ │ │                                             │
-│  ┌────────────────────────┐ │ │                                             │
-│  │  Behaviours            │ │ │                                             │
-│  │  • Script Interface    │ │ │                                             │
-│  │  • CameraController    │ │ │                                             │
-│  └────────────────────────┘ │ │                                             │
-└─────────────────────────────┴─┴─────────────────────────────────────────────┘
-                                                   │
-                                                   │ depends on
-                                                   ▼
+│ Layer 5: WORLD / RENDERER                                                   │
+├─────────────────────────────────────┬───────────────────────────────────────┤
+│ WORLD SYSTEM                        │ RENDERER                              │
+│                                     │                                       │
+│ ┌─────────────────────────────────┐ │ ┌───────────────────────────────────┐ │
+│ │ World                           │ │ │ Renderer                          │ │
+│ │ • Active Scene / Camera         │ │ │ • Frame begin/end                 │ │
+│ └─────────────────────────────────┘ │ │ • Backbuffer / Depth              │ │
+│ ┌─────────────────────────────────┐ │ │ • Graphics pipeline/state         │ │
+│ │ Scene                           │ │ │ • Forward/Deferred shader select  │ │
+│ │ • Node hierarchy                │ │ │ • UI render callbacks             │ │
+│ │ • Component registry            │ │ └───────────────────────────────────┘ │
+│ │ • Resource registry             │ │                                       │
+│ │ • Behaviour update              │ │ ┌───────────────────────────────────┐ │
+│ └─────────────────────────────────┘ │ │ AssetImporter                     │ │
+│ ┌───────────────┬─────────────────┐ │ │ • tinygltf loader                 │ │
+│ │ Components    │ Resources       │ │ │ • Scene/Node conversion           │ │
+│ │ • Transform   │ • SubMesh       │ │ │ • Mesh/Material/Texture import    │ │
+│ │ • Mesh        │ • Material      │ │ │ • Camera/Light import             │ │
+│ │ • Camera      │ • Texture       │ │ └───────────────────────────────────┘ │
+│ │ • Light       │                 │ │                                       │
+│ ├───────────────┴─────────────────┤ │                                       │
+│ │ Entity / Node / Behaviour       │ │                                       │
+│ │ CameraController / AABB / Ray   │ │                                       │
+│ └─────────────────────────────────┘ │                                       │
+└─────────────────────────────────────┴───────────────────────────────────────┘
+                    │                                   │
+                    └──────────────┬────────────────────┘
+                                   ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ Layer 3: RHI LAYER (Render Hardware Interface)                              │
+│ Layer 4: RENDER PROXY                                                       │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  GPU Resource Representation (Bridge between Scene and Graphics API)        │
-│  ┌────────────────────────────────────────────────────────────────────┐     │
-│  │  GpuData (Shader Structures)                                       │     │
-│  │  • GpuVertex, GpuObjectData, GpuMaterialData, GpuSceneData         │     │
-│  └────────────────────────────────────────────────────────────────────┘     │
-│  ┌────────────────────────────────────────────────────────────────────┐     │
-│  │  GpuMesh                                                           │     │
-│  │  • Converts SubMesh → Vertex/Index Buffers                         │     │
-│  │  • Uniform buffer for object transforms                            │     │
-│  └────────────────────────────────────────────────────────────────────┘     │
-│  ┌────────────────────────────────────────────────────────────────────┐     │
-│  │  GpuMaterial                                                       │     │
-│  │  • Converts Material → Uniform buffers + Descriptor sets           │     │
-│  └────────────────────────────────────────────────────────────────────┘     │
-│  ┌────────────────────────────────────────────────────────────────────┐     │
-│  │  GpuTexture                                                        │     │
-│  │  • Converts Texture → Vulkan Images + Samplers                     │     │
-│  └────────────────────────────────────────────────────────────────────┘     │
+│ ┌─────────────────────────────────────────────────────────────────────────┐ │
+│ │ RenderScene                                                             │ │
+│ │ • Reads World/Scene              • Scene/Material/Object descriptor sets │ │
+│ │ • Camera/Light/Mesh update       • Resource rebuild and material sorting │ │
+│ │ • RenderSceneData upload         • Draw traversal                       │ │
+│ └─────────────────────────────────────────────────────────────────────────┘ │
+│                                                                             │
+│ ┌──────────────────────┬──────────────────────┬───────────────────────────┐ │
+│ │ RenderMesh           │ RenderMaterial       │ RenderTexture             │ │
+│ │ • Vertex/Index       │ • Material uniform   │ • RHITexture              │ │
+│ │ • Object uniform     │ • Descriptor set     │ • RHISampler              │ │
+│ │ • Draw state         │ • Texture bindings   │ • Source Texture          │ │
+│ └──────────────────────┴──────────────────────┴───────────────────────────┘ │
+│                                                                             │
+│ RenderVertex / RenderCameraData / RenderLightData / RenderObjectData        │
+│ RenderMaterialData / RenderSceneData                                        │
 └─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    │ depends on
-                                    ▼
+                                   │
+                                   ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ Layer 2: GRAPHICS ABSTRACTION (Vulkan Wrappers)                             │
+│ Layer 3: RHI (RENDER HARDWARE INTERFACE)                                    │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  Low-level Vulkan object wrappers (RAII, C++ friendly)                      │
+│ ┌──────────────────────┬──────────────────────┬───────────────────────────┐ │
+│ │ Context / Device     │ Resources            │ Descriptors               │ │
+│ │ • Frame lifecycle    │ • Buffer             │ • DescriptorLayout        │ │
+│ │ • Device factory     │ • Texture 1D-3D/Cube  │ • DescriptorSet           │ │
+│ │ • Backbuffer         │ • StagingTexture     │ • Texture SRV/UAV         │ │
+│ │ • Command execution  │ • Sampler / Shader   │ • Uniform/Storage Buffer  │ │
+│ │                      │ • FrameBuffer         │ • Sampler                 │ │
+│ └──────────────────────┴──────────────────────┴───────────────────────────┘ │
+│ ┌──────────────────────────────────┬──────────────────────────────────────┐ │
+│ │ Pipeline                         │ Command                              │ │
+│ │ • InputLayout                    │ • GraphicsState                      │ │
+│ │ • Raster/Depth/Blend State       │ • Draw/DrawIndexed                   │ │
+│ │ • GraphicsPipeline               │ • Copy/Clear/Write                   │ │
+│ │ • Shader/Descriptor Layouts      │ • Buffer/Texture transitions         │ │
+│ └──────────────────────────────────┴──────────────────────────────────────┘ │
 │                                                                             │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐           │
-│  │ Context          │  │ Device           │  │ SwapChain        │           │
-│  │ • Instance       │  │ • Physical       │  │ • Images         │           │
-│  │ • Surface        │  │ • Logical        │  │ • Image Views    │           │
-│  │ • Integration    │  │ • Queues         │  │ • Presentation   │           │
-│  └──────────────────┘  └──────────────────┘  └──────────────────┘           │
-│                                                                             │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐           │
-│  │ Buffer           │  │ Image            │  │ Sampler          │           │
-│  │ • VBO            │  │ • Textures       │  │ • Filtering      │           │
-│  │ • IBO            │  │ • Render Targets │  │ • Address Mode   │           │
-│  │ • UBO            │  │ • Layout Trans.  │  └──────────────────┘           │
-│  └──────────────────┘  └──────────────────┘                                 │
-│                                                                             │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐           │
-│  │ CommandPool      │  │ RenderPass       │  │ GraphicsPipeline │           │
-│  │ • Command Alloc  │  │ • Attachments    │  │ • Shaders        │           │
-│  │ • Command Buffers│  │ • Subpasses      │  │ • Vertex Input   │           │
-│  └──────────────────┘  │ • Framebuffers   │  │ • Rasterization  │           │
-│                        └──────────────────┘  │ • Depth/Blend    │           │
-│  ┌──────────────────┐                        └──────────────────┘           │
-│  │ Descriptor       │  ┌──────────────────┐  ┌──────────────────┐           │
-│  │ • Layouts        │  │ Sync             │  │ Shader           │           │
-│  │ • Pools          │  │ • Fence          │  │ • SPIR-V Loader  │           │
-│  │ • Sets           │  │ • Semaphore      │  │ • Reflection     │           │
-│  └──────────────────┘  └──────────────────┘  └──────────────────┘           │
-│                                                                             │
-│  ┌──────────────────┐                                                       │
-│  │ GBuffer          │  (Multi-Render-Target for deferred rendering)         │
-│  │ • Multiple Images│                                                       │
-│  └──────────────────┘                                                       │
+│ RHITypes: Format / ResourceState / Usage / TextureDimension / Subresource   │
 └─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    │ wraps
-                                    ▼
+                                   │ implemented by
+                                   ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ Layer 1: CORE SYSTEMS (Foundation, No dependencies on upper layers)         │
+│ Layer 2: VULKAN BACKEND                                                     │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  Utility systems used by all layers                                         │
+│ ┌──────────────────────┬──────────────────────┬───────────────────────────┐ │
+│ │ VulkanContext        │ VulkanDevice         │ VulkanQueue               │ │
+│ │ • Instance/Surface   │ • RHI object factory │ • Graphics submission     │ │
+│ │ • Swapchain/Frames   │ • Memory mapping     │ • Timeline semaphore      │ │
+│ │ • Acquire/Present    │ • Descriptor writes  │ • Pending submissions     │ │
+│ └──────────────────────┴──────────────────────┴───────────────────────────┘ │
+│ ┌──────────────────────┬──────────────────────┬───────────────────────────┐ │
+│ │ VulkanCommand        │ VulkanResources      │ VulkanPipeline/Descriptor │ │
+│ │ • CommandPool/Buffer │ • VMA allocation     │ • Graphics pipeline       │ │
+│ │ • Dynamic rendering  │ • Buffer/Texture     │ • Input layout            │ │
+│ │ • State transitions  │ • Sampler/Shader     │ • Descriptor layout/set   │ │
+│ │ • Copy/Draw          │ • FrameBuffer        │ • Pipeline layout         │ │
+│ └──────────────────────┴──────────────────────┴───────────────────────────┘ │
 │                                                                             │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐           │
-│  │ Clock            │  │ EventBus         │  │ InputHandler     │           │
-│  │ • Delta Time     │  │ • Pub/Sub        │  │ • Keyboard       │           │
-│  │ • Total Time     │  │ • Events         │  │ • Mouse          │           │
-│  │ • FPS            │  └──────────────────┘  └──────────────────┘           │
-│  └──────────────────┘                                                       │
-│                                                                             │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐           │
-│  │ FileSystem       │  │ PathResolver     │  │ JsonParser       │           │
-│  │ • Read/Write     │  │ • Asset Paths    │  │ • Config Loading │           │
-│  │ • Binary/Text    │  │ • Config Paths   │  │                  │           │
-│  └──────────────────┘  └──────────────────┘  └──────────────────┘           │
-│                                                                             │
-│  ┌──────────────────┐                                                       │
-│  │ Logger           │                                                       │
-│  │ • spdlog wrapper │                                                       │
-│  └──────────────────┘                                                       │
+│ vk-bootstrap / Vulkan-Hpp / Vulkan Memory Allocator                         │
 └─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    │ uses
-                                    ▼
+                                   │
+                                   ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ Layer 0: EXTERNAL DEPENDENCIES                                              │
+│ Layer 1: CORE / PLATFORM / THIRD PARTY                                      │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  Vulkan SDK 1.4  │  SDL3  │  ImGui  │  glm  │  TinyGLTF  │  spdlog          │
-│  nlohmann/json   │  Slang (shader compiler)                                 │
+│ Core: Clock / EventBus / Input / FileSystem / PathResolver / Json / Logger  │
+│ Platform: Vulkan 1.4 / SDL3                                                 │
+│ Libraries: glm / ImGui / spdlog / nlohmann-json / tinygltf / Slang          │
 └─────────────────────────────────────────────────────────────────────────────┘
-
-```
-
-```text
-┌──────────────────────────────────────────────────────────────────────────┐
-│                              MODULES                                     │
-└──────────────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────┐          ┌────────────────────────────────────┐
-│     SCENE SYSTEM         │          │        RENDERING SYSTEM            │
-│    (Data & Logic)        │          │         (Visualization)            │
-├──────────────────────────┤          ├────────────────────────────────────┤
-│                          │          │                                    │
-│  ┌────────────────────┐  │          │  ┌───────────────────────────────┐ │
-│  │  World             │  │  read    │  │  Renderer                     │ │
-│  │  • Active Scene    │  │ ──────>  │  │  • Context                    │ │
-│  │  • Active Camera   │  │   by     │  │  • Frame Management           │ │
-│  └────────────────────┘  │          │  │  • Render Loop                │ │
-│           │              │          │  └───────────────────────────────┘ │
-│           │              │          │              │                     │
-│  ┌────────▼────────────┐ │          │  ┌───────────▼──────────────────┐  │
-│  │  Scene              │ │          │  │  RenderScene                 │  │
-│  │  • Root Node        │ │          │  │  • Converts Scene to GPU     │  │
-│  │  • Component Lists  │ │          │  │  • Descriptor Management     │  │
-│  │  • Resource Lists   │ │          │  │  • Draw Call Organization    │  │
-│  │  • Behaviour Lists  │ │          │  └──────────────────────────────┘  │
-│  └─────────────────────┘ │          │              │                     │
-│           │              │          │  ┌───────────▼──────────────────┐  │
-│  ┌────────▼────────────┐ │          │  │  Rendering Paths             │  │
-│  │  Node (Scene Graph) │ │          │  │  ┌────────────────────────┐  │  │
-│  │  • Transform        │ │          │  │  │  ForwardPath           │  │  │
-│  │  • Children         │ │          │  │  │  • ForwardPass         │  │  │
-│  │  • Components       │ │          │  │  │  • Pipeline            │  │  │
-│  │  • Behaviours       │ │          │  │  └────────────────────────┘  │  │
-│  └─────────────────────┘ │          │  │  ┌────────────────────────┐  │  │
-│           │              │          │  │  │  DeferredPath          │  │  │
-│  ┌────────▼────────────┐ │          │  │  │  • GeometryPass        │  │  │
-│  │ ┌────────────────┐  │ │          │  │  │  • LightingPass        │  │  │
-│  │ │ Components     │  │ │          │  │  │  • GBuffer             │  │  │
-│  │ │ • Transform    │  │ │          │  │  │  • Pipelines           │  │  │
-│  │ │ • Mesh         │  │ │          │  │  └────────────────────────┘  │  │
-│  │ │ • Camera       │  │ │          │  └──────────────────────────────┘  │
-│  │ │ • Light        │  │ │          │              │                     │
-│  │ └────────────────┘  │ │          │  ┌───────────▼──────────────────┐  │
-│  │ ┌────────────────┐  │ │          │  │  GPU Resources (RHI)         │  │
-│  │ │ Resources      │  │ │          │  │  • GpuMesh                   │  │
-│  │ │• Material      │  │ │          │  │  • GpuMaterial               │  │
-│  │ │• Texture       │  │ │          │  │  • GpuTexture                │  │
-│  │ │• SubMesh       │  │ │          │  │  • GpuData (structs)         │  │
-│  │ └────────────────┘  │ │          │  └──────────────────────────────┘  │
-│  │ ┌────────────────┐  │ │          │                                    │
-│  │ │ Behaviours     │  │ │          └────────────────────────────────────┘
-│  │ │ • Controller   │  │ │                          │
-│  │ │• Custom Scripts│  │ │                          │ depends on
-│  │ └────────────────┘  │ │                          ▼
-│  └─────────────────────┘ │          ┌─────────────────────────────────────┐
-│                          │          │   GRAPHICS ABSTRACTION (Low-level)  │
-└──────────────────────────┘          ├─────────────────────────────────────┤
-                                      │  Vulkan Wrappers:                   │
-┌──────────────────────────┐          │  ┌────────────────────────────────┐ │
-│   CORE SYSTEMS           │          │  │  Context (Instance, Surface)   │ │
-│  (Foundation)            │          │  └────────────────────────────────┘ │
-├──────────────────────────┤          │  ┌────────────────────────────────┐ │
-│  • Clock (Time)          │          │  │  Device (GPU)                  │ │
-│  • EventBus (Events)     │          │  └────────────────────────────────┘ │
-│  • InputHandler (Input)  │          │  ┌────────────────────────────────┐ │
-│  • Logger (spdlog)       │          │  │  SwapChain (Presentation)      │ │
-│  • FileSystem (I/O)      │          │  └────────────────────────────────┘ │
-│  • PathResolver          │          │  ┌────────────────────────────────┐ │
-│  • JsonParser            │          │  │  CommandPool & CommandBuffer   │ │
-└──────────────────────────┘          │  └────────────────────────────────┘ │
-            │                         │  ┌────────────────────────────────┐ │
-            │ used by all             │  │  Buffer (VBO, UBO, etc.)       │ │
-            └─────────────────────────┼─>│  Image (Textures)              │ │
-                                      │  │  Sampler                       │ │
-┌──────────────────────────┐          │  └────────────────────────────────┘ │
-│   ASSET SYSTEM           │          │  ┌────────────────────────────────┐ │
-│  (Import & Load)         │          │  │  RenderPass & Framebuffer      │ │
-├──────────────────────────┤          │  └────────────────────────────────┘ │
-│  AssetImporter           │          │  ┌────────────────────────────────┐ │
-│  • glTF 2.0 Loader       │ creates  │  │  GraphicsPipeline              │ │
-│  • Scene Parser          │ ───────> │  │  Shader (SPIR-V)               │ │
-│  • Material/Texture      │  Scene   │  └────────────────────────────────┘ │
-│  • Mesh Parser           │  Objects │  ┌────────────────────────────────┐ │
-│  • Default Creation      │          │  │  DescriptorPool, Sets, Layouts │ │
-└──────────────────────────┘          │  └────────────────────────────────┘ │
-                                      │  ┌────────────────────────────────┐ │
-                                      │  │  Sync (Fence, Semaphore)       │ │
-                                      │  └────────────────────────────────┘ │
-                                      │  ┌────────────────────────────────┐ │
-                                      │  │  GBuffer (MRT)                 │ │
-                                      │  └────────────────────────────────┘ │
-                                      └─────────────────────────────────────┘
-                                                      │
-                                                      │ wraps
-                                                      ▼
-                                      ┌──────────────────────────────────────┐
-                                      │         VULKAN API 1.4               │
-                                      └──────────────────────────────────────┘
 ```
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                                 FLOWS                                       │
+│                               DEPENDENCIES                                  │
 └─────────────────────────────────────────────────────────────────────────────┘
 
- Application::run()
+                           ┌──────────────────┐
+                           │   Application    │
+                           └───┬─────┬─────┬──┘
+                               │     │     │
+                ┌──────────────┘     │     └──────────────┐
+                ▼                    ▼                    ▼
+        ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+        │ Window/Widget│     │    World     │     │   Renderer   │
+        └──────┬───────┘     └──────┬───────┘     └──────┬───────┘
+               │                    │                    │ owns
+               │                    ▼                    ▼
+               │             ┌──────────────┐     ┌──────────────┐
+               │             │ Scene/Node   │────>│ RenderScene  │
+               │             │ Components   │     └──────┬───────┘
+               │             │ Resources    │            │ owns
+               │             └──────▲───────┘            ▼
+               │                    │             ┌────────────────────┐
+               │             ┌──────┴───────┐     │ RenderMesh        │
+               │             │AssetImporter │     │ RenderMaterial    │
+               │             └──────────────┘     │ RenderTexture     │
+               │                                  └─────────┬──────────┘
+               │                                            │ uses
+               │                                            ▼
+               │                                  ┌────────────────────┐
+               └─────────────────────────────────>│        RHI         │
+                                                  └─────────▲──────────┘
+                                                            │ implements
+                                                  ┌─────────┴──────────┐
+                                                  │  Vulkan Backend    │
+                                                  └─────────┬──────────┘
+                                                            ▼
+                                                  ┌────────────────────┐
+                                                  │ Vulkan API / GPU   │
+                                                  └────────────────────┘
+```
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                             CURRENT FRAME FLOW                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Application::run()                         [Single Thread]
       │
-      ├───────────────────────────────────────────────────────────┐
-      │                                                           │
-      ▼                                                           ▼
-  tickLogic(dt)                                             tickRender(dt)
-      │                                                           │
-      ▼                                                           ▼
-  World::tick(dt)                                         Renderer::tick(dt)
-      │                                                           │
-      ├─> Scene::update(dt) ────────────────────────────────────> │
-      │    └─> Behaviour::update()                                │
-      │         • Game logic                                      │
-      │         • Transform updates                               │
-      │         • Component interactions                          │
-      │                                                           │
-      │                                                           ▼
-      │                                              RenderScene::update(dt)
-      │                                                           │
-      │                                                           ├─> Read World
-      │                                                           ├─> Read Scene
-      │                                                           ├─> updateCamera()
-      │                                                           ├─> updateLights()
-      │                                                           └─> updateMeshes()
-      │                                                           │
-      │◄──────────────────────────────────────────────────────────┘
-      │                                                           │ 
-      │                                                           │ 
-      ▼                                                           │ 
-  (World state updated)                                           │
-                                                                  ▼
-                                                          Renderer::begin()
-                                                                  │
-                                                                  ├─> acquireImage()
-                                                                  └─> beginCommand()
-                                                                  │
-                                                                  ▼
-                                                          Renderer::draw()
-                                                                  │
-                                                                  ├─> [Forward Path]
-                                                                  │    └─> Draw meshes
-                                                                  │
-                                                                  └─> [Deferred Path]
-                                                                  │    ├─> Geometry Pass
-                                                                  │    └─> Lighting Pass
-                                                                  │
-                                                                  ▼
-                                                          Renderer::end()
-                                                                  │
-                                                                  ├─> endCommand()
-                                                                  ├─> submit()
-                                                                  └─> present()
-
+      ├─> Clock::tick()
+      ├─> tickGui(dt)
+      │     ├─> Window::pollEvent()
+      │     └─> Widget::newFrame()
+      │
+      ├─> tickLogic(dt)
+      │     └─> World::tick(dt)
+      │           └─> Scene::update(dt)
+      │                 └─> Behaviour::update(dt)
+      │
+      └─> tickRender(dt)
+            └─> Renderer::tick(dt)
+                  ├─> RenderScene::update(dt)
+                  │     ├─> rebuild resources (when counts change)
+                  │     ├─> update camera/lights/transforms
+                  │     └─> upload scene/object uniforms
+                  │
+                  ├─> RHIContext::beginFrame()
+                  │     └─> acquire swapchain image / open command list
+                  │
+                  ├─> clear backbuffer + depth
+                  ├─> Renderer::drawScene()
+                  │     ├─> create framebuffer/pipeline when needed
+                  │     └─> RenderScene::draw()
+                  │           └─> Scene Set -> Material Set -> Object Set
+                  │                 └─> setGraphicsState() -> drawIndexed()
+                  │
+                  ├─> Widget render callback
+                  └─> RHIContext::endFrame()
+                        └─> close -> submit -> present
 ```
