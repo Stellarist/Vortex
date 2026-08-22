@@ -1,9 +1,10 @@
-#pragma once
+export module Runtime.World:CameraController;
 
-#include <glm/glm.hpp>
+import Core;
+import :Behaviour;
+import :Camera;
 
-#include "Runtime/World/Base/Behaviour.hpp"
-#include "Runtime/World/Components/Camera.hpp"
+export namespace Vortex {
 
 enum class CameraMovement;
 
@@ -18,8 +19,8 @@ private:
 	bool enable_scroll{false};
 	bool first_mouse{true};
 
-	glm::vec2 last_mouse_pos{};
-	glm::vec2 last_scroll_offset{};
+	Vec2 last_mouse_pos{};
+	Vec2 last_scroll_offset{};
 
 	Camera* camera{};
 
@@ -33,7 +34,7 @@ public:
 	void update(float dt) override;
 
 	void translate(CameraMovement movement, float dt);
-	void rotate(const glm::vec2& mouse_pos);
+	void rotate(const Vec2& mouse_pos);
 	void scroll(float yoffset);
 };
 
@@ -43,3 +44,5 @@ enum class CameraMovement {
 	Left,
 	Right
 };
+
+}        // namespace Vortex

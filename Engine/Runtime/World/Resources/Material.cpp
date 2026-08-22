@@ -1,4 +1,6 @@
-#include "Material.hpp"
+module Runtime.World;
+
+namespace Vortex {
 
 Material::Material(Material::ShadingModel shading_model, const std::string& name) :
     Resource(name),
@@ -10,12 +12,12 @@ std::type_index Material::getType()
 	return typeid(Material);
 }
 
-glm::vec4 Material::getAlbedo() const
+Vec4 Material::getAlbedo() const
 {
 	return albedo;
 }
 
-void Material::setAlbedo(const glm::vec4& albedo)
+void Material::setAlbedo(const Vec4& albedo)
 {
 	this->albedo = albedo;
 }
@@ -40,12 +42,12 @@ void Material::setRoughness(float roughness)
 	this->roughness = roughness;
 }
 
-glm::vec3 Material::getEmissive() const
+Vec3 Material::getEmissive() const
 {
 	return emissive;
 }
 
-void Material::setEmissive(const glm::vec3& emissive)
+void Material::setEmissive(const Vec3& emissive)
 {
 	this->emissive = emissive;
 }
@@ -100,3 +102,5 @@ void Material::addTexture(const std::string& name, std::shared_ptr<Texture> text
 {
 	textures[name] = std::move(texture);
 }
+
+}        // namespace Vortex

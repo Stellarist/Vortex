@@ -1,14 +1,13 @@
-#pragma once
+export module Runtime.World:Camera;
 
-#include <string>
+import Core;
+import :Component;
 
-#include <glm/glm.hpp>
-
-#include "Runtime/World/Base/Component.hpp"
+export namespace Vortex {
 
 class Camera : public Component {
 protected:
-	glm::mat4 pre_rotation{1.0f};
+	Mat4 pre_rotation{1.0f};
 
 public:
 	Camera(const std::string& name);
@@ -16,12 +15,12 @@ public:
 
 	std::type_index getType() override;
 
-	virtual glm::mat4 getProjection() const = 0;
+	virtual Mat4 getProjection() const = 0;
 
-	auto getView() const -> glm::mat4;
+	auto getView() const -> Mat4;
 
-	glm::mat4 getPreRotation() const;
-	void      setPreRotation(const glm::mat4& pre_rotation);
+	Mat4 getPreRotation() const;
+	void setPreRotation(const Mat4& pre_rotation);
 };
 
 class PerspectiveCamera : public Camera {
@@ -50,11 +49,11 @@ public:
 	float getFov() const;
 	void  setFov(float fov);
 
-	glm::vec3 getFront();
-	glm::vec3 getUp();
-	glm::vec3 getRight();
+	Vec3 getFront();
+	Vec3 getUp();
+	Vec3 getRight();
 
-	glm::mat4 getProjection() const override;
+	Mat4 getProjection() const override;
 };
 
 class OrthoCamera : public Camera {
@@ -98,5 +97,7 @@ public:
 	float getFarPlane() const;
 	void  setFarPlane(float far_plane);
 
-	glm::mat4 getProjection() const override;
+	Mat4 getProjection() const override;
 };
+
+}        // namespace Vortex

@@ -1,8 +1,8 @@
-#include "Editor/Launch/Application.hpp"
+import Editor;
 
 int main(int argc, char** argv)
 {
-	Application app;
+	Vortex::Application app;
 	app.run();
 
 	return 0;

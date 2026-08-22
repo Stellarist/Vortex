@@ -1,23 +1,20 @@
-#pragma once
+export module Runtime.World:Material;
 
-#include <string>
-#include <unordered_map>
-#include <memory>
+import Core;
+import :Texture;
+import :Resource;
 
-#include <glm/glm.hpp>
-
-#include "Texture.hpp"
-#include "Runtime/World/Base/Resource.hpp"
+export namespace Vortex {
 
 class Material : public Resource {
 public:
-	enum class ShadingModel : uint8_t {
+	enum class ShadingModel : uint8 {
 		Lit,
 		Unlit,
 		Count,
 	};
 
-	enum class AlphaMode : uint8_t {
+	enum class AlphaMode : uint8 {
 		Opaque,
 		Mask,
 		Blend,
@@ -27,11 +24,11 @@ public:
 private:
 	ShadingModel shading_model{ShadingModel::Lit};
 
-	glm::vec4 albedo{1.0f};
-	float     metallic{0.0f};
-	float     roughness{0.0f};
+	Vec4  albedo{1.0f};
+	float metallic{0.0f};
+	float roughness{0.0f};
 
-	glm::vec3 emissive{0.0f, 0.0f, 0.0f};
+	Vec3      emissive{0.0f, 0.0f, 0.0f};
 	bool      double_sided{false};
 	float     alpha_cutoff{0.5f};
 	AlphaMode alpha_mode{AlphaMode::Opaque};
@@ -47,8 +44,8 @@ public:
 	auto getShadingModel() const -> ShadingModel;
 	auto setShadingModel(ShadingModel shading_model) -> void;
 
-	auto getAlbedo() const -> glm::vec4;
-	auto setAlbedo(const glm::vec4& albedo) -> void;
+	auto getAlbedo() const -> Vec4;
+	auto setAlbedo(const Vec4& albedo) -> void;
 
 	auto getMetallic() const -> float;
 	auto setMetallic(float metallic) -> void;
@@ -56,8 +53,8 @@ public:
 	auto getRoughness() const -> float;
 	auto setRoughness(float roughness) -> void;
 
-	auto getEmissive() const -> glm::vec3;
-	void setEmissive(const glm::vec3& emissive);
+	auto getEmissive() const -> Vec3;
+	void setEmissive(const Vec3& emissive);
 
 	bool getDoubleSided() const;
 	void setDoubleSided(bool double_sided);
@@ -74,3 +71,5 @@ public:
 	auto getTexture(const std::string& name) const -> std::shared_ptr<Texture>;
 	void addTexture(const std::string& name, std::shared_ptr<Texture> texture);
 };
+
+}        // namespace Vortex

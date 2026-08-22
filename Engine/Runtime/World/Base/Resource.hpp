@@ -1,8 +1,9 @@
-#pragma once
+export module Runtime.World:Resource;
 
-#include "Entity.hpp"
+import Core;
+import :Entity;
 
-#include <string>
+export namespace Vortex {
 
 class Resource : public Entity {
 private:
@@ -16,3 +17,5 @@ public:
 	auto getName() const -> const std::string&;
 	void setName(const std::string& name);
 };
+
+}        // namespace Vortex

@@ -1,58 +1,58 @@
-#include "Transform.hpp"
+module Runtime.World;
 
-#include "Runtime/World/Base/Node.hpp"
+namespace Vortex {
 
 std::type_index Transform::getType()
 {
 	return typeid(Transform);
 }
 
-void Transform::translate(const glm::vec3& delta)
+void Transform::translate(const Vec3& delta)
 {
 	translation += delta;
 	invalidateWorldMatrix();
 }
 
-void Transform::rotate(const glm::vec3& axis, float angle)
+void Transform::rotate(const Vec3& axis, float angle)
 {
-	rotation = glm::normalize(glm::angleAxis(angle, axis) * rotation);
+	rotation = Math::normalize(Math::angleAxis(angle, axis) * rotation);
 	invalidateWorldMatrix();
 }
 
-void Transform::scale(const glm::vec3& factor)
+void Transform::scale(const Vec3& factor)
 {
 	scaling *= factor;
 	invalidateWorldMatrix();
 }
 
-const glm::vec3& Transform::getTranslation() const
+const Vec3& Transform::getTranslation() const
 {
 	return translation;
 }
 
-void Transform::setTranslation(const glm::vec3& translation)
+void Transform::setTranslation(const Vec3& translation)
 {
 	this->translation = translation;
 	invalidateWorldMatrix();
 }
 
-const glm::quat& Transform::getRotation() const
+const Quat& Transform::getRotation() const
 {
 	return rotation;
 }
 
-void Transform::setRotation(const glm::quat& rotation)
+void Transform::setRotation(const Quat& rotation)
 {
 	this->rotation = rotation;
 	invalidateWorldMatrix();
 }
 
-const glm::vec3& Transform::getScaling() const
+const Vec3& Transform::getScaling() const
 {
 	return scaling;
 }
 
-void Transform::setScaling(const glm::vec3& scale)
+void Transform::setScaling(const Vec3& scale)
 {
 	this->scaling = scale;
 	invalidateWorldMatrix();
@@ -68,20 +68,18 @@ void Transform::setNode(Node& node)
 	this->node = &node;
 }
 
-glm::mat4 Transform::getMatrix() const
+Mat4 Transform::getMatrix() const
 {
-	return glm::translate(glm::mat4(1.0f), translation)
-	    * glm::mat4_cast(rotation)
-	    * glm::scale(glm::mat4(1.0f), scaling);
+	return Math::translate(Mat4(1.0f), translation) * Math::toMat4(rotation) * Math::scale(Mat4(1.0f), scaling);
 }
 
-void Transform::setMatrix(const glm::mat4& matrix)
+void Transform::setMatrix(const Mat4& matrix)
 {
 	this->world_matrix = matrix;
 	invalidateWorldMatrix();
 }
 
-glm::mat4 Transform::getWorldMatrix()
+Mat4 Transform::getWorldMatrix()
 {
 	updateWorldTransform();
 	return world_matrix;
@@ -110,3 +108,5 @@ bool Transform::dirty() const
 {
 	return world_matrix_dirty;
 }
+
+}        // namespace Vortex

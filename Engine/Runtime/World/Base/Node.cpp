@@ -1,6 +1,6 @@
-#include "Node.hpp"
+module Runtime.World;
 
-#include "Scene.hpp"
+namespace Vortex {
 
 Node::Node(std::string name) :
     name(std::move(name))
@@ -90,3 +90,5 @@ void Node::addChild(Node& child)
 	child.transform.invalidateWorldMatrix();
 	children.push_back(&child);
 }
+
+}        // namespace Vortex

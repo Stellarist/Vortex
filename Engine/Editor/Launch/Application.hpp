@@ -1,12 +1,12 @@
-#pragma once
+export module Editor.Launch;
 
-#include <memory>
+export import Core;
+export import Runtime.World;
+export import Runtime.Graphics;
+export import Editor.Window;
+export import Editor.Widget;
 
-#include "Runtime/Core/Clock.hpp"
-#include "Runtime/World/World.hpp"
-#include "Runtime/Render/Renderer.hpp"
-#include "Editor/Window.hpp"
-#include "Editor/Widget.hpp"
+export namespace Vortex {
 
 class Application {
 private:
@@ -29,3 +29,5 @@ public:
 	void loadWorld(std::unique_ptr<World>&& world);
 	void loadRenderer(std::unique_ptr<Renderer>&& renderer);
 };
+
+}        // namespace Vortex

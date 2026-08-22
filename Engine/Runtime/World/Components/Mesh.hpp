@@ -1,11 +1,10 @@
-#pragma once
+export module Runtime.World:Mesh;
 
-#include <vector>
+import Core;
+import :Component;
+import :SubMesh;
 
-#include <glm/glm.hpp>
-
-#include "Runtime/World/Base/Component.hpp"
-#include "Runtime/World/Resources/SubMesh.hpp"
+export namespace Vortex {
 
 class Mesh : public Component {
 private:
@@ -20,3 +19,5 @@ public:
 	auto getSubmeshes() const -> const std::vector<std::shared_ptr<SubMesh>>;
 	void addSubmesh(std::shared_ptr<SubMesh> submesh);
 };
+
+}        // namespace Vortex

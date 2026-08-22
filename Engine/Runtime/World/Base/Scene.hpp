@@ -1,14 +1,15 @@
-#pragma once
+export module Runtime.World:Scene;
 
-#include <memory>
-#include <string>
-#include <vector>
-#include <typeindex>
-#include <algorithm>
+import Core;
+import :Entity;
+import :Node;
+import :Component;
+import :Behaviour;
+import :Resource;
 
-#include "Node.hpp"
-#include "Component.hpp"
-#include "Resource.hpp"
+export namespace Vortex {
+
+class World;
 
 template <typename T>
 concept IsResource = std::is_base_of<Resource, T>::value;
@@ -119,8 +120,7 @@ auto Scene::getComponents() const -> std::vector<T*>
 		auto& scene_components = getComponents(typeid(T));
 		result.resize(scene_components.size());
 		std::transform(
-		    scene_components.begin(), scene_components.end(), result.begin(),
-		    [](auto& component) { return dynamic_cast<T*>(component.get()); });
+		    scene_components.begin(), scene_components.end(), result.begin(), [](auto& component) { return dynamic_cast<T*>(component.get()); });
 	}
 	return result;
 }
@@ -151,7 +151,7 @@ void Scene::addComponent(std::unique_ptr<T>&& component, Node& node)
 template <IsComponent T>
 void Scene::clearComponents()
 {
-	setComponents<T>(typeid(T), {});
+	setComponents(typeid(T), {});
 }
 
 template <IsComponent T>
@@ -167,10 +167,9 @@ auto Scene::getResources() const -> std::vector<std::shared_ptr<T>>
 	if (hasResource(typeid(T))) {
 		auto& scene_resources = getResources(typeid(T));
 		result.resize(scene_resources.size());
-		std::transform(scene_resources.begin(), scene_resources.end(),
-		    result.begin(), [](const auto& resource) {
-			    return std::dynamic_pointer_cast<T>(resource);
-		    });
+		std::transform(scene_resources.begin(), scene_resources.end(), result.begin(), [](const auto& resource) {
+			return std::dynamic_pointer_cast<T>(resource);
+		});
 	}
 	return result;
 }
@@ -212,3 +211,5 @@ T* Scene::getBehaviour() const
 
 	return nullptr;
 }
+
+}        // namespace Vortex

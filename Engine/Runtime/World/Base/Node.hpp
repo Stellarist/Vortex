@@ -1,12 +1,12 @@
-#pragma once
+export module Runtime.World:Node;
 
-#include <string>
-#include <vector>
-#include <unordered_map>
+import Core;
+import :Entity;
+import :Component;
+import :Behaviour;
+import :Transform;
 
-#include "Component.hpp"
-#include "Behaviour.hpp"
-#include "Runtime/World/Components/Transform.hpp"
+export namespace Vortex {
 
 class Scene;
 class World;
@@ -102,8 +102,10 @@ template <IsBehaviour T>
 T* Node::getBehaviour() const
 {
 	for (auto* behaviour : behaviours)
-		if (dynamic_cast<T*>(behaviour))
-			return dynamic_cast<T&>(*behaviour);
+		if (auto* result = dynamic_cast<T*>(behaviour))
+			return result;
 
 	return nullptr;
 }
+
+}        // namespace Vortex

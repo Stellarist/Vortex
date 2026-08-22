@@ -1,11 +1,15 @@
+module;
+
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
-#include "AssetImporter.hpp"
+#include <cassert>
+#include <tiny_gltf.h>
 
-#include <queue>
-#include <stdexcept>
+module Editor.Importer;
+
+namespace Vortex {
 
 static constexpr std::array attributes_names = {
     "POSITION",
@@ -168,10 +172,7 @@ std::unique_ptr<Node> AssetImporter::parseNode(const tinygltf::Node& tfnode)
 		    static_cast<float>(scale[2])});
 
 	if (const auto& matrix = tfnode.matrix; !tfnode.matrix.empty())
-		transform.setMatrix({static_cast<float>(matrix[0]), static_cast<float>(matrix[1]), static_cast<float>(matrix[2]), static_cast<float>(matrix[3]),
-		    static_cast<float>(matrix[4]), static_cast<float>(matrix[5]), static_cast<float>(matrix[6]), static_cast<float>(matrix[7]),
-		    static_cast<float>(matrix[8]), static_cast<float>(matrix[9]), static_cast<float>(matrix[10]), static_cast<float>(matrix[11]),
-		    static_cast<float>(matrix[12]), static_cast<float>(matrix[13]), static_cast<float>(matrix[14]), static_cast<float>(matrix[15])});
+		transform.setMatrix({static_cast<float>(matrix[0]), static_cast<float>(matrix[1]), static_cast<float>(matrix[2]), static_cast<float>(matrix[3]), static_cast<float>(matrix[4]), static_cast<float>(matrix[5]), static_cast<float>(matrix[6]), static_cast<float>(matrix[7]), static_cast<float>(matrix[8]), static_cast<float>(matrix[9]), static_cast<float>(matrix[10]), static_cast<float>(matrix[11]), static_cast<float>(matrix[12]), static_cast<float>(matrix[13]), static_cast<float>(matrix[14]), static_cast<float>(matrix[15])});
 
 	return node;
 }
@@ -221,7 +222,7 @@ std::unique_ptr<Light> AssetImporter::parseLight(const tinygltf::Light& tflight)
 	return light;
 }
 
-std::shared_ptr<SubMesh> AssetImporter::parseSubmesh(const tinygltf::Mesh& tfmesh, const tinygltf::Model& tfmodel, uint32_t index, const std::vector<std::shared_ptr<Material>>& materials)
+std::shared_ptr<SubMesh> AssetImporter::parseSubmesh(const tinygltf::Mesh& tfmesh, const tinygltf::Model& tfmodel, uint32 index, const std::vector<std::shared_ptr<Material>>& materials)
 {
 	auto submesh = std::make_shared<SubMesh>(tfmesh.name);
 
@@ -237,32 +238,32 @@ std::shared_ptr<SubMesh> AssetImporter::parseSubmesh(const tinygltf::Mesh& tfmes
 	if (pos_it != tfprimitive.attributes.end()) {
 		const auto& pos_data = getAttributeDataView(tfmodel, pos_it->second);
 		const auto* pos_ptr = reinterpret_cast<const float*>(pos_data.data());
-		for (uint32_t i = 0; i < vertex_count; i++)
-			vertices[i].pos = glm::vec3(pos_ptr[i * 3 + 0], pos_ptr[i * 3 + 1], pos_ptr[i * 3 + 2]);
+		for (uint32 i = 0; i < vertex_count; i++)
+			vertices[i].pos = Vec3(pos_ptr[i * 3 + 0], pos_ptr[i * 3 + 1], pos_ptr[i * 3 + 2]);
 	}
 
 	auto normal_it = tfprimitive.attributes.find("NORMAL");
 	if (normal_it != tfprimitive.attributes.end()) {
 		const auto& normal_data = getAttributeDataView(tfmodel, normal_it->second);
 		const auto* normal_ptr = reinterpret_cast<const float*>(normal_data.data());
-		for (uint32_t i = 0; i < vertex_count; i++)
-			vertices[i].normal = glm::vec3(normal_ptr[i * 3 + 0], normal_ptr[i * 3 + 1], normal_ptr[i * 3 + 2]);
+		for (uint32 i = 0; i < vertex_count; i++)
+			vertices[i].normal = Vec3(normal_ptr[i * 3 + 0], normal_ptr[i * 3 + 1], normal_ptr[i * 3 + 2]);
 	}
 
 	auto uv_it = tfprimitive.attributes.find("TEXCOORD_0");
 	if (uv_it != tfprimitive.attributes.end()) {
 		const auto& uv_data = getAttributeDataView(tfmodel, uv_it->second);
 		const auto* uv_ptr = reinterpret_cast<const float*>(uv_data.data());
-		for (uint32_t i = 0; i < vertex_count; i++)
-			vertices[i].uv = glm::vec2(uv_ptr[i * 2 + 0], uv_ptr[i * 2 + 1]);
+		for (uint32 i = 0; i < vertex_count; i++)
+			vertices[i].uv = Vec2(uv_ptr[i * 2 + 0], uv_ptr[i * 2 + 1]);
 	}
 
 	auto color_it = tfprimitive.attributes.find("COLOR_0");
 	if (color_it != tfprimitive.attributes.end()) {
 		const auto& color_data = getAttributeDataView(tfmodel, color_it->second);
 		const auto* color_ptr = reinterpret_cast<const float*>(color_data.data());
-		for (uint32_t i = 0; i < vertex_count; i++)
-			vertices[i].color = glm::vec4(color_ptr[i * 4 + 0], color_ptr[i * 4 + 1], color_ptr[i * 4 + 2], color_ptr[i * 4 + 3]);
+		for (uint32 i = 0; i < vertex_count; i++)
+			vertices[i].color = Vec4(color_ptr[i * 4 + 0], color_ptr[i * 4 + 1], color_ptr[i * 4 + 2], color_ptr[i * 4 + 3]);
 	}
 
 	submesh->setVertices(std::move(vertices));
@@ -272,16 +273,16 @@ std::shared_ptr<SubMesh> AssetImporter::parseSubmesh(const tinygltf::Mesh& tfmes
 		auto indices_raw_data = getAttributeDataView(tfmodel, tfprimitive.indices);
 		auto index_byte_size = getAttributeSize(&tfmodel, tfprimitive.indices);
 
-		std::vector<uint32_t> indices_data;
+		std::vector<uint32> indices_data;
 		switch (index_byte_size) {
 		case 1:
-			indices_data = convertData<uint8_t, uint32_t>(indices_raw_data);
+			indices_data = convertData<uint8, uint32>(indices_raw_data);
 			break;
 		case 2:
-			indices_data = convertData<uint16_t, uint32_t>(indices_raw_data);
+			indices_data = convertData<uint16, uint32>(indices_raw_data);
 			break;
 		case 4:
-			indices_data = convertData<uint32_t, uint32_t>(indices_raw_data);
+			indices_data = convertData<uint32, uint32>(indices_raw_data);
 			break;
 		default:
 			throw std::runtime_error("Unsupported index byte size");
@@ -315,7 +316,7 @@ std::shared_ptr<Texture> AssetImporter::parseTexture(const tinygltf::Texture& tf
 	texture->setHeight(tfimage.height);
 	texture->setFormat(4);
 
-	std::vector<uint8_t> rgba_data;
+	std::vector<uint8> rgba_data;
 	if (tfimage.component == 4)
 		rgba_data = tfimage.image;
 	else if (tfimage.component == 3) {
@@ -378,7 +379,7 @@ std::unique_ptr<Camera> AssetImporter::createDefaultCamera(const std::string& na
 {
 	auto camera = std::make_unique<PerspectiveCamera>(name);
 	camera->setAspectRatio(16.0f / 9.0f);
-	camera->setFov(glm::radians(45.0f));
+	camera->setFov(Math::radians(45.0f));
 	camera->setNearPlane(0.1f);
 	camera->setFarPlane(1000.0f);
 
@@ -481,14 +482,14 @@ void AssetImporter::initDefaultMaterials(Scene& scene)
 	scene.addResource<Material>(dpm);
 }
 
-std::vector<uint8_t> AssetImporter::getAttributeData(const tinygltf::Model& tfmodel, uint32_t accessor_index)
+std::vector<uint8> AssetImporter::getAttributeData(const tinygltf::Model& tfmodel, uint32 accessor_index)
 {
 	auto view = getAttributeDataView(tfmodel, accessor_index);
 
 	return {view.begin(), view.end()};
 }
 
-std::span<const uint8_t> AssetImporter::getAttributeDataView(const tinygltf::Model& tfmodel, uint32_t accessor_index)
+std::span<const uint8> AssetImporter::getAttributeDataView(const tinygltf::Model& tfmodel, uint32 accessor_index)
 {
 	assert(accessor_index < tfmodel.accessors.size());
 	const auto& accessor = tfmodel.accessors[accessor_index];
@@ -506,14 +507,14 @@ std::span<const uint8_t> AssetImporter::getAttributeDataView(const tinygltf::Mod
 	return {buffer.data.begin() + start_byte, buffer.data.begin() + end_byte};
 }
 
-uint32_t AssetImporter::getAttributeCount(const tinygltf::Model* tfmodel, uint32_t accessor_id)
+uint32 AssetImporter::getAttributeCount(const tinygltf::Model* tfmodel, uint32 accessor_id)
 {
 	assert(accessor_id < tfmodel->accessors.size());
 
-	return static_cast<uint32_t>(tfmodel->accessors[accessor_id].count);
+	return static_cast<uint32>(tfmodel->accessors[accessor_id].count);
 }
 
-uint32_t AssetImporter::getAttributeSize(const tinygltf::Model* tfmodel, uint32_t accessor_id)
+uint32 AssetImporter::getAttributeSize(const tinygltf::Model* tfmodel, uint32 accessor_id)
 {
 	assert(accessor_id < tfmodel->accessors.size());
 	auto& accessor = tfmodel->accessors[accessor_id];
@@ -521,10 +522,10 @@ uint32_t AssetImporter::getAttributeSize(const tinygltf::Model* tfmodel, uint32_
 	size_t component_size = tinygltf::GetComponentSizeInBytes(accessor.componentType);
 	size_t component_num = tinygltf::GetNumComponentsInType(accessor.type);
 
-	return static_cast<uint32_t>(component_size * component_num);
+	return static_cast<uint32>(component_size * component_num);
 }
 
-uint32_t AssetImporter::getAttributeStride(const tinygltf::Model* tfmodel, uint32_t accessor_id)
+uint32 AssetImporter::getAttributeStride(const tinygltf::Model* tfmodel, uint32 accessor_id)
 {
 	assert(accessor_id < tfmodel->accessors.size());
 	auto& accessor = tfmodel->accessors[accessor_id];
@@ -532,5 +533,7 @@ uint32_t AssetImporter::getAttributeStride(const tinygltf::Model* tfmodel, uint3
 	assert(accessor.bufferView < tfmodel->bufferViews.size());
 	auto& buffer_view = tfmodel->bufferViews[accessor.bufferView];
 
-	return static_cast<uint32_t>(accessor.ByteStride(buffer_view));
+	return static_cast<uint32>(accessor.ByteStride(buffer_view));
 }
+
+}        // namespace Vortex

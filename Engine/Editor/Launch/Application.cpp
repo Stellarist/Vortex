@@ -1,8 +1,8 @@
-#include "Application.hpp"
+module Editor.Launch;
 
-#include "Runtime/Core/File.hpp"
-#include "Runtime/Core/Log.hpp"
-#include "Editor/Importer/AssetImporter.hpp"
+import Editor.Importer;
+
+namespace Vortex {
 
 Application::Application()
 {
@@ -85,3 +85,5 @@ void Application::loadRenderer(std::unique_ptr<Renderer>&& new_renderer)
 	if (world)
 		renderer->setActiveWorld(*world);
 }
+
+}        // namespace Vortex

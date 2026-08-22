@@ -1,6 +1,26 @@
-#include "Window.hpp"
+module;
 
-#include "Runtime/Core/Input.hpp"
+#include <SDL3/SDL.h>
+
+module Editor.Window;
+
+namespace Vortex {
+
+const std::unordered_map<uint8, Input::Mouse> mouse_map = {
+    {SDL_BUTTON_LEFT, Input::Mouse::Left},
+    {SDL_BUTTON_MIDDLE, Input::Mouse::Middle},
+    {SDL_BUTTON_RIGHT, Input::Mouse::Right},
+};
+
+const std::unordered_map<SDL_Keycode, Input::Key> key_map = {
+    {SDLK_W, Input::Key::W},
+    {SDLK_A, Input::Key::A},
+    {SDLK_S, Input::Key::S},
+    {SDLK_D, Input::Key::D},
+    {SDLK_ESCAPE, Input::Key::Escape},
+    {SDLK_SPACE, Input::Key::Space},
+    {SDLK_RETURN, Input::Key::Enter},
+};
 
 Window::Window(std::string_view title, int width, int height) : width(width), height(height)
 {
@@ -27,7 +47,7 @@ void Window::pollEvent()
 		switch (event.type) {
 		case SDL_EventType::SDL_EVENT_MOUSE_MOTION:
 		{
-			glm::vec2 pos{event.motion.x, event.motion.y};
+			Vec2 pos{event.motion.x, event.motion.y};
 			InputHandler::instance().setMousePos(pos);
 			break;
 		}
@@ -37,8 +57,8 @@ void Window::pollEvent()
 			if (!mouse_map.contains(event.button.button))
 				return;
 
-			glm::vec2  pos{event.button.x, event.button.y};
-			MouseInput mouse_input(mouse_map[event.button.button], pos, Input::State::Pressed);
+			Vec2       pos{event.button.x, event.button.y};
+			MouseInput mouse_input(mouse_map.at(event.button.button), pos, Input::State::Pressed);
 			InputHandler::instance().onMouseInput(mouse_input);
 			break;
 		}
@@ -48,15 +68,15 @@ void Window::pollEvent()
 			if (!mouse_map.contains(event.button.button))
 				return;
 
-			glm::vec2  pos{event.button.x, event.button.y};
-			MouseInput mouse_input(mouse_map[event.button.button], pos, Input::State::Released);
+			Vec2       pos{event.button.x, event.button.y};
+			MouseInput mouse_input(mouse_map.at(event.button.button), pos, Input::State::Released);
 			InputHandler::instance().onMouseInput(mouse_input);
 			break;
 		}
 
 		case SDL_EventType::SDL_EVENT_MOUSE_WHEEL:
 		{
-			glm::vec2 scroll{static_cast<float>(event.wheel.x), static_cast<float>(event.wheel.y)};
+			Vec2 scroll{static_cast<float>(event.wheel.x), static_cast<float>(event.wheel.y)};
 			InputHandler::instance().setMouseScroll(scroll);
 			break;
 		}
@@ -66,7 +86,7 @@ void Window::pollEvent()
 			if (!key_map.contains(event.key.key))
 				return;
 
-			KeyInput key_input(key_map[event.key.key], Input::State::Pressed);
+			KeyInput key_input(key_map.at(event.key.key), Input::State::Pressed);
 			InputHandler::instance().onKeyInput(key_input);
 			break;
 		}
@@ -76,7 +96,7 @@ void Window::pollEvent()
 			if (!key_map.contains(event.key.key))
 				return;
 
-			KeyInput key_input(key_map[event.key.key], Input::State::Released);
+			KeyInput key_input(key_map.at(event.key.key), Input::State::Released);
 			InputHandler::instance().onKeyInput(key_input);
 			break;
 		}
@@ -95,22 +115,22 @@ void Window::hook(std::function<void()> callback)
 	event_callbacks.push_back(std::move(callback));
 }
 
-uint32_t Window::getWidth() const
+uint32 Window::getWidth() const
 {
 	return width;
 }
 
-uint32_t Window::getHeight() const
+uint32 Window::getHeight() const
 {
 	return height;
 }
 
-void Window::setWidth(uint32_t width)
+void Window::setWidth(uint32 width)
 {
 	this->width = width;
 }
 
-void Window::setHeight(uint32_t height)
+void Window::setHeight(uint32 height)
 {
 	this->height = height;
 }
@@ -129,3 +149,5 @@ SDL_Event* Window::getEvent()
 {
 	return &event;
 }
+
+}        // namespace Vortex

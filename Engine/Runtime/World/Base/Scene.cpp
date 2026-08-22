@@ -1,6 +1,10 @@
-#include "Scene.hpp"
+module;
 
-#include <queue>
+#include <cassert>
+
+module Runtime.World;
+
+namespace Vortex {
 
 Scene::Scene(std::string name) :
     name(std::move(name))
@@ -83,10 +87,9 @@ void Scene::removeComponent(Component& component)
 		return;
 
 	auto& component_list = it->second;
-	component_list.erase(std::remove_if(component_list.begin(), component_list.end(),
-	                         [&component](const std::unique_ptr<Component>& c) {
-		                         return c.get() == &component;
-	                         }),
+	component_list.erase(std::remove_if(component_list.begin(), component_list.end(), [&component](const std::unique_ptr<Component>& c) {
+		return c.get() == &component;
+	}),
 	    component_list.end());
 
 	if (component_list.empty())
@@ -115,10 +118,9 @@ void Scene::removeResource(Resource& resource)
 		return;
 
 	auto& resource_list = it->second;
-	resource_list.erase(std::remove_if(resource_list.begin(), resource_list.end(),
-	                        [&resource](const std::shared_ptr<Resource>& r) {
-		                        return r.get() == &resource;
-	                        }),
+	resource_list.erase(std::remove_if(resource_list.begin(), resource_list.end(), [&resource](const std::shared_ptr<Resource>& r) {
+		return r.get() == &resource;
+	}),
 	    resource_list.end());
 
 	if (resource_list.empty())
@@ -151,10 +153,9 @@ void Scene::addBehaviour(std::unique_ptr<Behaviour>&& behaviour, Node& node)
 void Scene::removeBehaviour(Behaviour& behaviour)
 {
 	behaviours.erase(
-	    std::remove_if(behaviours.begin(), behaviours.end(),
-	        [&behaviour](const std::unique_ptr<Behaviour>& b) {
-		        return b.get() == &behaviour;
-	        }),
+	    std::remove_if(behaviours.begin(), behaviours.end(), [&behaviour](const std::unique_ptr<Behaviour>& b) {
+		    return b.get() == &behaviour;
+	    }),
 	    behaviours.end());
 	refreshBehaviours();
 }
@@ -203,3 +204,5 @@ void Scene::update(float dt)
 		}
 	}
 }
+
+}        // namespace Vortex

@@ -1,9 +1,10 @@
-#pragma once
+export module Runtime.World:World;
 
-#include <memory>
+import Core;
+import :Scene;
+import :Camera;
 
-#include "Base/Scene.hpp"
-#include "Components/Camera.hpp"
+export namespace Vortex {
 
 class World {
 private:
@@ -30,3 +31,5 @@ public:
 	auto getActiveCamera() const -> Camera*;
 	void setActiveCamera(Camera* camera);
 };
+
+}        // namespace Vortex

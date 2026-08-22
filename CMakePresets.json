@@ -4,73 +4,36 @@
         {
             "name": "base",
             "hidden": true,
-            "binaryDir": "${sourceDir}/Build",
-            "installDir": "${sourceDir}/Bin",
             "cacheVariables": {
-                "CMAKE_CXX_STANDARD": "26",
+                "CMAKE_CXX_STANDARD": "23",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
                 "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-                "VCPKG_TARGET_TRIPLET": "x64-windows",
-                "X_VCPKG_APPLOCAL_DEPS_INSTALL": "ON"
+                "VCPKG_INSTALLED_DIR": "${sourceDir}/Packages",
+                "VCPKG_TARGET_TRIPLET": "x64-windows"
             }
         },
         {
-            "name": "clang-release",
-            "displayName": "Clang Release",
-            "inherits": "base",
-            "generator": "Ninja",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "CMAKE_C_COMPILER": "clang",
-                "CMAKE_CXX_COMPILER": "clang++"
-            }
-        },
-        {
-            "name": "clang-debug",
-            "displayName": "Clang Debug",
-            "inherits": "clang-release",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
-            "name": "msvc-release",
-            "displayName": "MSVC Release",
+            "name": "msvc",
+            "displayName": "MSVC",
             "inherits": "base",
             "generator": "Visual Studio 18 2026",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "name": "msvc-debug",
-            "displayName": "MSVC Debug",
-            "inherits": "msvc-release",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
+            "architecture": "x64",
+            "binaryDir": "${sourceDir}/Build",
+            "installDir": "${sourceDir}/Bin"
         }
     ],
     "buildPresets": [
         {
-            "name": "clang-build-release",
-            "displayName": "Build Clang Release",
-            "configurePreset": "clang-release"
+            "name": "msvc-release",
+            "displayName": "Release",
+            "configurePreset": "msvc",
+            "configuration": "Release"
         },
         {
-            "name": "clang-build-debug",
-            "displayName": "Build Clang Debug",
-            "configurePreset": "clang-debug"
-        },
-        {
-            "name": "msvc-build-release",
-            "displayName": "Build MSVC Release",
-            "configurePreset": "msvc-release"
-        },
-        {
-            "name": "msvc-build-debug",
-            "displayName": "Build MSVC Debug",
-            "configurePreset": "msvc-debug"
+            "name": "msvc-debug",
+            "displayName": "Debug",
+            "configurePreset": "msvc",
+            "configuration": "Debug"
         }
     ]
 }

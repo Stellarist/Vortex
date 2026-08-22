@@ -1,19 +1,22 @@
-#pragma once
+export module Runtime.World:Entity;
 
-#include <typeindex>
-#include <atomic>
+import Core;
+
+export namespace Vortex {
 
 class Entity {
 private:
-	uint64_t uid;
+	uint64 uid;
 
-	static std::atomic<uint64_t> id_counter;
+	static std::atomic<uint64> id_counter;
 
 public:
 	Entity();
 	virtual ~Entity() = default;
 
-	uint64_t getUid() const;
+	uint64 getUid() const;
 
 	virtual std::type_index getType() = 0;
 };
+
+}        // namespace Vortex

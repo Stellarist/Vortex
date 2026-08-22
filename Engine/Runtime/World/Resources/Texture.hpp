@@ -1,13 +1,13 @@
-#pragma once
+export module Runtime.World:Texture;
 
-#include <vector>
-#include <string>
+import Core;
+import :Resource;
 
-#include "Runtime/World/Base/Resource.hpp"
+export namespace Vortex {
 
 class Texture : public Resource {
 public:
-	enum class Dimension : uint8_t {
+	enum class Dimension : uint8 {
 		Tex2D,
 		TexCube,
 		Count,
@@ -16,11 +16,11 @@ public:
 private:
 	Dimension dimension{Dimension::Tex2D};
 
-	std::vector<uint8_t> data;
+	std::vector<uint8> data;
 
-	uint32_t format{0};
-	uint32_t width{0};
-	uint32_t height{0};
+	uint32 format{0};
+	uint32 width{0};
+	uint32 height{0};
 
 public:
 	Texture(Dimension dimension = Dimension::Tex2D, const std::string& name = {});
@@ -31,17 +31,19 @@ public:
 	auto getDimension() const -> Dimension;
 	void setDimension(Dimension dimension);
 
-	auto getData() const -> const std::vector<uint8_t>&;
-	void setData(std::vector<uint8_t> new_data);
+	auto getData() const -> const std::vector<uint8>&;
+	void setData(std::vector<uint8> new_data);
 
-	auto getFormat() const -> uint32_t;
-	void setFormat(uint32_t new_format);
+	auto getFormat() const -> uint32;
+	void setFormat(uint32 new_format);
 
-	auto getWidth() const -> uint32_t;
-	void setWidth(uint32_t new_width);
+	auto getWidth() const -> uint32;
+	void setWidth(uint32 new_width);
 
-	auto getHeight() const -> uint32_t;
-	void setHeight(uint32_t new_height);
+	auto getHeight() const -> uint32;
+	void setHeight(uint32 new_height);
 
 	bool valid() const;
 };
+
+}        // namespace Vortex

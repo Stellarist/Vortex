@@ -1,7 +1,6 @@
-#include "CameraController.hpp"
+module Runtime.World;
 
-#include "Runtime/World/Base/Node.hpp"
-#include "Runtime/Core/Input.hpp"
+namespace Vortex {
 
 CameraController::CameraController(std::string name) :
     Behaviour(std::move(name))
@@ -49,7 +48,7 @@ void CameraController::update(float dt)
 
 	if (handler.getMouseScroll().y != 0.0f) {
 		scroll(handler.getMouseScroll().y);
-		handler.setMouseScroll(glm::vec2(0.0f));
+		handler.setMouseScroll(Vec2(0.0f));
 	}
 }
 
@@ -58,8 +57,8 @@ void CameraController::translate(CameraMovement movement, float dt)
 	auto* persp_camera = dynamic_cast<PerspectiveCamera*>(camera);
 	auto& transform = node->getTransform();
 
-	glm::vec3 front = persp_camera->getFront();
-	glm::vec3 right = persp_camera->getRight();
+	Vec3 front = persp_camera->getFront();
+	Vec3 right = persp_camera->getRight();
 
 	switch (movement) {
 	case CameraMovement::Forward:
@@ -80,18 +79,18 @@ void CameraController::translate(CameraMovement movement, float dt)
 	}
 }
 
-void CameraController::rotate(const glm::vec2& mouse_pos)
+void CameraController::rotate(const Vec2& mouse_pos)
 {
 	auto delta = mouse_pos - last_mouse_pos;
 	last_mouse_pos = mouse_pos;
 
-	float yaw = glm::radians(-delta.x * mouse_sensitivity);
-	float pitch = glm::radians(-delta.y * mouse_sensitivity);
+	float yaw = Math::radians(-delta.x * mouse_sensitivity);
+	float pitch = Math::radians(-delta.y * mouse_sensitivity);
 
 	auto rotation = node->getTransform().getRotation();
 
-	glm::quat yaw_quat = glm::angleAxis(yaw, glm::vec3(0.0f, 1.0f, 0.0f));
-	glm::quat pitch_quat = glm::angleAxis(pitch, glm::vec3(1.0f, 0.0f, 0.0f));
+	Quat yaw_quat = Math::angleAxis(yaw, Vec3(0.0f, 1.0f, 0.0f));
+	Quat pitch_quat = Math::angleAxis(pitch, Vec3(1.0f, 0.0f, 0.0f));
 
 	auto new_rotation = yaw_quat * rotation * pitch_quat;
 
@@ -102,6 +101,8 @@ void CameraController::scroll(float yoffset)
 {
 	auto* persp_camera = dynamic_cast<PerspectiveCamera*>(camera);
 	float fov = persp_camera->getFov() - yoffset * scroll_sensitivity;
-	fov = glm::clamp(fov, 0.1f, 1.57f);
+	fov = Math::clamp(fov, 0.1f, 1.57f);
 	persp_camera->setFov(fov);
 }
+
+}        // namespace Vortex

@@ -1,4 +1,6 @@
-#include "Texture.hpp"
+module Runtime.World;
+
+namespace Vortex {
 
 Texture::Texture(Dimension dimension, const std::string& name) :
     Resource(name),
@@ -20,42 +22,42 @@ void Texture::setDimension(Texture::Dimension dimension)
 	this->dimension = dimension;
 }
 
-const std::vector<uint8_t>& Texture::getData() const
+const std::vector<uint8>& Texture::getData() const
 {
 	return data;
 }
 
-void Texture::setData(std::vector<uint8_t> new_data)
+void Texture::setData(std::vector<uint8> new_data)
 {
 	data = std::move(new_data);
 }
 
-uint32_t Texture::getFormat() const
+uint32 Texture::getFormat() const
 {
 	return format;
 }
 
-void Texture::setFormat(uint32_t new_format)
+void Texture::setFormat(uint32 new_format)
 {
 	format = new_format;
 }
 
-uint32_t Texture::getWidth() const
+uint32 Texture::getWidth() const
 {
 	return width;
 }
 
-void Texture::setWidth(uint32_t new_width)
+void Texture::setWidth(uint32 new_width)
 {
 	width = new_width;
 }
 
-uint32_t Texture::getHeight() const
+uint32 Texture::getHeight() const
 {
 	return height;
 }
 
-void Texture::setHeight(uint32_t new_height)
+void Texture::setHeight(uint32 new_height)
 {
 	height = new_height;
 }
@@ -64,3 +66,5 @@ bool Texture::valid() const
 {
 	return !data.empty() && width > 0 && height > 0 && format > 0;
 }
+
+}        // namespace Vortex

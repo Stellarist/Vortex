@@ -1,6 +1,6 @@
-#include "Behaviour.hpp"
+module Runtime.World;
 
-#include "Runtime/World/Base/Node.hpp"
+namespace Vortex {
 
 Behaviour::Behaviour(std::string name) :
     name(std::move(name))
@@ -67,3 +67,5 @@ Scene* Behaviour::getScene() const
 
 	return nullptr;
 }
+
+}        // namespace Vortex

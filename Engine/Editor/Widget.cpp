@@ -1,23 +1,16 @@
-#include "Widget.hpp"
+module;
 
-#include <numeric>
+#include <SDL3/SDL.h>
 
 #include <imgui.h>
 #include <imgui_impl_sdl3.h>
 #include <imgui_impl_vulkan.h>
 
-#include "Runtime/Render/Backend/VulkanContext.hpp"
-#include "Runtime/Render/Backend/VulkanQueue.hpp"
-#include "Runtime/Render/Backend/VulkanTypes.hpp"
-#include "Runtime/Render/Backend/VulkanResources.hpp"
-#include "Runtime/Core/Clock.hpp"
-#include "Runtime/World/Base/Node.hpp"
-#include "Runtime/World/Components/Camera.hpp"
-#include "Runtime/World/Components/Light.hpp"
-#include "Runtime/World/Components/Mesh.hpp"
-#include "Runtime/World/Resources/Material.hpp"
-#include "Runtime/World/Resources/Texture.hpp"
-#include "Runtime/World/Resources/SubMesh.hpp"
+module Editor.Widget;
+
+import vulkan;
+
+namespace Vortex {
 
 Widget::Widget(Window& window, Renderer& renderer) :
     window(&window), renderer(&renderer)
@@ -38,7 +31,7 @@ Widget::Widget(Window& window, Renderer& renderer) :
 	        100},
 	};
 
-	uint32_t max_sets = std::reduce(pool_size.begin(), pool_size.end(), 0u, [](uint32_t sum, const vk::DescriptorPoolSize& size) {
+	uint32 max_sets = std::reduce(pool_size.begin(), pool_size.end(), 0u, [](uint32 sum, const vk::DescriptorPoolSize& size) {
 		return sum + size.descriptorCount;
 	});
 
@@ -69,8 +62,10 @@ Widget::Widget(Window& window, Renderer& renderer) :
 	    .DescriptorPool = descriptor_pool,
 	    .MinImageCount = 3,
 	    .ImageCount = 3,
+		.PipelineInfoMain = {
+			.PipelineRenderingCreateInfo = rendering_info,
+		},
 	    .UseDynamicRendering = true,
-	    .PipelineRenderingCreateInfo = rendering_info,
 	};
 
 	if (!ImGui_ImplVulkan_Init(&init_info))
@@ -177,13 +172,13 @@ void Widget::drawSceneNodes(const Node* root)
 	auto  node_title = std::format("[{}] {}", node->getType().name(), node->getName());
 
 	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth;
-	if (ImGui::TreeNodeEx((void*) (intptr_t) node->getUid(), flags, "%s", node_title.c_str())) {
+	if (ImGui::TreeNodeEx((void*) (intptr) node->getUid(), flags, "%s", node_title.c_str())) {
 		ImGui::Indent();
 
 		if (node != node->getScene()->getRoot()) {
 			auto& transform = node->getTransform();
 			auto  translation = transform.getTranslation();
-			auto  rotation = glm::degrees(glm::eulerAngles(transform.getRotation()));
+			auto  rotation = Math::degrees(Math::eulerAngles(transform.getRotation()));
 			auto  scale = transform.getScaling();
 
 			ImGui::DragFloat3("Position", &translation.x, 0.01f);
@@ -199,14 +194,14 @@ void Widget::drawSceneNodes(const Node* root)
 				return angle;
 			};
 
-			rotation = glm::vec3(normalize(rotation.x), normalize(rotation.y), normalize(rotation.z));
+			rotation = Vec3(normalize(rotation.x), normalize(rotation.y), normalize(rotation.z));
 			if (rotation.x > 89.9f && rotation.x < 90.1f)
 				rotation.x = 90.1f;
 			else if (rotation.x < -89.9f && rotation.x > -90.1f)
 				rotation.x = -90.1f;
 
 			transform.setTranslation(translation);
-			transform.setRotation(glm::quat(glm::radians(rotation)));
+			transform.setRotation(Math::fromEuler(Math::radians(rotation)));
 			transform.setScaling(scale);
 
 			node->getTransform().invalidateWorldMatrix();
@@ -279,16 +274,16 @@ void Widget::drawSceneNodes(const Node* root)
 
 				if (auto* spot_light = dynamic_cast<SpotLight*>(light)) {
 					auto range = spot_light->getRange();
-					auto inner_cone = glm::degrees(spot_light->getInnerConeAngle());
-					auto outer_cone = glm::degrees(spot_light->getOuterConeAngle());
+					auto inner_cone = Math::degrees(spot_light->getInnerConeAngle());
+					auto outer_cone = Math::degrees(spot_light->getOuterConeAngle());
 
 					ImGui::DragFloat("Range", &range, 10.0f, 0.0f);
 					ImGui::DragFloat("Inner Cone Angle", &inner_cone, 0.1f, 0.0f, 90.0f);
 					ImGui::DragFloat("Outer Cone Angle", &outer_cone, 0.1f, 0.0f, 90.0f);
 
 					spot_light->setRange(range);
-					spot_light->setInnerConeAngle(glm::radians(inner_cone));
-					spot_light->setOuterConeAngle(glm::radians(outer_cone));
+					spot_light->setInnerConeAngle(Math::radians(inner_cone));
+					spot_light->setOuterConeAngle(Math::radians(outer_cone));
 				}
 			}
 		}
@@ -407,3 +402,4 @@ void Widget::drawSceneResources(const Scene* scene)
 		ImGui::TreePop();
 	}
 }
+} // namespace Vortex

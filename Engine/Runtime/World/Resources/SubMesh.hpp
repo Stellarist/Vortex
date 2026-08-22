@@ -1,22 +1,23 @@
-#pragma once
+export module Runtime.World:SubMesh;
 
-#include <string>
-#include <vector>
+import Core;
+import :Resource;
+import :Material;
+import :AABB;
 
-#include "Material.hpp"
-#include "Runtime/World/Geometry/AABB.hpp"
+export namespace Vortex {
 
 struct Vertex {
-	glm::vec3 pos{0.0f};
-	glm::vec3 normal{0.0f, 0.0f, 1.0f};
-	glm::vec2 uv{0.0f};
-	glm::vec4 color{1.0f};
+	Vec3 pos{0.0f};
+	Vec3 normal{0.0f, 0.0f, 1.0f};
+	Vec2 uv{0.0f};
+	Vec4 color{1.0f};
 };
 
 class SubMesh : public Resource {
 private:
-	std::vector<Vertex>   vertex_data;
-	std::vector<uint32_t> index_data;
+	std::vector<Vertex> vertex_data;
+	std::vector<uint32> index_data;
 
 	std::shared_ptr<Material> material{};
 
@@ -38,11 +39,11 @@ public:
 	auto getVertices() const -> const std::vector<Vertex>&;
 	void setVertices(std::vector<Vertex> vertex_data);
 
-	auto getIndices() const -> const std::vector<uint32_t>&;
-	void setIndices(std::vector<uint32_t> index_data);
+	auto getIndices() const -> const std::vector<uint32>&;
+	void setIndices(std::vector<uint32> index_data);
 
-	uint32_t getVerticesCount() const;
-	uint32_t getIndicesCount() const;
+	uint32 getVerticesCount() const;
+	uint32 getIndicesCount() const;
 
 	auto getMaterial() const -> std::shared_ptr<Material>;
 	void setMaterial(std::shared_ptr<Material> material);
@@ -56,3 +57,5 @@ public:
 	auto getAABB() const -> const AABB&;
 	void invalidateAABB() const;
 };
+
+}        // namespace Vortex

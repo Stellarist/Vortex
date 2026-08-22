@@ -1,12 +1,18 @@
-cmake_minimum_required(VERSION 4.0)
+cmake_minimum_required(VERSION 4.2)
 
-project(Vortex)
+project(Vortex LANGUAGES CXX)
 
-file(GLOB_RECURSE SRC_LIST Engine/*.cpp)
-file(GLOB_RECURSE INC_LIST Engine/*.hpp)
+file(GLOB_RECURSE SOURCE_LIST CONFIGURE_DEPENDS Engine/*.cpp)
+file(GLOB_RECURSE HEADER_LIST CONFIGURE_DEPENDS Engine/*.hpp)
+file(GLOB_RECURSE MODULE_LIST CONFIGURE_DEPENDS Engine/*.cppm)
 
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/Engine PREFIX "Source Files" FILES ${SRC_LIST})
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/Engine PREFIX "Header Files" FILES ${INC_LIST})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/Engine PREFIX "Source Files" FILES ${SOURCE_LIST})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/Engine PREFIX "Header Files" FILES ${HEADER_LIST})
+
+set_source_files_properties(${HEADER_LIST} PROPERTIES
+	LANGUAGE CXX
+	HEADER_FILE_ONLY OFF
+)
 
 find_package(Vulkan REQUIRED)
 find_package(SDL3 REQUIRED)
@@ -18,20 +24,29 @@ find_package(vk-bootstrap REQUIRED)
 find_package(VulkanMemoryAllocator REQUIRED)
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
-add_executable(Vortex
-	${SRC_LIST}
-	${INC_LIST}
+get_target_property(GLM_MODULE_ROOT glm::glm-header-only INTERFACE_INCLUDE_DIRECTORIES)
+get_target_property(VULKAN_MODULE_ROOT Vulkan::Headers INTERFACE_INCLUDE_DIRECTORIES)
+
+add_executable(Vortex ${SOURCE_LIST})
+
+target_sources(Vortex PRIVATE
+	FILE_SET vortex_modules TYPE CXX_MODULES
+	FILES ${HEADER_LIST} ${MODULE_LIST}
 )
 
-target_include_directories(Vortex
-	PRIVATE Engine
+target_sources(Vortex PRIVATE
+	FILE_SET dependency_modules TYPE CXX_MODULES
+	BASE_DIRS ${GLM_MODULE_ROOT} ${VULKAN_MODULE_ROOT}
+	FILES  ${GLM_MODULE_ROOT}/glm/glm.cppm ${VULKAN_MODULE_ROOT}/vulkan/vulkan.cppm
 )
 
-target_compile_definitions(Vortex
-    PRIVATE GLM_ENABLE_EXPERIMENTAL
+target_include_directories(Vortex PRIVATE Engine)
+target_compile_definitions(Vortex PRIVATE 
+	GLM_ENABLE_EXPERIMENTAL
+	VULKAN_HPP_CXX_MODULE_EXPERIMENTAL_WARNING
 )
 
-target_link_libraries(Vortex
+target_link_libraries(Vortex PRIVATE
 	Vulkan::Vulkan
 	SDL3::SDL3
 	glm::glm
@@ -54,7 +69,4 @@ add_custom_target(copy_resources ALL
 	COMMENT "Copying resources..."
 )
 
-add_dependencies(Vortex
-	build_shaders
-	copy_resources
-)
+add_dependencies(Vortex build_shaders copy_resources)

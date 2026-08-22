@@ -1,13 +1,16 @@
-#pragma once
+module;
 
-#include <functional>
+#include <SDL3/SDL.h>
 
-#include <vulkan/vulkan.hpp>
+export module Editor.Widget;
 
-#include "Window.hpp"
-#include "Runtime/World/World.hpp"
-#include "Runtime/Render/RHI/RHICommand.hpp"
-#include "Runtime/Render/Renderer.hpp"
+import vulkan;
+
+export import Editor.Window;
+export import Runtime.World;
+export import Runtime.Graphics;
+
+export namespace Vortex {
 
 class Widget {
 private:
@@ -34,3 +37,5 @@ public:
 	void drawSceneComponents(const Scene* scene);
 	void drawSceneResources(const Scene* scene);
 };
+
+}        // namespace Vortex

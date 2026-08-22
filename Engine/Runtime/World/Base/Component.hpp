@@ -1,9 +1,9 @@
-#pragma once
+export module Runtime.World:Component;
 
-#include <string>
-#include <typeindex>
+import Core;
+import :Entity;
 
-#include "Entity.hpp"
+export namespace Vortex {
 
 class Node;
 class World;
@@ -32,3 +32,5 @@ public:
 	World* getWorld() const;
 	Scene* getScene() const;
 };
+
+}        // namespace Vortex

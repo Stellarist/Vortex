@@ -1,52 +1,52 @@
-#include "AABB.hpp"
+module Runtime.World;
 
-#include <algorithm>
+namespace Vortex {
 
 AABB::AABB()
 {
 	reset();
 }
 
-AABB::AABB(const glm::vec3& min, const glm::vec3& max) :
+AABB::AABB(const Vec3& min, const Vec3& max) :
     min_bound(min), max_bound(max)
 {}
 
-glm::vec3 AABB::min() const
+Vec3 AABB::min() const
 {
 	return min_bound;
 }
 
-glm::vec3 AABB::max() const
+Vec3 AABB::max() const
 {
 	return max_bound;
 }
 
-glm::vec3 AABB::center() const
+Vec3 AABB::center() const
 {
 	return (min_bound + max_bound) * 0.5f;
 }
 
-glm::vec3 AABB::scale() const
+Vec3 AABB::scale() const
 {
 	return max_bound - min_bound;
 }
 
 float AABB::area() const
 {
-	glm::vec3 extent = scale();
+	Vec3 extent = scale();
 	return 2.0f * (extent.x * extent.y + extent.y * extent.z + extent.z * extent.x);
 }
 
 float AABB::volume() const
 {
-	glm::vec3 extent = scale();
+	Vec3 extent = scale();
 	return extent.x * extent.y * extent.z;
 }
 
-void AABB::expand(const glm::vec3& point)
+void AABB::expand(const Vec3& point)
 {
-	min_bound = glm::min(min_bound, point);
-	max_bound = glm::max(max_bound, point);
+	min_bound = Math::min(min_bound, point);
+	max_bound = Math::max(max_bound, point);
 }
 
 void AABB::expand(const AABB& other)
@@ -55,7 +55,7 @@ void AABB::expand(const AABB& other)
 	expand(other.max());
 }
 
-void AABB::expand(std::span<const glm::vec3> points)
+void AABB::expand(std::span<const Vec3> points)
 {
 	for (const auto& point : points)
 		expand(point);
@@ -66,9 +66,7 @@ bool AABB::intersects(const AABB& other) const
 	if (!valid() || !other.valid())
 		return false;
 
-	return (min_bound.x <= other.max().x && max_bound.x >= other.min().x)
-	    && (min_bound.y <= other.max().y && max_bound.y >= other.min().y)
-	    && (min_bound.z <= other.max().z && max_bound.z >= other.min().z);
+	return (min_bound.x <= other.max().x && max_bound.x >= other.min().x) && (min_bound.y <= other.max().y && max_bound.y >= other.min().y) && (min_bound.z <= other.max().z && max_bound.z >= other.min().z);
 }
 
 bool AABB::intersects(const Ray& ray, float& tmin, float& tmax) const
@@ -91,11 +89,9 @@ bool AABB::intersects(const Ray& ray, float& tmin, float& tmax) const
 	return tmax >= tmin && tmax >= 0.0f;
 }
 
-bool AABB::contains(const glm::vec3& point) const
+bool AABB::contains(const Vec3& point) const
 {
-	return (point.x >= min_bound.x && point.x <= max_bound.x)
-	    && (point.y >= min_bound.y && point.y <= max_bound.y)
-	    && (point.z >= min_bound.z && point.z <= max_bound.z);
+	return (point.x >= min_bound.x && point.x <= max_bound.x) && (point.y >= min_bound.y && point.y <= max_bound.y) && (point.z >= min_bound.z && point.z <= max_bound.z);
 }
 
 bool AABB::contains(const AABB& other) const
@@ -105,24 +101,24 @@ bool AABB::contains(const AABB& other) const
 
 void AABB::reset()
 {
-	min_bound = glm::vec3(std::numeric_limits<float>::max());
-	max_bound = glm::vec3(std::numeric_limits<float>::lowest());
+	min_bound = Vec3(std::numeric_limits<float>::max());
+	max_bound = Vec3(std::numeric_limits<float>::lowest());
 }
 
-void AABB::transform(const glm::mat4& matrix)
+void AABB::transform(const Mat4& matrix)
 {
 	if (!valid())
 		return;
 
 	AABB result;
-	result.expand(matrix * glm::vec4(min_bound.x, min_bound.y, min_bound.z, 1.0f));
-	result.expand(matrix * glm::vec4(max_bound.x, min_bound.y, min_bound.z, 1.0f));
-	result.expand(matrix * glm::vec4(min_bound.x, max_bound.y, min_bound.z, 1.0f));
-	result.expand(matrix * glm::vec4(max_bound.x, max_bound.y, min_bound.z, 1.0f));
-	result.expand(matrix * glm::vec4(min_bound.x, min_bound.y, max_bound.z, 1.0f));
-	result.expand(matrix * glm::vec4(max_bound.x, min_bound.y, max_bound.z, 1.0f));
-	result.expand(matrix * glm::vec4(min_bound.x, max_bound.y, max_bound.z, 1.0f));
-	result.expand(matrix * glm::vec4(max_bound.x, max_bound.y, max_bound.z, 1.0f));
+	result.expand(Vec3(matrix * Vec4(min_bound.x, min_bound.y, min_bound.z, 1.0f)));
+	result.expand(Vec3(matrix * Vec4(max_bound.x, min_bound.y, min_bound.z, 1.0f)));
+	result.expand(Vec3(matrix * Vec4(min_bound.x, max_bound.y, min_bound.z, 1.0f)));
+	result.expand(Vec3(matrix * Vec4(max_bound.x, max_bound.y, min_bound.z, 1.0f)));
+	result.expand(Vec3(matrix * Vec4(min_bound.x, min_bound.y, max_bound.z, 1.0f)));
+	result.expand(Vec3(matrix * Vec4(max_bound.x, min_bound.y, max_bound.z, 1.0f)));
+	result.expand(Vec3(matrix * Vec4(min_bound.x, max_bound.y, max_bound.z, 1.0f)));
+	result.expand(Vec3(matrix * Vec4(max_bound.x, max_bound.y, max_bound.z, 1.0f)));
 
 	*this = result;
 }
@@ -131,3 +127,5 @@ bool AABB::valid() const
 {
 	return (min_bound.x <= max_bound.x) && (min_bound.y <= max_bound.y) && (min_bound.z <= max_bound.z);
 }
+
+}        // namespace Vortex

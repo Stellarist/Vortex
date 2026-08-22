@@ -1,6 +1,10 @@
-#include "Camera.hpp"
+module;
 
-#include "Runtime/World/Base/Node.hpp"
+#include <cassert>
+
+module Runtime.World;
+
+namespace Vortex {
 
 Camera::Camera(const std::string& name) :
     Component(name)
@@ -11,20 +15,20 @@ std::type_index Camera::getType()
 	return typeid(Camera);
 }
 
-glm::mat4 Camera::getView() const
+Mat4 Camera::getView() const
 {
 	assert(node && "Camera component must be attached to a node");
 
 	auto& transform = node->getTransform();
-	return glm::inverse(transform.getWorldMatrix());
+	return Math::inverse(transform.getWorldMatrix());
 }
 
-glm::mat4 Camera::getPreRotation() const
+Mat4 Camera::getPreRotation() const
 {
 	return pre_rotation;
 }
 
-void Camera::setPreRotation(const glm::mat4& pre_rotation)
+void Camera::setPreRotation(const Mat4& pre_rotation)
 {
 	this->pre_rotation = pre_rotation;
 }
@@ -86,27 +90,27 @@ void PerspectiveCamera::setFov(float fov)
 	this->fov = fov;
 }
 
-glm::vec3 PerspectiveCamera::getFront()
+Vec3 PerspectiveCamera::getFront()
 {
 	auto& transform = getNode()->getTransform();
-	return glm::normalize(transform.getWorldMatrix() * glm::vec4(0.0f, 0.0f, -1.0f, 0.0f));
+	return Math::normalize(Vec3(transform.getWorldMatrix() * Vec4(0.0f, 0.0f, -1.0f, 0.0f)));
 }
 
-glm::vec3 PerspectiveCamera::getUp()
+Vec3 PerspectiveCamera::getUp()
 {
 	auto& transform = getNode()->getTransform();
-	return glm::normalize(transform.getWorldMatrix() * glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
+	return Math::normalize(Vec3(transform.getWorldMatrix() * Vec4(0.0f, 1.0f, 0.0f, 0.0f)));
 }
 
-glm::vec3 PerspectiveCamera::getRight()
+Vec3 PerspectiveCamera::getRight()
 {
 	auto& transform = getNode()->getTransform();
-	return glm::normalize(transform.getWorldMatrix() * glm::vec4(1.0f, 0.0f, 0.0f, 0.0f));
+	return Math::normalize(Vec3(transform.getWorldMatrix() * Vec4(1.0f, 0.0f, 0.0f, 0.0f)));
 }
 
-glm::mat4 PerspectiveCamera::getProjection() const
+Mat4 PerspectiveCamera::getProjection() const
 {
-	auto proj = glm::perspectiveRH_ZO(fov, aspect_ratio, near_plane, far_plane);
+	auto proj = Math::perspective(fov, aspect_ratio, near_plane, far_plane);
 	proj[1][1] *= -1.0f;
 
 	return proj;
@@ -191,10 +195,12 @@ float OrthoCamera::getFarPlane() const
 	return far_plane;
 }
 
-glm::mat4 OrthoCamera::getProjection() const
+Mat4 OrthoCamera::getProjection() const
 {
-	auto ortho = glm::orthoRH_ZO(left, right, bottom, top, near_plane, far_plane);
+	auto ortho = Math::orthographic(left, right, bottom, top, near_plane, far_plane);
 	ortho[1][1] *= -1.0f;
 
 	return ortho;
 }
+
+}        // namespace Vortex

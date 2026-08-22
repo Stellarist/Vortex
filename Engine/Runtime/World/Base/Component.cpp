@@ -1,6 +1,6 @@
-#include "Component.hpp"
+module Runtime.World;
 
-#include "Runtime/World/Base/Node.hpp"
+namespace Vortex {
 
 Component::Component(std::string name) :
     name(std::move(name))
@@ -41,3 +41,5 @@ Scene* Component::getScene() const
 
 	return nullptr;
 }
+
+}        // namespace Vortex

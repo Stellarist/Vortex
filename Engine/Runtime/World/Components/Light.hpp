@@ -1,15 +1,14 @@
-#pragma once
+export module Runtime.World:Light;
 
-#include <string>
+import Core;
+import :Component;
 
-#include <glm/glm.hpp>
-
-#include "Runtime/World/Base/Component.hpp"
+export namespace Vortex {
 
 class Light : public Component {
 protected:
-	glm::vec3 color{1.0f, 1.0f, 1.0f};
-	float     intensity{1.0f};
+	Vec3  color{1.0f, 1.0f, 1.0f};
+	float intensity{1.0f};
 
 public:
 	Light(const std::string& name);
@@ -17,8 +16,8 @@ public:
 
 	std::type_index getType() override;
 
-	glm::vec3 getColor() const;
-	void      setColor(const glm::vec3& color);
+	Vec3 getColor() const;
+	void setColor(const Vec3& color);
 
 	float getIntensity() const;
 	void  setIntensity(float intensity);
@@ -26,7 +25,7 @@ public:
 
 class DirectionalLight : public Light {
 private:
-	glm::vec3 direction{0.0f, 0.0f, -1.0f};
+	Vec3 direction{0.0f, 0.0f, -1.0f};
 
 public:
 	DirectionalLight(const std::string& name);
@@ -34,8 +33,8 @@ public:
 
 	std::type_index getType() override;
 
-	glm::vec3 getDirection() const;
-	void      setDirection(const glm::vec3& direction);
+	Vec3 getDirection() const;
+	void setDirection(const Vec3& direction);
 };
 
 class PointLight : public Light {
@@ -54,10 +53,10 @@ public:
 
 class SpotLight : public Light {
 private:
-	glm::vec3 direction{0.0f, 0.0f, -1.0f};
-	float     range{10.0f};
-	float     inner_cone_angle{0.0f};
-	float     outer_cone_angle{0.0f};
+	Vec3  direction{0.0f, 0.0f, -1.0f};
+	float range{10.0f};
+	float inner_cone_angle{0.0f};
+	float outer_cone_angle{0.0f};
 
 public:
 	SpotLight(const std::string& name);
@@ -65,8 +64,8 @@ public:
 
 	std::type_index getType() override;
 
-	glm::vec3 getDirection() const;
-	void      setDirection(const glm::vec3& direction);
+	Vec3 getDirection() const;
+	void setDirection(const Vec3& direction);
 
 	float getRange() const;
 	void  setRange(float range);
@@ -77,3 +76,5 @@ public:
 	float getOuterConeAngle() const;
 	void  setOuterConeAngle(float angle);
 };
+
+}        // namespace Vortex

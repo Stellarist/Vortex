@@ -1,4 +1,6 @@
-#include "Mesh.hpp"
+module Runtime.World;
+
+namespace Vortex {
 
 Mesh::Mesh(const std::string& name) :
     Component(name)
@@ -18,3 +20,5 @@ void Mesh::addSubmesh(std::shared_ptr<SubMesh> submesh)
 {
 	submeshes.push_back(submesh);
 }
+
+}        // namespace Vortex

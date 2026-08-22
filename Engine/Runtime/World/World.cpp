@@ -1,4 +1,6 @@
-#include "World.hpp"
+module Runtime.World;
+
+namespace Vortex {
 
 World::World()
 {}
@@ -45,3 +47,5 @@ void World::setActiveCamera(Camera* camera)
 {
 	active_camera = camera;
 }
+
+}        // namespace Vortex

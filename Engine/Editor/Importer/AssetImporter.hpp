@@ -1,29 +1,24 @@
-#pragma once
-
-#include <span>
-#include <string_view>
+module;
 
 #include <tiny_gltf.h>
 
-#include "Runtime/World/Base/Scene.hpp"
-#include "Runtime/World/Base/Node.hpp"
-#include "Runtime/World/Components/Mesh.hpp"
-#include "Runtime/World/Components/Camera.hpp"
-#include "Runtime/World/Components/Light.hpp"
-#include "Runtime/World/Behaviours/CameraController.hpp"
-#include "Runtime/World/Resources/Material.hpp"
+export module Editor.Importer;
+
+export import Runtime.World;
+
+export namespace Vortex {
 
 class AssetImporter {
 private:
 	template <typename S, typename D>
-	static std::vector<D> convertData(std::span<const uint8_t> data);
+	static std::vector<D> convertData(std::span<const uint8> data);
 
-	static std::vector<uint8_t>     getAttributeData(const tinygltf::Model& tfmodel, uint32_t accessor_index);
-	static std::span<const uint8_t> getAttributeDataView(const tinygltf::Model& tfmodel, uint32_t accessor_index);
+	static std::vector<uint8>     getAttributeData(const tinygltf::Model& tfmodel, uint32 accessor_index);
+	static std::span<const uint8> getAttributeDataView(const tinygltf::Model& tfmodel, uint32 accessor_index);
 
-	static uint32_t getAttributeCount(const tinygltf::Model* tfmodel, uint32_t accessor_id);
-	static uint32_t getAttributeSize(const tinygltf::Model* tfmodel, uint32_t accessor_id);
-	static uint32_t getAttributeStride(const tinygltf::Model* tfmodel, uint32_t accessor_id);
+	static uint32 getAttributeCount(const tinygltf::Model* tfmodel, uint32 accessor_id);
+	static uint32 getAttributeSize(const tinygltf::Model* tfmodel, uint32 accessor_id);
+	static uint32 getAttributeStride(const tinygltf::Model* tfmodel, uint32 accessor_id);
 
 	static std::weak_ptr<Material> default_pbr_material;
 	static std::weak_ptr<Texture>  default_base_color_texture;
@@ -42,7 +37,7 @@ public:
 	static std::unique_ptr<Mesh>     parseMesh(const tinygltf::Mesh& tfmesh);
 	static std::unique_ptr<Camera>   parseCamera(const tinygltf::Camera& tfcamera);
 	static std::unique_ptr<Light>    parseLight(const tinygltf::Light& tflight);
-	static std::shared_ptr<SubMesh>  parseSubmesh(const tinygltf::Mesh& tfmesh, const tinygltf::Model& tfmodel, uint32_t indexm, const std::vector<std::shared_ptr<Material>>& materials);
+	static std::shared_ptr<SubMesh>  parseSubmesh(const tinygltf::Mesh& tfmesh, const tinygltf::Model& tfmodel, uint32 indexm, const std::vector<std::shared_ptr<Material>>& materials);
 	static std::shared_ptr<Texture>  parseTexture(const tinygltf::Texture& tftexture, const tinygltf::Model& tfmodel);
 	static std::shared_ptr<Material> parseMaterial(const tinygltf::Material& tfmaterial, const tinygltf::Model& tfmodel, const std::vector<std::shared_ptr<Texture>>& textures);
 
@@ -54,7 +49,7 @@ public:
 };
 
 template <typename S, typename D>
-std::vector<D> AssetImporter::convertData(std::span<const uint8_t> data)
+std::vector<D> AssetImporter::convertData(std::span<const uint8> data)
 {
 	static_assert(sizeof(S) <= sizeof(D),
 	    "Source type size must be less than or equal to destination type size");
@@ -68,3 +63,5 @@ std::vector<D> AssetImporter::convertData(std::span<const uint8_t> data)
 
 	return result;
 }
+
+}        // namespace Vortex

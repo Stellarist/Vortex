@@ -1,12 +1,16 @@
-#include "Entity.hpp"
+module Runtime.World;
 
-std::atomic<uint64_t> Entity::id_counter = 0;
+namespace Vortex {
+
+std::atomic<uint64> Entity::id_counter = 0;
 
 Entity::Entity() :
     uid(id_counter++)
 {}
 
-uint64_t Entity::getUid() const
+uint64 Entity::getUid() const
 {
 	return uid;
 }
+
+}        // namespace Vortex

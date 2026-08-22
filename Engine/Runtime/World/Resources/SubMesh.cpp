@@ -1,4 +1,6 @@
-#include "SubMesh.hpp"
+module Runtime.World;
+
+namespace Vortex {
 
 SubMesh::SubMesh(const std::string& name) :
     Resource(name)
@@ -20,22 +22,22 @@ void SubMesh::setVertices(std::vector<Vertex> vertex_data)
 	invalidateAABB();
 }
 
-auto SubMesh::getIndices() const -> const std::vector<uint32_t>&
+auto SubMesh::getIndices() const -> const std::vector<uint32>&
 {
 	return index_data;
 }
 
-void SubMesh::setIndices(std::vector<uint32_t> index_data)
+void SubMesh::setIndices(std::vector<uint32> index_data)
 {
 	this->index_data = std::move(index_data);
 }
 
-uint32_t SubMesh::getVerticesCount() const
+uint32 SubMesh::getVerticesCount() const
 {
 	return vertex_data.size();
 }
 
-uint32_t SubMesh::getIndicesCount() const
+uint32 SubMesh::getIndicesCount() const
 {
 	return index_data.size();
 }
@@ -92,3 +94,5 @@ void SubMesh::updateAABB() const
 
 	aabb_dirty = false;
 }
+
+}        // namespace Vortex

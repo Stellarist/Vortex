@@ -1,4 +1,6 @@
-#include "Light.hpp"
+module Runtime.World;
+
+namespace Vortex {
 
 Light::Light(const std::string& name) :
     Component(name)
@@ -9,12 +11,12 @@ std::type_index Light::getType()
 	return typeid(Light);
 }
 
-glm::vec3 Light::getColor() const
+Vec3 Light::getColor() const
 {
 	return color;
 }
 
-void Light::setColor(const glm::vec3& color)
+void Light::setColor(const Vec3& color)
 {
 	this->color = color;
 }
@@ -38,12 +40,12 @@ std::type_index DirectionalLight::getType()
 	return typeid(DirectionalLight);
 }
 
-glm::vec3 DirectionalLight::getDirection() const
+Vec3 DirectionalLight::getDirection() const
 {
 	return direction;
 }
 
-void DirectionalLight::setDirection(const glm::vec3& direction)
+void DirectionalLight::setDirection(const Vec3& direction)
 {
 	this->direction = direction;
 }
@@ -76,12 +78,12 @@ std::type_index SpotLight::getType()
 	return typeid(SpotLight);
 }
 
-glm::vec3 SpotLight::getDirection() const
+Vec3 SpotLight::getDirection() const
 {
 	return direction;
 }
 
-void SpotLight::setDirection(const glm::vec3& direction)
+void SpotLight::setDirection(const Vec3& direction)
 {
 	this->direction = direction;
 }
@@ -115,3 +117,5 @@ void SpotLight::setOuterConeAngle(float angle)
 {
 	this->outer_cone_angle = angle;
 }
+
+}        // namespace Vortex

@@ -1,17 +1,21 @@
-#pragma once
+export module Runtime.World:Ray;
 
-#include <glm/glm.hpp>
+import Core;
+
+export namespace Vortex {
 
 class Ray {
 private:
-	glm::vec3 origin_vec;
-	glm::vec3 direction_vec;
-	glm::vec3 inv_direction_vec;
+	Vec3 origin_vec;
+	Vec3 direction_vec;
+	Vec3 inv_direction_vec;
 
 public:
-	Ray(const glm::vec3& origin, const glm::vec3& direction);
+	Ray(const Vec3& origin, const Vec3& direction);
 
-	const glm::vec3& origin() const;
-	const glm::vec3& direction() const;
-	const glm::vec3& invDirection() const;
+	const Vec3& origin() const;
+	const Vec3& direction() const;
+	const Vec3& invDirection() const;
 };
+
+}        // namespace Vortex
