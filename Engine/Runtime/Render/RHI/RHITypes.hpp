@@ -11,49 +11,49 @@ concept EnumFlags =
     std::is_enum_v<E> && EnableEnumFlags<E>::value;
 
 template <EnumFlags E>
-constexpr E operator|(E lhs, E rhs)
+constexpr E operator|(E lhs, E rhs) noexcept
 {
 	using U = std::underlying_type_t<E>;
 	return static_cast<E>(static_cast<U>(lhs) | static_cast<U>(rhs));
 }
 
 template <EnumFlags E>
-constexpr E operator&(E lhs, E rhs)
+constexpr E operator&(E lhs, E rhs) noexcept
 {
 	using U = std::underlying_type_t<E>;
 	return static_cast<E>(static_cast<U>(lhs) & static_cast<U>(rhs));
 }
 
 template <EnumFlags E>
-constexpr E operator^(E lhs, E rhs)
+constexpr E operator^(E lhs, E rhs) noexcept
 {
 	using U = std::underlying_type_t<E>;
 	return static_cast<E>(static_cast<U>(lhs) ^ static_cast<U>(rhs));
 }
 
 template <EnumFlags E>
-constexpr E operator~(E value)
+constexpr E operator~(E value) noexcept
 {
 	using U = std::underlying_type_t<E>;
 	return static_cast<E>(~static_cast<U>(value));
 }
 
 template <EnumFlags E>
-constexpr E& operator|=(E& lhs, E rhs)
+constexpr E& operator|=(E& lhs, E rhs) noexcept
 {
 	lhs = lhs | rhs;
 	return lhs;
 }
 
 template <EnumFlags E>
-constexpr E& operator&=(E& lhs, E rhs)
+constexpr E& operator&=(E& lhs, E rhs) noexcept
 {
 	lhs = lhs & rhs;
 	return lhs;
 }
 
 template <EnumFlags E>
-constexpr E& operator^=(E& lhs, E rhs)
+constexpr E& operator^=(E& lhs, E rhs) noexcept
 {
 	lhs = lhs ^ rhs;
 	return lhs;
@@ -125,19 +125,49 @@ enum RHIResourceState : uint16_t {
 	DepthRead = 1 << 7,
 	ShaderResource = 1 << 8,
 	UnorderedAccess = 1 << 9,
-	CopySrc = 1 << 10,
-	CopyDst = 1 << 11,
+	CopySource = 1 << 10,
+	CopyDest = 1 << 11,
 	Present = 1 << 12,
 };
 
-enum class RHIDescriptorType : uint8_t {
+enum class RHIBindingType : uint8_t {
 	None,
 	TextureSRV,
 	TextureUAV,
+	TypedBufferSRV,
+	TypedBufferUAV,
+	StructuredBufferSRV,
+	StructuredBufferUAV,
+	RawBufferSRV,
+	RawBufferUAV,
+	ConstantBuffer,
+	PushConstants,
 	Sampler,
-	UniformBuffer,
-	StorageBuffer,
-	PushConstant,
+};
+
+enum class RHIBufferViewType : uint8_t {
+	Constant,
+	Typed,
+	Structured,
+	Raw,
+};
+
+enum class RHITextureViewType : uint8_t {
+	ShaderResource,
+	UnorderedAccess,
+	RenderTarget,
+	DepthStencil,
+};
+
+enum class RHITextureViewDimension : uint8_t {
+	Automatic,
+	Texture1D,
+	Texture1DArray,
+	Texture2D,
+	Texture2DArray,
+	Texture3D,
+	TextureCube,
+	TextureCubeArray,
 };
 
 enum class RHIColorMask : uint8_t {
@@ -229,15 +259,16 @@ enum class RHITextureDimension : uint8_t {
 	TextureCube,
 };
 
-enum class RHIBufferUsage : uint8_t {
+enum class RHIBufferUsage : uint16_t {
 	None = 0,
 	VertexBuffer = 1 << 0,
 	IndexBuffer = 1 << 1,
-	UniformBuffer = 1 << 2,
+	ConstantBuffer = 1 << 2,
 	StorageBuffer = 1 << 3,
-	IndirectBuffer = 1 << 4,
-	CopySrc = 1 << 5,
-	CopyDst = 1 << 6,
+	IndirectArgument = 1 << 4,
+	CopySource = 1 << 5,
+	CopyDest = 1 << 6,
+	TypedBuffer = 1 << 7,
 };
 
 enum class RHITextureUsage : uint8_t {
@@ -246,8 +277,8 @@ enum class RHITextureUsage : uint8_t {
 	RenderTarget = 1 << 1,
 	DepthStencil = 1 << 2,
 	Storage = 1 << 3,
-	CopySrc = 1 << 4,
-	CopyDst = 1 << 5,
+	CopySource = 1 << 4,
+	CopyDest = 1 << 5,
 };
 
 enum class RHISamplerAddress : uint8_t {
@@ -260,7 +291,7 @@ enum class RHISamplerAddress : uint8_t {
 enum class RHIShaderType : uint8_t {
 	None = 0,
 	Vertex = 1 << 0,
-	Fragment = 1 << 1,
+	Pixel = 1 << 1,
 	Geometry = 1 << 2,
 	Compute = 1 << 3,
 	AllGraphics = (1 << 0) | (1 << 1) | (1 << 2),
@@ -281,7 +312,7 @@ enum class RHIAccessMode : uint8_t {
 enum class RHICommandQueue : uint8_t {
 	Graphics,
 	Compute,
-	Transfer,
+	Copy,
 	Present,
 };
 
@@ -309,38 +340,38 @@ struct RHIColor {
 	float a{1.0f};
 
 	RHIColor() = default;
-	RHIColor(float c) : r(c), g(c), b(c), a(1.0f) {}
-	RHIColor(float r, float g, float b, float a = 1.0f) : r(r), g(g), b(b), a(a) {}
+	RHIColor(float c) noexcept : r(c), g(c), b(c), a(1.0f) {}
+	RHIColor(float r, float g, float b, float a = 1.0f) noexcept : r(r), g(g), b(b), a(a) {}
 
 	bool operator==(const RHIColor&) const = default;
 	bool operator!=(const RHIColor&) const = default;
 
-	RHIColor& set(float c)
+	RHIColor& set(float c) noexcept
 	{
 		r = g = b = c;
 		a = 1.0f;
 		return *this;
 	}
 
-	RHIColor& setR(float new_r)
+	RHIColor& setR(float new_r) noexcept
 	{
 		r = new_r;
 		return *this;
 	}
 
-	RHIColor& setG(float new_g)
+	RHIColor& setG(float new_g) noexcept
 	{
 		g = new_g;
 		return *this;
 	}
 
-	RHIColor& setB(float new_b)
+	RHIColor& setB(float new_b) noexcept
 	{
 		b = new_b;
 		return *this;
 	}
 
-	RHIColor& setA(float new_a)
+	RHIColor& setA(float new_a) noexcept
 	{
 		a = new_a;
 		return *this;
@@ -352,18 +383,18 @@ struct RHIExtent {
 	uint32_t height{};
 
 	RHIExtent() = default;
-	RHIExtent(uint32_t width, uint32_t height) : width(width), height(height) {}
+	RHIExtent(uint32_t width, uint32_t height) noexcept : width(width), height(height) {}
 
 	bool operator==(const RHIExtent&) const = default;
 	bool operator!=(const RHIExtent&) const = default;
 
-	RHIExtent& setWidth(uint32_t new_width)
+	RHIExtent& setWidth(uint32_t new_width) noexcept
 	{
 		width = new_width;
 		return *this;
 	}
 
-	RHIExtent& setHeight(uint32_t new_height)
+	RHIExtent& setHeight(uint32_t new_height) noexcept
 	{
 		height = new_height;
 		return *this;
@@ -376,36 +407,36 @@ struct RHIViewport {
 	float z_min{}, z_max{1.0f};
 
 	RHIViewport() = default;
-	RHIViewport(float width, float height) : x_min(0.0f), x_max(width), y_min(0.0f), y_max(height), z_min(0.0f), z_max(1.0f) {}
-	RHIViewport(float x_min, float x_max, float y_min, float y_max, float z_min = 0.0f, float z_max = 1.0f) :
+	RHIViewport(float width, float height) noexcept : x_min(0.0f), x_max(width), y_min(0.0f), y_max(height), z_min(0.0f), z_max(1.0f) {}
+	RHIViewport(float x_min, float x_max, float y_min, float y_max, float z_min = 0.0f, float z_max = 1.0f) noexcept :
 	    x_min(x_min), x_max(x_max), y_min(y_min), y_max(y_max), z_min(z_min), z_max(z_max) {}
 
 	bool operator==(const RHIViewport&) const = default;
 	bool operator!=(const RHIViewport&) const = default;
 
-	RHIViewport& setX(float new_x_min, float new_x_max)
+	RHIViewport& setX(float new_x_min, float new_x_max) noexcept
 	{
 		x_min = new_x_min;
 		x_max = new_x_max;
 		return *this;
 	}
 
-	RHIViewport& setY(float new_y_min, float new_y_max)
+	RHIViewport& setY(float new_y_min, float new_y_max) noexcept
 	{
 		y_min = new_y_min;
 		y_max = new_y_max;
 		return *this;
 	}
 
-	RHIViewport& setZ(float new_z_min, float new_z_max)
+	RHIViewport& setZ(float new_z_min, float new_z_max) noexcept
 	{
 		z_min = new_z_min;
 		z_max = new_z_max;
 		return *this;
 	}
 
-	float width() const { return x_max - x_min; }
-	float height() const { return y_max - y_min; }
+	float width() const noexcept { return x_max - x_min; }
+	float height() const noexcept { return y_max - y_min; }
 };
 
 struct RHIClearValue {
@@ -414,18 +445,18 @@ struct RHIClearValue {
 	uint32_t stencil{};
 
 	RHIClearValue() = default;
-	RHIClearValue(RHIColor clear_color, float clear_depth = 1.0f, uint32_t clear_stencil = 0) : color(clear_color), depth(clear_depth), stencil(clear_stencil) {}
+	RHIClearValue(RHIColor clear_color, float clear_depth = 1.0f, uint32_t clear_stencil = 0) noexcept : color(clear_color), depth(clear_depth), stencil(clear_stencil) {}
 
 	bool operator==(const RHIClearValue&) const = default;
 	bool operator!=(const RHIClearValue&) const = default;
 
-	RHIClearValue& setColor(RHIColor new_color)
+	RHIClearValue& setColor(RHIColor new_color) noexcept
 	{
 		color = new_color;
 		return *this;
 	}
 
-	RHIClearValue& setDepthStencil(float new_depth, uint32_t new_stencil = 0)
+	RHIClearValue& setDepthStencil(float new_depth, uint32_t new_stencil = 0) noexcept
 	{
 		depth = new_depth;
 		stencil = new_stencil;
@@ -438,9 +469,9 @@ struct RHIRect {
 	int y_min{}, y_max{};
 
 	RHIRect() = default;
-	RHIRect(int width, int height) : x_min(0), x_max(width), y_min(0), y_max(height) {}
-	RHIRect(int x_min, int x_max, int y_min, int y_max) : x_min(x_min), x_max(x_max), y_min(y_min), y_max(y_max) {}
-	RHIRect(const RHIViewport& viewport) :
+	RHIRect(int width, int height) noexcept : x_min(0), x_max(width), y_min(0), y_max(height) {}
+	RHIRect(int x_min, int x_max, int y_min, int y_max) noexcept : x_min(x_min), x_max(x_max), y_min(y_min), y_max(y_max) {}
+	RHIRect(const RHIViewport& viewport) noexcept :
 	    x_min(static_cast<int>(std::floorf(viewport.x_min))),
 	    x_max(static_cast<int>(std::floorf(viewport.x_max))),
 	    y_min(static_cast<int>(std::floorf(viewport.y_min))),
@@ -449,22 +480,22 @@ struct RHIRect {
 	bool operator==(const RHIRect&) const = default;
 	bool operator!=(const RHIRect&) const = default;
 
-	RHIRect& setX(int new_x_min, int new_x_max)
+	RHIRect& setX(int new_x_min, int new_x_max) noexcept
 	{
 		x_min = new_x_min;
 		x_max = new_x_max;
 		return *this;
 	}
 
-	RHIRect& setY(int new_y_min, int new_y_max)
+	RHIRect& setY(int new_y_min, int new_y_max) noexcept
 	{
 		y_min = new_y_min;
 		y_max = new_y_max;
 		return *this;
 	}
 
-	int width() const { return x_max - x_min; }
-	int height() const { return y_max - y_min; }
+	int width() const noexcept { return x_max - x_min; }
+	int height() const noexcept { return y_max - y_min; }
 };
 
 struct RHITextureSlice {
@@ -474,7 +505,7 @@ struct RHITextureSlice {
 	uint32_t mip_level{};
 	uint32_t array_layer{};
 
-	RHITextureSlice& setOffset(int new_x, int new_y, int new_z = 0)
+	RHITextureSlice& setOffset(int new_x, int new_y, int new_z = 0) noexcept
 	{
 		x = new_x;
 		y = new_y;
@@ -482,7 +513,7 @@ struct RHITextureSlice {
 		return *this;
 	}
 
-	RHITextureSlice& setExtent(int new_width, int new_height, int new_depth = 1)
+	RHITextureSlice& setExtent(int new_width, int new_height, int new_depth = 1) noexcept
 	{
 		width = new_width;
 		height = new_height;
@@ -490,13 +521,13 @@ struct RHITextureSlice {
 		return *this;
 	}
 
-	RHITextureSlice& setMipLevel(uint32_t new_mip_level)
+	RHITextureSlice& setMipLevel(uint32_t new_mip_level) noexcept
 	{
 		mip_level = new_mip_level;
 		return *this;
 	}
 
-	RHITextureSlice& setArrayLayer(uint32_t new_array_layer)
+	RHITextureSlice& setArrayLayer(uint32_t new_array_layer) noexcept
 	{
 		array_layer = new_array_layer;
 		return *this;
@@ -505,29 +536,29 @@ struct RHITextureSlice {
 
 struct RHITextureSubresource {
 	uint32_t base_array_layer{};
-	uint32_t layer_count{1};
+	uint32_t layer_count{};
 	uint32_t base_mip_level{};
-	uint32_t level_count{1};
+	uint32_t level_count{};
 
-	RHITextureSubresource& setBaseArrayLayer(uint32_t new_base_array_layer)
+	RHITextureSubresource& setBaseArrayLayer(uint32_t new_base_array_layer) noexcept
 	{
 		base_array_layer = new_base_array_layer;
 		return *this;
 	}
 
-	RHITextureSubresource& setLayerCount(uint32_t new_layer_count)
+	RHITextureSubresource& setLayerCount(uint32_t new_layer_count) noexcept
 	{
 		layer_count = new_layer_count;
 		return *this;
 	}
 
-	RHITextureSubresource& setBaseMipLevel(uint32_t new_base_mip_level)
+	RHITextureSubresource& setBaseMipLevel(uint32_t new_base_mip_level) noexcept
 	{
 		base_mip_level = new_base_mip_level;
 		return *this;
 	}
 
-	RHITextureSubresource& setLevelCount(uint32_t new_level_count)
+	RHITextureSubresource& setLevelCount(uint32_t new_level_count) noexcept
 	{
 		level_count = new_level_count;
 		return *this;
@@ -541,31 +572,31 @@ struct RHIDrawArguments {
 	uint32_t start_index{};
 	uint32_t start_instance{};
 
-	RHIDrawArguments& setVertexCount(uint32_t new_vertex_count)
+	RHIDrawArguments& setVertexCount(uint32_t new_vertex_count) noexcept
 	{
 		vertex_count = new_vertex_count;
 		return *this;
 	}
 
-	RHIDrawArguments& setInstanceCount(uint32_t new_instance_count)
+	RHIDrawArguments& setInstanceCount(uint32_t new_instance_count) noexcept
 	{
 		instance_count = new_instance_count;
 		return *this;
 	}
 
-	RHIDrawArguments& setStartVertex(uint32_t new_start_vertex)
+	RHIDrawArguments& setStartVertex(uint32_t new_start_vertex) noexcept
 	{
 		start_vertex = new_start_vertex;
 		return *this;
 	}
 
-	RHIDrawArguments& setStartIndex(uint32_t new_start_index)
+	RHIDrawArguments& setStartIndex(uint32_t new_start_index) noexcept
 	{
 		start_index = new_start_index;
 		return *this;
 	}
 
-	RHIDrawArguments& setStartInstance(uint32_t new_start_instance)
+	RHIDrawArguments& setStartInstance(uint32_t new_start_instance) noexcept
 	{
 		start_instance = new_start_instance;
 		return *this;

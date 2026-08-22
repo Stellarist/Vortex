@@ -3,8 +3,39 @@
 #include "VulkanTypes.hpp"
 #include "VulkanResources.hpp"
 #include "VulkanQueue.hpp"
-#include "VulkanDescriptor.hpp"
+#include "VulkanBinding.hpp"
 #include "VulkanPipeline.hpp"
+
+uint32_t getMipExtent(uint32_t extent, uint32_t mip_level)
+{
+	return std::max(1u, extent >> mip_level);
+}
+
+RHITextureSlice normalizeTextureSlice(const RHITextureDesc& desc, const RHITextureSlice& slice)
+{
+	assert(slice.mip_level < desc.mip_levels && slice.array_layer < desc.array_layers &&
+	    "Texture slice selects a subresource outside the texture.");
+	assert(slice.x >= 0 && slice.y >= 0 && slice.z >= 0 &&
+	    "Texture slice offsets cannot be negative.");
+
+	const auto mip_width = getMipExtent(desc.width, slice.mip_level);
+	const auto mip_height = getMipExtent(desc.height, slice.mip_level);
+	const auto mip_depth = getMipExtent(desc.depth, slice.mip_level);
+	assert(static_cast<uint32_t>(slice.x) < mip_width &&
+	    static_cast<uint32_t>(slice.y) < mip_height &&
+	    static_cast<uint32_t>(slice.z) < mip_depth &&
+	    "Texture slice offset is outside the selected mip.");
+
+	auto result = slice;
+	result.width = slice.width < 0 ? static_cast<int>(mip_width) - slice.x : slice.width;
+	result.height = slice.height < 0 ? static_cast<int>(mip_height) - slice.y : slice.height;
+	result.depth = slice.depth < 0 ? static_cast<int>(mip_depth) - slice.z : slice.depth;
+	assert(result.width > 0 && result.height > 0 && result.depth > 0 && static_cast<uint32_t>(slice.x + result.width) <= mip_width &&
+	    static_cast<uint32_t>(slice.y + result.height) <= mip_height && static_cast<uint32_t>(slice.z + result.depth) <= mip_depth &&
+	    "Texture slice extent is outside the selected mip.");
+
+	return result;
+}
 
 VulkanCommandBuffer::VulkanCommandBuffer(VulkanDevice& device, VulkanCommandPool& pool) :
     device(device), pool(pool)
@@ -43,10 +74,17 @@ void VulkanCommandBuffer::endRendering()
 	buffer.endRendering();
 }
 
-void VulkanCommandBuffer::trackResource(std::shared_ptr<RHIResource> resource)
+void VulkanCommandBuffer::trackResource(RHIResource* resource)
 {
-	if (resource)
-		tracked_resources.push_back(std::move(resource));
+	if (!resource)
+		return;
+
+	const auto tracked = std::find_if(tracked_resources.begin(),
+	    tracked_resources.end(),
+	    [resource](const RHIRef<RHIResource>& candidate) { return candidate.get() == resource; });
+
+	if (tracked == tracked_resources.end())
+		tracked_resources.emplace_back(resource);
 }
 
 void VulkanCommandBuffer::resetResources()
@@ -108,9 +146,9 @@ void VulkanCommandPool::releaseCommandBuffer(VulkanCommandBuffer* cmd_buffer)
 }
 
 
-void VulkanCommandList::beginRenderPass(RHIFrameBuffer& framebuffer)
+void VulkanCommandList::beginRenderPass(RHIFramebuffer& framebuffer)
 {
-	auto* vk_framebuffer = static_cast<VulkanFrameBuffer*>(&framebuffer);
+	auto* vk_framebuffer = static_cast<VulkanFramebuffer*>(&framebuffer);
 	assert(vk_framebuffer && "A framebuffer to begin a render pass cannot be null.");
 
 	graphics_state.framebuffer = &framebuffer;
@@ -166,7 +204,8 @@ void VulkanCommandList::clear()
 
 	graphics_state = {};
 	current_layout = vk::PipelineLayout{};
-	current_visibility = vk::ShaderStageFlagBits{};
+	current_push_constant_visibility = RHIShaderType::None;
+	current_push_constant_size = 0;
 	rendering = false;
 }
 
@@ -178,7 +217,7 @@ void VulkanCommandList::clearTexture(RHITexture* texture, const RHIColor& color)
 	assert(vk_texture && "A texture to clear cannot be null.");
 	assert(current_command && "Cannot clear a texture without an active command buffer.");
 
-	transitionTexture(texture, CopyDst);
+	transitionTexture(texture, CopyDest);
 
 	vk::ClearColorValue       clear_value = toVkClearColorValue(color);
 	vk::ImageSubresourceRange subresource{};
@@ -206,7 +245,7 @@ void VulkanCommandList::clearDepthTexture(RHITexture* texture, bool clear_depth,
 	assert(vk_texture && "A texture to clear cannot be null.");
 	assert(current_command && "Cannot clear a texture without an active command buffer.");
 
-	transitionTexture(texture, CopyDst);
+	transitionTexture(texture, CopyDest);
 
 	vk::ImageAspectFlags aspect{};
 	if (clear_depth)
@@ -238,31 +277,33 @@ void VulkanCommandList::copyTexture(RHITexture* dst_texture, const RHITextureSli
 	assert(vk_dst_texture && vk_src_texture && "Source and destination textures for copy cannot be null.");
 	assert(current_command && "Cannot copy textures without an active command buffer.");
 
-	transitionTexture(src_texture, CopySrc);
-	transitionTexture(dst_texture, CopyDst);
+	transitionTexture(src_texture, CopySource);
+	transitionTexture(dst_texture, CopyDest);
+	const auto normalized_src = normalizeTextureSlice(src_texture->getDesc(), src_slice);
+	const auto normalized_dst = normalizeTextureSlice(dst_texture->getDesc(), dst_slice);
 
 	vk::ImageSubresourceLayers src_subresource{};
 	src_subresource.setAspectMask(getVkImageAspectFlags(src_texture->getDesc().format))
-	    .setMipLevel(src_slice.mip_level)
-	    .setBaseArrayLayer(src_slice.array_layer)
+	    .setMipLevel(normalized_src.mip_level)
+	    .setBaseArrayLayer(normalized_src.array_layer)
 	    .setLayerCount(1);
 
 	vk::ImageSubresourceLayers dst_subresource{};
 	dst_subresource.setAspectMask(getVkImageAspectFlags(dst_texture->getDesc().format))
-	    .setMipLevel(dst_slice.mip_level)
-	    .setBaseArrayLayer(dst_slice.array_layer)
+	    .setMipLevel(normalized_dst.mip_level)
+	    .setBaseArrayLayer(normalized_dst.array_layer)
 	    .setLayerCount(1);
 
 	vk::Extent3D mip_extent = {
-	    static_cast<uint32_t>(std::min(src_slice.width, dst_slice.width)),
-	    static_cast<uint32_t>(std::min(src_slice.height, dst_slice.height)),
-	    static_cast<uint32_t>(std::min(src_slice.depth, dst_slice.depth))};
+	    static_cast<uint32_t>(std::min(normalized_src.width, normalized_dst.width)),
+	    static_cast<uint32_t>(std::min(normalized_src.height, normalized_dst.height)),
+	    static_cast<uint32_t>(std::min(normalized_src.depth, normalized_dst.depth))};
 
 	vk::ImageCopy region{};
 	region.setSrcSubresource(src_subresource)
-	    .setSrcOffset(vk::Offset3D(src_slice.x, src_slice.y, src_slice.z))
+	    .setSrcOffset(vk::Offset3D(normalized_src.x, normalized_src.y, normalized_src.z))
 	    .setDstSubresource(dst_subresource)
-	    .setDstOffset(vk::Offset3D(dst_slice.x, dst_slice.y, dst_slice.z))
+	    .setDstOffset(vk::Offset3D(normalized_dst.x, normalized_dst.y, normalized_dst.z))
 	    .setExtent(mip_extent);
 
 	current_command->getHandle().copyImage(
@@ -281,13 +322,15 @@ void VulkanCommandList::copyTexture(RHIStagingTexture* dst_staging, const RHITex
 	auto* vk_dst_staging = static_cast<VulkanStagingTexture*>(dst_staging);
 	assert(vk_src_texture && vk_dst_staging && "Source texture and destination staging buffer for copy cannot be null.");
 	assert(current_command && "Cannot copy a texture to a staging buffer without an active command buffer.");
+	current_command->trackResource(dst_staging);
 
-	transitionTexture(src_texture, CopySrc);
+	transitionTexture(src_texture, CopySource);
+	const auto normalized_src = normalizeTextureSlice(src_texture->getDesc(), src_slice);
 
 	vk::ImageSubresourceLayers src_subresource{};
 	src_subresource.setAspectMask(getVkImageAspectFlags(src_texture->getDesc().format))
-	    .setMipLevel(src_slice.mip_level)
-	    .setBaseArrayLayer(src_slice.array_layer)
+	    .setMipLevel(normalized_src.mip_level)
+	    .setBaseArrayLayer(normalized_src.array_layer)
 	    .setLayerCount(1);
 
 	vk::BufferImageCopy region{};
@@ -295,11 +338,11 @@ void VulkanCommandList::copyTexture(RHIStagingTexture* dst_staging, const RHITex
 	    .setBufferRowLength(0)
 	    .setBufferImageHeight(0)
 	    .setImageSubresource(src_subresource)
-	    .setImageOffset(vk::Offset3D(src_slice.x, src_slice.y, src_slice.z))
+	    .setImageOffset(vk::Offset3D(normalized_src.x, normalized_src.y, normalized_src.z))
 	    .setImageExtent(vk::Extent3D(
-	        src_slice.width < 0 ? src_texture->getDesc().width : static_cast<uint32_t>(src_slice.width),
-	        src_slice.height < 0 ? src_texture->getDesc().height : static_cast<uint32_t>(src_slice.height),
-	        src_slice.depth < 0 ? src_texture->getDesc().depth : static_cast<uint32_t>(src_slice.depth)));
+	        static_cast<uint32_t>(normalized_src.width),
+	        static_cast<uint32_t>(normalized_src.height),
+	        static_cast<uint32_t>(normalized_src.depth)));
 
 	current_command->getHandle().copyImageToBuffer(
 	    vk_src_texture->getHandle(),
@@ -316,13 +359,15 @@ void VulkanCommandList::copyTexture(RHITexture* dst_texture, const RHITextureSli
 	auto* vk_src_staging = static_cast<VulkanStagingTexture*>(src_staging);
 	assert(vk_dst_texture && vk_src_staging && "Source staging buffer and destination texture for copy cannot be null.");
 	assert(current_command && "Cannot copy a staging buffer to a texture without an active command buffer.");
+	current_command->trackResource(src_staging);
 
-	transitionTexture(dst_texture, CopyDst);
+	transitionTexture(dst_texture, CopyDest);
+	const auto normalized_dst = normalizeTextureSlice(dst_texture->getDesc(), dst_slice);
 
 	vk::ImageSubresourceLayers dst_subresource{};
 	dst_subresource.setAspectMask(getVkImageAspectFlags(dst_texture->getDesc().format))
-	    .setMipLevel(dst_slice.mip_level)
-	    .setBaseArrayLayer(dst_slice.array_layer)
+	    .setMipLevel(normalized_dst.mip_level)
+	    .setBaseArrayLayer(normalized_dst.array_layer)
 	    .setLayerCount(1);
 
 	vk::BufferImageCopy region{};
@@ -330,11 +375,11 @@ void VulkanCommandList::copyTexture(RHITexture* dst_texture, const RHITextureSli
 	    .setBufferRowLength(0)
 	    .setBufferImageHeight(0)
 	    .setImageSubresource(dst_subresource)
-	    .setImageOffset(vk::Offset3D(dst_slice.x, dst_slice.y, dst_slice.z))
+	    .setImageOffset(vk::Offset3D(normalized_dst.x, normalized_dst.y, normalized_dst.z))
 	    .setImageExtent(vk::Extent3D(
-	        dst_slice.width < 0 ? dst_texture->getDesc().width : static_cast<uint32_t>(dst_slice.width),
-	        dst_slice.height < 0 ? dst_texture->getDesc().height : static_cast<uint32_t>(dst_slice.height),
-	        dst_slice.depth < 0 ? dst_texture->getDesc().depth : static_cast<uint32_t>(dst_slice.depth)));
+	        static_cast<uint32_t>(normalized_dst.width),
+	        static_cast<uint32_t>(normalized_dst.height),
+	        static_cast<uint32_t>(normalized_dst.depth)));
 
 	current_command->getHandle().copyBufferToImage(
 	    vk_src_staging->getHandle(),
@@ -361,7 +406,7 @@ void VulkanCommandList::writeTexture(RHITexture* texture, const RHITextureSlice&
 
 	copyTexture(texture, slice, staging_texture.get(), slice);
 
-	current_command->trackResource(std::move(staging_texture));
+	current_command->trackResource(staging_texture.get());
 }
 
 void VulkanCommandList::clearBuffer(RHIBuffer* buffer, uint32_t value)
@@ -371,7 +416,7 @@ void VulkanCommandList::clearBuffer(RHIBuffer* buffer, uint32_t value)
 	auto* vk_buffer = static_cast<VulkanBuffer*>(buffer);
 	assert(vk_buffer && "A buffer to clear cannot be null.");
 
-	transitionBuffer(buffer, CopyDst);
+	transitionBuffer(buffer, CopyDest);
 
 	current_command->getHandle().fillBuffer(
 	    vk_buffer->getHandle(),
@@ -388,8 +433,8 @@ void VulkanCommandList::copyBuffer(RHIBuffer* dst_buffer, uint64_t dst_offset, R
 	auto* vk_src_buffer = static_cast<VulkanBuffer*>(src_buffer);
 	assert(vk_dst_buffer && vk_src_buffer && "Source and destination buffers for copy cannot be null.");
 
-	transitionBuffer(src_buffer, CopySrc);
-	transitionBuffer(dst_buffer, CopyDst);
+	transitionBuffer(src_buffer, CopySource);
+	transitionBuffer(dst_buffer, CopyDest);
 
 	vk::BufferCopy region{};
 	region.setSrcOffset(src_offset)
@@ -414,7 +459,7 @@ void VulkanCommandList::writeBuffer(RHIBuffer* buffer, uint64_t offset, const vo
 
 	RHIBufferDesc staging_desc{};
 	staging_desc.setSize(size)
-	    .setUsage(RHIBufferUsage::CopySrc)
+	    .setUsage(RHIBufferUsage::CopySource)
 	    .setAccess(RHIAccessMode::Write);
 
 	auto staging_buffer = device.createBuffer(staging_desc);
@@ -425,16 +470,21 @@ void VulkanCommandList::writeBuffer(RHIBuffer* buffer, uint64_t offset, const vo
 
 	copyBuffer(buffer, offset, staging_buffer.get(), 0, size);
 
-	current_command->trackResource(std::move(staging_buffer));
+	current_command->trackResource(staging_buffer.get());
 }
 
-void VulkanCommandList::pushConstants(const void* data, size_t size)
+void VulkanCommandList::setPushConstants(const void* data, size_t size)
 {
 	assert(current_command && "Cannot push constants without an active command buffer.");
+	assert(current_layout && "Cannot push constants without a bound graphics pipeline.");
+	assert(current_push_constant_visibility != RHIShaderType::None && current_push_constant_size > 0 &&
+	    "The active pipeline has no push constant binding.");
+	assert(data && size > 0 && (size % 4) == 0 && size <= current_push_constant_size &&
+	    "Push constant data must fit the declared 4-byte aligned range.");
 
 	current_command->getHandle().pushConstants(
 	    current_layout,
-	    current_visibility,
+	    toVkShaderStageFlags(current_push_constant_visibility),
 	    0,
 	    static_cast<uint32_t>(size),
 	    data);
@@ -468,6 +518,7 @@ void VulkanCommandList::transitionTexture(RHITexture* texture, RHIResourceState 
 	auto* vk_texture = static_cast<VulkanTexture*>(texture);
 	assert(vk_texture && "A texture to transition cannot be null.");
 	assert(current_command && "Cannot transition a texture without an active command buffer.");
+	current_command->trackResource(texture);
 
 	auto old_info = getTextureTransition(vk_texture->state);
 	auto new_info = getTextureTransition(new_state);
@@ -502,6 +553,7 @@ void VulkanCommandList::transitionBuffer(RHIBuffer* buffer, RHIResourceState new
 	auto* vk_buffer = static_cast<VulkanBuffer*>(buffer);
 	assert(vk_buffer && "A buffer to transition cannot be null.");
 	assert(current_command && "Cannot transition a buffer without an active command buffer.");
+	current_command->trackResource(buffer);
 
 	const auto old_info = getBufferTransition(vk_buffer->state);
 	const auto new_info = getBufferTransition(new_state);
@@ -532,27 +584,39 @@ void VulkanCommandList::setGraphicsState(const RHIGraphicsState& state)
 	if (state.framebuffer && (!rendering || graphics_state.framebuffer != state.framebuffer)) {
 		endRenderPass();
 
-		auto* vk_framebuffer = static_cast<VulkanFrameBuffer*>(state.framebuffer);
+		auto* vk_framebuffer = static_cast<VulkanFramebuffer*>(state.framebuffer.get());
 		assert(vk_framebuffer && "A framebuffer to transition cannot be null.");
 
 		for (const auto& attachment : vk_framebuffer->getDesc().color_attachments)
-			if (attachment.texture)
-				transitionTexture(attachment.texture, RenderTarget);
+			if (attachment.texture_view)
+				transitionTexture(&attachment.texture_view->getTexture(), RenderTarget);
 
 		const auto& depth_attachment = vk_framebuffer->getDesc().depth_attachment;
-		if (depth_attachment.texture)
-			transitionTexture(depth_attachment.texture, depth_attachment.read_only ? DepthRead : DepthWrite);
+		if (depth_attachment.texture_view)
+			transitionTexture(&depth_attachment.texture_view->getTexture(), depth_attachment.read_only ? DepthRead : DepthWrite);
 
 		beginRenderPass(*state.framebuffer);
 	}
 
 	// bind pipeline
-	auto* vk_pipeline = static_cast<VulkanGraphicsPipeline*>(state.pipeline);
+	auto* vk_pipeline = static_cast<VulkanGraphicsPipeline*>(state.pipeline.get());
 	assert(vk_pipeline && "A graphics pipeline in the graphics state cannot be null.");
+
+	current_command->trackResource(state.pipeline.get());
+	current_command->trackResource(state.framebuffer.get());
+
+	for (const auto& binding_set : state.binding_sets)
+		current_command->trackResource(binding_set.get());
+
+	for (const auto& vertex_buffer : state.vertex_buffers)
+		current_command->trackResource(vertex_buffer.buffer.get());
+
+	current_command->trackResource(state.index_buffer.buffer.get());
 
 	graphics_state = state;
 	current_layout = vk_pipeline->getLayout();
-	current_visibility = toVkShaderStageFlags(vk_pipeline->getShaderMask());
+	current_push_constant_visibility = vk_pipeline->getPushConstantVisibility();
+	current_push_constant_size = vk_pipeline->getPushConstantSize();
 
 	current_command->getHandle().bindPipeline(
 	    vk::PipelineBindPoint::eGraphics,
@@ -576,20 +640,20 @@ void VulkanCommandList::setGraphicsState(const RHIGraphicsState& state)
 	// bind descriptor sets
 	std::vector<vk::DescriptorSet> descriptor_sets;
 	descriptor_sets.reserve(state.binding_sets.size());
-	for (auto* set : state.binding_sets)
-		if (auto* vk_set = dynamic_cast<VulkanDescriptorSet*>(set))
+	for (const auto& set : state.binding_sets)
+		if (auto* vk_set = dynamic_cast<VulkanBindingSet*>(set.get()))
 			descriptor_sets.push_back(vk_set->getHandle());
 	if (!descriptor_sets.empty())
 		current_command->getHandle().bindDescriptorSets(vk::PipelineBindPoint::eGraphics, current_layout, 0, descriptor_sets, {});
 
 	// bind vertex and index buffers
 	for (const auto& binding : state.vertex_buffers) {
-		if (auto* vertex_buffer = dynamic_cast<VulkanBuffer*>(binding.buffer)) {
+		if (auto* vertex_buffer = dynamic_cast<VulkanBuffer*>(binding.buffer.get())) {
 			current_command->getHandle().bindVertexBuffers(binding.slot, vertex_buffer->getHandle(), {binding.offset});
 		}
 	}
 
-	if (auto* index_buffer = dynamic_cast<VulkanBuffer*>(state.index_buffer.buffer)) {
+	if (auto* index_buffer = dynamic_cast<VulkanBuffer*>(state.index_buffer.buffer.get())) {
 		current_command->getHandle().bindIndexBuffer(index_buffer->getHandle(), state.index_buffer.offset, toVkIndexType(state.index_buffer.index_type));
 	}
 }

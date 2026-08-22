@@ -3,6 +3,7 @@
 #include <glm/glm.hpp>
 
 #include "Runtime/Render/RHI/RHIPipeline.hpp"
+#include "Runtime/Render/RHI/RHIContext.hpp"
 #include "Runtime/World/Components/Camera.hpp"
 #include "Runtime/World/Components/Light.hpp"
 
@@ -51,7 +52,7 @@ struct RenderLightData {
 struct RenderObjectData {
 	glm::mat4 model{1.0f};
 
-	static RHIDescriptorLayoutDesc layout(uint32_t binding = 0);
+	static RHIBindingLayoutDesc layout(uint32_t binding = 0);
 };
 
 struct RenderMaterialData {
@@ -59,14 +60,14 @@ struct RenderMaterialData {
 	float     metallic{0.0f};
 	float     roughness{1.0f};
 
-	static RHIDescriptorLayoutDesc layout(uint32_t binding = 0);
+	static RHIBindingLayoutDesc layout(uint32_t binding = 0);
 };
 
 struct RenderSceneData {
 	RenderCameraData camera;
 	RenderLightData  lights[MAX_LIGHTS_COUNT];
-	glm::vec4     ambient_color{0.1f, 0.1f, 0.1f, 1.0f};
-	uint32_t      light_count{0};
+	glm::vec4        ambient_color{0.1f, 0.1f, 0.1f, 1.0f};
+	uint32_t         light_count{0};
 
-	static RHIDescriptorLayoutDesc layout(uint32_t binding = 0);
+	static RHIBindingLayoutDesc layout(uint32_t binding = 0);
 };

@@ -26,8 +26,8 @@ VSOutput vertexMain(VSInput input)
 }
 
 
-[shader("fragment")] 
-float4 fragmentMain(VSOutput input)
+[shader("pixel")] 
+float4 pixelMain(VSOutput input)
 {
 	float3 N = normalize(input.normal);
 	float3 V = normalize(scene.camera.position.xyz - input.world_pos);

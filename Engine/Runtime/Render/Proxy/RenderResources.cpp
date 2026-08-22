@@ -4,7 +4,7 @@
 
 #include "Runtime/Render/RHI/RHIDevice.hpp"
 
-RenderMesh::RenderMesh(RHIContext& context, std::shared_ptr<SubMesh> submesh, RHIDescriptorLayout& layout) :
+RenderMesh::RenderMesh(RHIContext& context, std::shared_ptr<SubMesh> submesh, RHIBindingLayout& layout) :
     RenderResource(context), submesh(submesh)
 {
 	assert(submesh && "Cannot create a render mesh with an empty submesh");
@@ -16,7 +16,7 @@ RenderMesh::RenderMesh(RHIContext& context, std::shared_ptr<SubMesh> submesh, RH
 		RHIBufferDesc desc{};
 		desc.setSize(submesh->getVerticesCount() * sizeof(Vertex))
 		    .setStride(sizeof(Vertex))
-		    .setUsage(RHIBufferUsage::VertexBuffer | RHIBufferUsage::CopyDst);
+		    .setUsage(RHIBufferUsage::VertexBuffer | RHIBufferUsage::CopyDest);
 
 		vertex_buffer = getDevice().createBuffer(desc);
 		command->writeBuffer(vertex_buffer.get(), 0, submesh->getVertices().data(), desc.size);
@@ -27,7 +27,7 @@ RenderMesh::RenderMesh(RHIContext& context, std::shared_ptr<SubMesh> submesh, RH
 		RHIBufferDesc desc{};
 		desc.setSize(submesh->getIndicesCount() * sizeof(uint32_t))
 		    .setStride(sizeof(uint32_t))
-		    .setUsage(RHIBufferUsage::IndexBuffer | RHIBufferUsage::CopyDst);
+		    .setUsage(RHIBufferUsage::IndexBuffer | RHIBufferUsage::CopyDest);
 
 		index_buffer = getDevice().createBuffer(desc);
 		command->writeBuffer(index_buffer.get(), 0, submesh->getIndices().data(), desc.size);
@@ -37,22 +37,24 @@ RenderMesh::RenderMesh(RHIContext& context, std::shared_ptr<SubMesh> submesh, RH
 	command->close();
 	getDevice().executeCommandList(command.get());
 
-	RHIBufferDesc uniform_desc{};
-	uniform_desc.setSize(sizeof(RenderObjectData))
-	    .setUsage(RHIBufferUsage::UniformBuffer | RHIBufferUsage::CopyDst)
+	RHIBufferDesc constant_buffer_desc{};
+	constant_buffer_desc.setSize(sizeof(RenderObjectData))
+	    .setUsage(RHIBufferUsage::ConstantBuffer | RHIBufferUsage::CopyDest)
 	    .setAccess(RHIAccessMode::Write);
-	object_uniform = getDevice().createBuffer(uniform_desc);
 
-	RHIDescriptorSetDesc set_desc{};
-	set_desc.addItem(RHIDescriptorSetItem()
-	        .setBuffer(0, object_uniform.get()));
-	object_descriptor = getDevice().createDescriptorSet(set_desc, layout);
+	object_constant_buffer = getDevice().createBuffer(constant_buffer_desc);
+	object_constant_buffer_view = getDevice().createBufferView(
+	    RHIBufferViewDesc{}.setBuffer(object_constant_buffer.get()).setType(RHIBufferViewType::Constant));
+
+	RHIBindingSetDesc set_desc{};
+	set_desc.addItem(RHIBindingSetItem().setBufferView(0, object_constant_buffer_view.get()));
+	object_binding_set = getDevice().createBindingSet(set_desc, layout);
 }
 
 void RenderMesh::updateGraphicsState(RHIGraphicsState& state) const
 {
-	if (object_descriptor)
-		state.addBindingSet(object_descriptor.get());
+	if (object_binding_set)
+		state.addBindingSet(object_binding_set.get());
 
 	if (vertex_buffer)
 		state.addVertexBuffer(RHIVertexBufferBinding()
@@ -69,9 +71,9 @@ void RenderMesh::updateGraphicsState(RHIGraphicsState& state) const
 
 void RenderMesh::updateUniforms()
 {
-	auto* mapped = getDevice().mapBuffer(object_uniform.get(), RHIAccessMode::Write);
+	auto* mapped = getDevice().mapBuffer(object_constant_buffer.get(), RHIAccessMode::Write);
 	std::memcpy(mapped, &object_data, sizeof(RenderObjectData));
-	getDevice().unmapBuffer(object_uniform.get());
+	getDevice().unmapBuffer(object_constant_buffer.get());
 }
 
 void RenderMesh::draw(RHICommandList& command) const
@@ -87,7 +89,7 @@ void RenderMesh::draw(RHICommandList& command) const
 }
 
 
-RenderTexture::RenderTexture(RHIContext& context, std::shared_ptr<Texture> texture, std::shared_ptr<RHISampler> default_sampler) :
+RenderTexture::RenderTexture(RHIContext& context, std::shared_ptr<Texture> texture, RHIRef<RHISampler> default_sampler) :
     RenderResource(context), source_texture(texture)
 {
 	assert(texture && "Cannot create a render texture with an empty texture");
@@ -96,9 +98,10 @@ RenderTexture::RenderTexture(RHIContext& context, std::shared_ptr<Texture> textu
 	texture_desc.setWidth(texture->getWidth())
 	    .setHeight(texture->getHeight())
 	    .setFormat(RHIFormat::RGBA8_SRGB)
-	    .setUsage(RHITextureUsage::Sampled | RHITextureUsage::CopyDst);
+	    .setUsage(RHITextureUsage::Sampled | RHITextureUsage::CopyDest);
 	image = getDevice().createTexture(texture_desc);
-	sampler = default_sampler ? default_sampler : std::move(getDevice().createSampler(RHISamplerDesc{}));
+	sampled_view = getDevice().createTextureView(RHITextureViewDesc{}.setTexture(image.get()).setType(RHITextureViewType::ShaderResource));
+	sampler = default_sampler ? default_sampler : getDevice().createSampler(RHISamplerDesc{});
 
 	auto command = getDevice().createCommandList(RHICommandListDesc{});
 	command->open();
@@ -118,15 +121,12 @@ RenderTexture::RenderTexture(RHIContext& context, std::shared_ptr<Texture> textu
 
 RenderMaterial::RenderMaterial(RHIContext& ctx,
     std::shared_ptr<Material>              material,
-    RHIDescriptorLayout&                   layout,
-    RHITexture*                            albedo,
-    RHITexture*                            metallic_roughness,
+    RHIBindingLayout&                      layout,
+    RHITextureView*                        albedo,
+    RHITextureView*                        metallic_roughness,
     RHISampler*                            sampler) :
     RenderResource(ctx),
-    src_material(material),
-    albedo(albedo),
-    metallic_roughness(metallic_roughness),
-    sampler(sampler)
+    src_material(material)
 {
 	if (auto* mat = dynamic_cast<const Material*>(material.get())) {
 		material_data.albedo = mat->getAlbedo();
@@ -134,48 +134,50 @@ RenderMaterial::RenderMaterial(RHIContext& ctx,
 		material_data.roughness = mat->getRoughness();
 	}
 
-	RHIBufferDesc uniform_desc{};
-	uniform_desc.setSize(sizeof(RenderMaterialData))
-	    .setUsage(RHIBufferUsage::UniformBuffer | RHIBufferUsage::CopyDst)
+	RHIBufferDesc constant_buffer_desc{};
+	constant_buffer_desc.setSize(sizeof(RenderMaterialData))
+	    .setUsage(RHIBufferUsage::ConstantBuffer | RHIBufferUsage::CopyDest)
 	    .setAccess(RHIAccessMode::Write);
-	material_uniform = getDevice().createBuffer(uniform_desc);
+	material_constant_buffer = getDevice().createBuffer(constant_buffer_desc);
+	material_constant_buffer_view = getDevice().createBufferView(
+	    RHIBufferViewDesc{}.setBuffer(material_constant_buffer.get()).setType(RHIBufferViewType::Constant));
 
-	RHIDescriptorSetDesc set_desc{};
-	RHIDescriptorSetItem mat_uniform{};
-	mat_uniform.setBuffer(0, material_uniform.get());
-	set_desc.addItem(mat_uniform);
+	RHIBindingSetDesc set_desc{};
+	RHIBindingSetItem constant_buffer_item{};
+	constant_buffer_item.setBufferView(0, material_constant_buffer_view.get());
+	set_desc.addItem(constant_buffer_item);
 
 	if (albedo) {
-		RHIDescriptorSetItem albedo_item{};
-		albedo_item.setTexture(1, albedo);
+		RHIBindingSetItem albedo_item{};
+		albedo_item.setTextureView(1, albedo);
 		set_desc.addItem(albedo_item);
 	}
 
 	if (metallic_roughness) {
-		RHIDescriptorSetItem metallic_roughness_item{};
-		metallic_roughness_item.setTexture(2, metallic_roughness);
+		RHIBindingSetItem metallic_roughness_item{};
+		metallic_roughness_item.setTextureView(2, metallic_roughness);
 		set_desc.addItem(metallic_roughness_item);
 	}
 
 	if (sampler) {
-		RHIDescriptorSetItem sampler_item{};
+		RHIBindingSetItem sampler_item{};
 		sampler_item.setSampler(3, sampler);
 		set_desc.addItem(sampler_item);
 	}
 
-	material_descriptor = getDevice().createDescriptorSet(set_desc, layout);
+	material_binding_set = getDevice().createBindingSet(set_desc, layout);
 	updateUniforms();
 }
 
 void RenderMaterial::updateGraphicsState(RHIGraphicsState& state) const
 {
-	if (material_descriptor)
-		state.addBindingSet(material_descriptor.get());
+	if (material_binding_set)
+		state.addBindingSet(material_binding_set.get());
 }
 
 void RenderMaterial::updateUniforms()
 {
-	void* mapped = getDevice().mapBuffer(material_uniform.get(), RHIAccessMode::Write);
+	void* mapped = getDevice().mapBuffer(material_constant_buffer.get(), RHIAccessMode::Write);
 	std::memcpy(mapped, &material_data, sizeof(RenderMaterialData));
-	getDevice().unmapBuffer(material_uniform.get());
+	getDevice().unmapBuffer(material_constant_buffer.get());
 }

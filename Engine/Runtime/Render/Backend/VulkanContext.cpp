@@ -14,7 +14,7 @@ VulkanFrame::VulkanFrame(VulkanContext& context) :
 	backbuffer_desc.setWidth(context.getExtent().width)
 	    .setHeight(context.getExtent().height)
 	    .setFormat(context.getFormat())
-	    .setUsage(RHITextureUsage::RenderTarget | RHITextureUsage::CopySrc | RHITextureUsage::CopyDst);
+	    .setUsage(RHITextureUsage::RenderTarget | RHITextureUsage::CopySource | RHITextureUsage::CopyDest);
 
 	vk::SemaphoreCreateInfo semaphore_info{};
 	vk::FenceCreateInfo     fence_info{};
@@ -29,7 +29,14 @@ VulkanFrame::VulkanFrame(VulkanContext& context) :
 	}
 
 	for (size_t i = 0; i < context.getSwapchainImages().images.size(); i++) {
-		backbuffers.push_back(device.createTexture(backbuffer_desc));
+		auto texture = device.createTexture(backbuffer_desc);
+
+		RHITextureViewDesc view_desc{};
+		view_desc.setTexture(texture.get())
+		    .setType(RHITextureViewType::RenderTarget);
+
+		backbuffer_views.push_back(device.createTextureView(view_desc));
+		backbuffers.push_back(std::move(texture));
 		render_finished_semaphores.push_back(device.getHandle().createSemaphore(semaphore_info));
 	}
 }
@@ -48,6 +55,7 @@ VulkanFrame::~VulkanFrame()
 		device.getHandle().destroySemaphore(semaphore);
 
 	frame_commands.clear();
+	backbuffer_views.clear();
 	backbuffers.clear();
 }
 
@@ -58,7 +66,7 @@ void VulkanFrame::blit()
 	auto  vk_command_buffer = vk_command_list->getCurrentCommand()->getHandle();
 	auto  swapchain_image = context.getSwapchainImages().images[image_index];
 
-	vk_command_list->transitionTexture(&getBackbuffer(), CopySrc);
+	vk_command_list->transitionTexture(&getBackbuffer(), CopySource);
 
 	transitionSwapchainImage(vk_command_buffer, swapchain_image, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
 	blitToSwapchain(vk_command_buffer, vk_backbuffer->getHandle(), swapchain_image, context.getExtent());
@@ -179,7 +187,7 @@ VulkanContext::VulkanContext(Window& window) :
 	frame = std::make_unique<VulkanFrame>(*this);
 }
 
-VulkanContext::~VulkanContext()
+VulkanContext::~VulkanContext() noexcept
 {
 	if (device)
 		device->getHandle().waitIdle();
@@ -198,7 +206,7 @@ VulkanContext::~VulkanContext()
 	instance.destroy();
 }
 
-RHIDevice& VulkanContext::getDevice()
+RHIDevice& VulkanContext::getDevice() noexcept
 {
 	return *device;
 }

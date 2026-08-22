@@ -12,7 +12,7 @@ class VulkanCommandBuffer {
 private:
 	vk::CommandBuffer buffer{};
 
-	std::vector<std::shared_ptr<RHIResource>> tracked_resources{};
+	std::vector<RHIRef<RHIResource>> tracked_resources{};
 
 	VulkanDevice&      device;
 	VulkanCommandPool& pool;
@@ -27,12 +27,12 @@ public:
 	void beginRendering(const vk::RenderingInfo& render_info);
 	void endRendering();
 
-	void trackResource(std::shared_ptr<RHIResource> resource);
+	void trackResource(RHIResource* resource);
 	void resetResources();
 
-	vk::CommandBuffer getHandle() const { return buffer; }
+	vk::CommandBuffer getHandle() const noexcept { return buffer; }
 
-	VulkanCommandPool& getPool() const { return pool; }
+	VulkanCommandPool& getPool() const noexcept { return pool; }
 };
 
 
@@ -55,9 +55,9 @@ public:
 
 	void releaseCommandBuffer(VulkanCommandBuffer* cmd_buffer);
 
-	vk::CommandPool getHandle() const { return pool; }
+	vk::CommandPool getHandle() const noexcept { return pool; }
 
-	VulkanQueue& getQueue() const { return queue; }
+	VulkanQueue& getQueue() const noexcept { return queue; }
 };
 
 
@@ -70,23 +70,24 @@ private:
 
 	std::shared_ptr<VulkanCommandBuffer> current_command{};
 
-	vk::PipelineLayout   current_layout{};
-	vk::ShaderStageFlags current_visibility{};
+	vk::PipelineLayout current_layout{};
+	RHIShaderType      current_push_constant_visibility{};
+	uint32_t           current_push_constant_size{};
 
 	bool rendering{};
 
 	VulkanDevice& device;
 
-	void beginRenderPass(RHIFrameBuffer& framebuffer);
+	void beginRenderPass(RHIFramebuffer& framebuffer);
 	void endRenderPass();
 
 public:
 	VulkanCommandList(VulkanDevice& device, RHICommandListDesc desc) : desc(std::move(desc)), device(device) {}
 	~VulkanCommandList() override = default;
 
-	const RHICommandListDesc& getDesc() const { return desc; }
+	const RHICommandListDesc& getDesc() const noexcept { return desc; }
 
-	std::shared_ptr<VulkanCommandBuffer> getCurrentCommand() const { return current_command; }
+	std::shared_ptr<VulkanCommandBuffer> getCurrentCommand() const noexcept { return current_command; }
 
 	void open() override;
 	void close() override;
@@ -105,7 +106,7 @@ public:
 	void writeBuffer(RHIBuffer* buffer, uint64_t offset, const void* data, uint64_t size) override;
 	void transitionBuffer(RHIBuffer* buffer, RHIResourceState new_state) override;
 
-	void pushConstants(const void* data, size_t size) override;
+	void setPushConstants(const void* data, size_t size) override;
 	void draw(const RHIDrawArguments& args) override;
 	void drawIndexed(const RHIDrawArguments& args) override;
 

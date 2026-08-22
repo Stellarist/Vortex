@@ -45,11 +45,11 @@ void VulkanQueue::submit(VulkanCommandList* command_list,
 {
 	retireCompletedCommands();
 
-	assert(!command_list || command_list->getDesc().queue_type == type && "Cannot submit a command list that belongs to a different queue type.");
+	assert(command_list && command_list->getDesc().queue_type == type &&
+	    "Cannot submit a null command list or a command list that belongs to a different queue type.");
 
 	auto command = command_list->getCurrentCommand();
-	if (!command)
-		throw std::runtime_error("Cannot submit a command list without a recorded command buffer.");
+	assert(command && "Cannot submit a command list without a recorded command buffer.");
 
 	std::array command_buffers{command->getHandle()};
 	uint64_t   signal_value = ++next_timeline_value;

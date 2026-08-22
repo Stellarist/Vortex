@@ -26,8 +26,8 @@ VSOutput vertexMain(VSInput input)
 }
 
 
-[shader("fragment")] 
-GBufferOutput fragmentMain(VSOutput input)
+[shader("pixel")] 
+GBufferOutput pixelMain(VSOutput input)
 {
 	GBufferOutput output;
 

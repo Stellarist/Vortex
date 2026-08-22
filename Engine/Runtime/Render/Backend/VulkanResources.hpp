@@ -3,7 +3,13 @@
 #include <vulkan/vulkan.hpp>
 
 #include "VulkanDevice.hpp"
-#include "Runtime/Render/RHI/RHIResources.hpp"
+#include "Runtime/Render/RHI/RHIBuffer.hpp"
+#include "Runtime/Render/RHI/RHIFramebuffer.hpp"
+#include "Runtime/Render/RHI/RHISampler.hpp"
+#include "Runtime/Render/RHI/RHIShader.hpp"
+#include "Runtime/Render/RHI/RHITexture.hpp"
+#include "Runtime/Render/RHI/RHIBuffer.hpp"
+#include "Runtime/Render/RHI/RHITexture.hpp"
 
 // Allocation
 class VulkanAllocation {
@@ -31,10 +37,36 @@ public:
 	VulkanBuffer(VulkanDevice& device, RHIBufferDesc desc) : device(device), desc(std::move(desc)) {}
 	~VulkanBuffer() override { device.destroyBuffer(this); }
 
-	const RHIBufferDesc& getDesc() const override { return desc; }
-	RHIResourceState     getState() const { return state; }
+	const RHIBufferDesc& getDesc() const noexcept override { return desc; }
+	RHIResourceState     getState() const noexcept { return state; }
 
-	vk::Buffer getHandle() const { return buffer; }
+	vk::Buffer getHandle() const noexcept
+	{
+		return buffer;
+	}
+};
+
+
+// Buffer View
+class VulkanBufferView : public RHIBufferView {
+private:
+	RHIBufferViewDesc desc{};
+
+	vk::BufferView view{};
+
+	VulkanDevice& device;
+
+	friend class VulkanDevice;
+
+public:
+	VulkanBufferView(VulkanDevice& device, RHIBufferViewDesc desc) :
+	    device(device), desc(std::move(desc)) {}
+	~VulkanBufferView() override { device.destroyBufferView(this); }
+
+	const RHIBufferViewDesc& getDesc() const noexcept override { return desc; }
+	RHIBuffer&               getBuffer() const noexcept override { return *desc.buffer; }
+
+	vk::BufferView getHandle() const noexcept { return view; }
 };
 
 
@@ -45,7 +77,6 @@ private:
 	RHIResourceState state{Unknown};
 
 	vk::Image       image{};
-	vk::ImageView   view{};
 	vk::ImageLayout layout{};
 
 	VulkanDevice& device;
@@ -57,12 +88,33 @@ public:
 	VulkanTexture(VulkanDevice& device, RHITextureDesc desc) : device(device), desc(std::move(desc)) {}
 	~VulkanTexture() override { device.destroyTexture(this); }
 
-	const RHITextureDesc& getDesc() const override { return desc; }
-	RHIResourceState      getState() const { return state; }
+	const RHITextureDesc& getDesc() const noexcept override { return desc; }
+	RHIResourceState      getState() const noexcept { return state; }
 
-	vk::Image       getHandle() const { return image; }
-	vk::ImageView   getView() const { return view; }
-	vk::ImageLayout getLayout() const { return layout; }
+	vk::Image       getHandle() const noexcept { return image; }
+	vk::ImageLayout getLayout() const noexcept { return layout; }
+};
+
+
+// Texture View
+class VulkanTextureView : public RHITextureView {
+private:
+	RHITextureViewDesc desc{};
+
+	vk::ImageView view{};
+
+	VulkanDevice& device;
+
+	friend class VulkanDevice;
+
+public:
+	VulkanTextureView(VulkanDevice& device, RHITextureViewDesc desc) : device(device), desc(std::move(desc)) {}
+	~VulkanTextureView() override { device.destroyTextureView(this); }
+
+	const RHITextureViewDesc& getDesc() const noexcept override { return desc; }
+	RHITexture&               getTexture() const noexcept override { return *desc.texture; }
+
+	vk::ImageView getHandle() const noexcept { return view; }
 };
 
 
@@ -81,9 +133,9 @@ public:
 	VulkanStagingTexture(VulkanDevice& device, RHITextureDesc desc) : device(device), desc(std::move(desc)) {}
 	~VulkanStagingTexture() override { device.destroyStagingTexture(this); }
 
-	const RHITextureDesc& getDesc() const override { return desc; }
+	const RHITextureDesc& getDesc() const noexcept override { return desc; }
 
-	vk::Buffer getHandle() const { return buffer; }
+	vk::Buffer getHandle() const noexcept { return buffer; }
 };
 
 
@@ -102,9 +154,9 @@ public:
 	VulkanSampler(VulkanDevice& device, RHISamplerDesc desc) : device(device), desc(std::move(desc)) {}
 	~VulkanSampler() override { device.destroySampler(this); }
 
-	const RHISamplerDesc& getDesc() const override { return desc; }
+	const RHISamplerDesc& getDesc() const noexcept override { return desc; }
 
-	vk::Sampler getHandle() const { return sampler; }
+	vk::Sampler getHandle() const noexcept { return sampler; }
 };
 
 
@@ -124,38 +176,35 @@ public:
 	VulkanShader(VulkanDevice& device, RHIShaderDesc desc) : device(device), desc(std::move(desc)) {}
 	~VulkanShader() override { device.destroyShader(this); }
 
-	const RHIShaderDesc& getDesc() const override { return desc; }
+	const RHIShaderDesc& getDesc() const noexcept override { return desc; }
 
-	vk::ShaderModule        getHandle() const { return shader; }
-	vk::ShaderStageFlagBits getStage() const { return stage_flags; }
+	vk::ShaderModule        getHandle() const noexcept { return shader; }
+	vk::ShaderStageFlagBits getStage() const noexcept { return stage_flags; }
 };
 
 
-// FrameBuffer
-class VulkanFrameBuffer : public RHIFrameBuffer {
+// Framebuffer
+class VulkanFramebuffer : public RHIFramebuffer {
 private:
-	RHIFrameBufferDesc desc{};
+	RHIFramebufferDesc desc{};
 
 	std::vector<vk::RenderingAttachmentInfo> color_attachments_info{};
 	vk::RenderingAttachmentInfo              depth_attachment_info{};
 	vk::RenderingAttachmentInfo              stencil_attachment_info{};
-
-	std::vector<RHITexture*> attachments{};
 
 	VulkanDevice& device;
 
 	friend class VulkanDevice;
 
 public:
-	VulkanFrameBuffer(VulkanDevice& device, RHIFrameBufferDesc desc) : device(device), desc(std::move(desc)) {};
-	~VulkanFrameBuffer() override = default;
+	VulkanFramebuffer(VulkanDevice& device, RHIFramebufferDesc desc) :
+	    device(device), desc(std::move(desc)) {};
+	~VulkanFramebuffer() override = default;
 
-	const RHIFrameBufferDesc& getDesc() const override { return desc; };
+	const RHIFramebufferDesc& getDesc() const noexcept override { return desc; };
 
-	const std::vector<RHITexture*> getAttachments() const { return attachments; }
+	const std::vector<vk::RenderingAttachmentInfo>& getColorAttachmentsInfo() const noexcept { return color_attachments_info; }
 
-	const std::vector<vk::RenderingAttachmentInfo>& getColorAttachmentsInfo() const { return color_attachments_info; }
-
-	const vk::RenderingAttachmentInfo& getDepthAttachmentInfo() const { return depth_attachment_info; }
-	const vk::RenderingAttachmentInfo& getStencilAttachmentInfo() const { return stencil_attachment_info; }
+	const vk::RenderingAttachmentInfo& getDepthAttachmentInfo() const noexcept { return depth_attachment_info; }
+	const vk::RenderingAttachmentInfo& getStencilAttachmentInfo() const noexcept { return stencil_attachment_info; }
 };

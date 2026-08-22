@@ -104,14 +104,18 @@ void Widget::drawFrame(RHICommandList& command)
 	if (!vk_command || !vk_command->getCurrentCommand())
 		return;
 
-	auto* backbuffer = dynamic_cast<VulkanTexture*>(&renderer->getContext().getBackbuffer());
+	auto* backbuffer_view = dynamic_cast<VulkanTextureView*>(&renderer->getContext().getBackbufferView());
+	if (!backbuffer_view)
+		return;
+
+	auto* backbuffer = dynamic_cast<VulkanTexture*>(&backbuffer_view->getTexture());
 	if (!backbuffer)
 		return;
 
 	vk_command->transitionTexture(backbuffer, RenderTarget);
 
 	vk::RenderingAttachmentInfo color_attachment{};
-	color_attachment.setImageView(backbuffer->getView())
+	color_attachment.setImageView(backbuffer_view->getHandle())
 	    .setImageLayout(vk::ImageLayout::eColorAttachmentOptimal)
 	    .setLoadOp(vk::AttachmentLoadOp::eLoad)
 	    .setStoreOp(vk::AttachmentStoreOp::eStore);

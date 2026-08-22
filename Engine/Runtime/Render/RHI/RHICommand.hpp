@@ -1,26 +1,29 @@
 #pragma once
 
+#include "RHIBuffer.hpp"
+#include "RHIFramebuffer.hpp"
 #include "RHIPipeline.hpp"
+#include "RHITexture.hpp"
 
 // vertex buffer binding
 struct RHIVertexBufferBinding {
-	RHIBuffer* buffer{};
-	uint32_t   slot{};
-	uint32_t   offset{};
+	RHIRef<RHIBuffer> buffer{};
+	uint32_t          slot{};
+	uint32_t          offset{};
 
-	RHIVertexBufferBinding& setBuffer(RHIBuffer* new_buffer)
+	RHIVertexBufferBinding& setBuffer(RHIBuffer* new_buffer) noexcept
 	{
 		buffer = new_buffer;
 		return *this;
 	}
 
-	RHIVertexBufferBinding& setSlot(uint32_t new_slot)
+	RHIVertexBufferBinding& setSlot(uint32_t new_slot) noexcept
 	{
 		slot = new_slot;
 		return *this;
 	}
 
-	RHIVertexBufferBinding& setOffset(uint32_t new_offset)
+	RHIVertexBufferBinding& setOffset(uint32_t new_offset) noexcept
 	{
 		offset = new_offset;
 		return *this;
@@ -30,23 +33,23 @@ struct RHIVertexBufferBinding {
 
 // index buffer binding
 struct RHIIndexBufferBinding {
-	RHIBuffer*   buffer{};
-	RHIIndexType index_type{RHIIndexType::Uint32};
-	uint32_t     offset{};
+	RHIRef<RHIBuffer> buffer{};
+	RHIIndexType      index_type{RHIIndexType::Uint32};
+	uint32_t          offset{};
 
-	RHIIndexBufferBinding& setBuffer(RHIBuffer* new_buffer)
+	RHIIndexBufferBinding& setBuffer(RHIBuffer* new_buffer) noexcept
 	{
 		buffer = new_buffer;
 		return *this;
 	}
 
-	RHIIndexBufferBinding& setIndexType(RHIIndexType new_index_type)
+	RHIIndexBufferBinding& setIndexType(RHIIndexType new_index_type) noexcept
 	{
 		index_type = new_index_type;
 		return *this;
 	}
 
-	RHIIndexBufferBinding& setOffset(uint32_t new_offset)
+	RHIIndexBufferBinding& setOffset(uint32_t new_offset) noexcept
 	{
 		offset = new_offset;
 		return *this;
@@ -56,21 +59,21 @@ struct RHIIndexBufferBinding {
 
 // graphics state
 struct RHIGraphicsState {
-	RHIGraphicsPipeline* pipeline{};
-	RHIFrameBuffer*      framebuffer{};
-	RHIViewportState     viewport_state{};
+	RHIRef<RHIGraphicsPipeline> pipeline{};
+	RHIRef<RHIFramebuffer>      framebuffer{};
+	RHIViewportState            viewport_state{};
 
-	std::vector<RHIDescriptorSet*>      binding_sets{};
+	std::vector<RHIRef<RHIBindingSet>>  binding_sets{};
 	std::vector<RHIVertexBufferBinding> vertex_buffers{};
 	RHIIndexBufferBinding               index_buffer{};
 
-	RHIGraphicsState& setPipeline(RHIGraphicsPipeline* new_pipeline)
+	RHIGraphicsState& setPipeline(RHIGraphicsPipeline* new_pipeline) noexcept
 	{
 		pipeline = new_pipeline;
 		return *this;
 	}
 
-	RHIGraphicsState& setFrameBuffer(RHIFrameBuffer* new_framebuffer)
+	RHIGraphicsState& setFramebuffer(RHIFramebuffer* new_framebuffer) noexcept
 	{
 		framebuffer = new_framebuffer;
 		return *this;
@@ -82,9 +85,9 @@ struct RHIGraphicsState {
 		return *this;
 	}
 
-	RHIGraphicsState& addBindingSet(RHIDescriptorSet* new_binding_set)
+	RHIGraphicsState& addBindingSet(RHIBindingSet* new_binding_set)
 	{
-		binding_sets.push_back(new_binding_set);
+		binding_sets.emplace_back(new_binding_set);
 		return *this;
 	}
 
@@ -94,7 +97,7 @@ struct RHIGraphicsState {
 		return *this;
 	}
 
-	RHIGraphicsState& setIndexBuffer(const RHIIndexBufferBinding& new_index_buffer)
+	RHIGraphicsState& setIndexBuffer(const RHIIndexBufferBinding& new_index_buffer) noexcept
 	{
 		index_buffer = new_index_buffer;
 		return *this;
@@ -126,7 +129,7 @@ public:
 	virtual void writeBuffer(RHIBuffer* buffer, uint64_t offset, const void* data, uint64_t size) = 0;
 	virtual void transitionBuffer(RHIBuffer* buffer, RHIResourceState new_state) = 0;
 
-	virtual void pushConstants(const void* data, size_t size) = 0;
+	virtual void setPushConstants(const void* data, size_t size) = 0;
 	virtual void draw(const RHIDrawArguments& args) = 0;
 	virtual void drawIndexed(const RHIDrawArguments& args) = 0;
 

@@ -18,12 +18,16 @@ public:
 	VulkanInputLayout(VulkanDevice& device, RHIInputLayoutDesc desc) : device(device), desc(std::move(desc)) {}
 	~VulkanInputLayout() override = default;
 
-	const RHIVertexAttributeDesc& getAttributeDesc(uint32_t index) const override { return desc.attribute_descs.at(index); }
+	const RHIVertexAttributeDesc& getAttributeDesc(uint32_t index) const noexcept override
+	{
+		assert(index < desc.attribute_descs.size() && "Vertex attribute index is outside the input layout.");
+		return desc.attribute_descs[index];
+	}
 
-	uint32_t getAttributeCount() const override { return static_cast<uint32_t>(desc.attribute_descs.size()); }
+	uint32_t getAttributeCount() const noexcept override { return static_cast<uint32_t>(desc.attribute_descs.size()); }
 
-	const std::vector<vk::VertexInputBindingDescription>&   getBindings() const { return bindings; }
-	const std::vector<vk::VertexInputAttributeDescription>& getAttributes() const { return attributes; }
+	const std::vector<vk::VertexInputBindingDescription>&   getBindings() const noexcept { return bindings; }
+	const std::vector<vk::VertexInputAttributeDescription>& getAttributes() const noexcept { return attributes; }
 };
 
 
@@ -33,6 +37,8 @@ private:
 	RHIGraphicsPipelineDesc desc{};
 
 	RHIShaderType shader_mask{};
+	RHIShaderType push_constant_visibility{};
+	uint32_t      push_constant_size{};
 
 	vk::Pipeline       pipeline{};
 	vk::PipelineLayout layout{};
@@ -45,10 +51,12 @@ public:
 	VulkanGraphicsPipeline(VulkanDevice& device, RHIGraphicsPipelineDesc desc) : device(device), desc(std::move(desc)) {}
 	~VulkanGraphicsPipeline() override { device.destroyGraphicsPipeline(this); }
 
-	const RHIGraphicsPipelineDesc& getDesc() const override { return desc; }
+	const RHIGraphicsPipelineDesc& getDesc() const noexcept override { return desc; }
 
-	RHIShaderType getShaderMask() const { return shader_mask; }
+	RHIShaderType getShaderMask() const noexcept { return shader_mask; }
+	RHIShaderType getPushConstantVisibility() const noexcept { return push_constant_visibility; }
+	uint32_t      getPushConstantSize() const noexcept { return push_constant_size; }
 
-	vk::Pipeline       getHandle() const { return pipeline; }
-	vk::PipelineLayout getLayout() const { return layout; }
+	vk::Pipeline       getHandle() const noexcept { return pipeline; }
+	vk::PipelineLayout getLayout() const noexcept { return layout; }
 };

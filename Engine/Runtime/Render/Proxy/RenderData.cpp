@@ -65,50 +65,50 @@ RenderLightData RenderLightData::convert(const Light& light)
 }
 
 
-RHIDescriptorLayoutDesc RenderObjectData::layout(uint32_t binding)
+RHIBindingLayoutDesc RenderObjectData::layout(uint32_t binding)
 {
-	RHIDescriptorLayoutItem item{};
-	item.setSlot(binding).setType(RHIDescriptorType::UniformBuffer);
+	RHIBindingLayoutItem item{};
+	item.setSlot(binding).setType(RHIBindingType::ConstantBuffer);
 
-	RHIDescriptorLayoutDesc desc{};
-	desc.setVisibility(RHIShaderType::Vertex).addBindingItem(item);
+	RHIBindingLayoutDesc desc{};
+	desc.setVisibility(RHIShaderType::Vertex).addItem(item);
 
 	return desc;
 }
 
 
-RHIDescriptorLayoutDesc RenderMaterialData::layout(uint32_t binding)
+RHIBindingLayoutDesc RenderMaterialData::layout(uint32_t binding)
 {
-	RHIDescriptorLayoutItem item0{};
-	item0.setSlot(binding + 0).setType(RHIDescriptorType::UniformBuffer);
+	RHIBindingLayoutItem item0{};
+	item0.setSlot(binding + 0).setType(RHIBindingType::ConstantBuffer);
 
-	RHIDescriptorLayoutItem item1{};
-	item1.setSlot(binding + 1).setType(RHIDescriptorType::TextureSRV);
+	RHIBindingLayoutItem item1{};
+	item1.setSlot(binding + 1).setType(RHIBindingType::TextureSRV);
 
-	RHIDescriptorLayoutItem item2{};
-	item2.setSlot(binding + 2).setType(RHIDescriptorType::TextureSRV);
+	RHIBindingLayoutItem item2{};
+	item2.setSlot(binding + 2).setType(RHIBindingType::TextureSRV);
 
-	RHIDescriptorLayoutItem item3{};
-	item3.setSlot(binding + 3).setType(RHIDescriptorType::Sampler);
+	RHIBindingLayoutItem item3{};
+	item3.setSlot(binding + 3).setType(RHIBindingType::Sampler);
 
-	RHIDescriptorLayoutDesc desc{};
-	desc.setVisibility(RHIShaderType::Fragment)
-	    .addBindingItem(item0)
-	    .addBindingItem(item1)
-	    .addBindingItem(item2)
-	    .addBindingItem(item3);
+	RHIBindingLayoutDesc desc{};
+	desc.setVisibility(RHIShaderType::Pixel)
+	    .addItem(item0)
+	    .addItem(item1)
+	    .addItem(item2)
+	    .addItem(item3);
 
 	return desc;
 }
 
 
-RHIDescriptorLayoutDesc RenderSceneData::layout(uint32_t binding)
+RHIBindingLayoutDesc RenderSceneData::layout(uint32_t binding)
 {
-	RHIDescriptorLayoutItem item{};
-	item.setSlot(binding).setType(RHIDescriptorType::UniformBuffer);
+	RHIBindingLayoutItem item{};
+	item.setSlot(binding).setType(RHIBindingType::ConstantBuffer);
 
-	RHIDescriptorLayoutDesc desc{};
-	desc.setVisibility(RHIShaderType::Vertex | RHIShaderType::Fragment).addBindingItem(item);
+	RHIBindingLayoutDesc desc{};
+	desc.setVisibility(RHIShaderType::Vertex | RHIShaderType::Pixel).addItem(item);
 
 	return desc;
 }

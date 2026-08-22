@@ -43,10 +43,10 @@ public:
 	    std::span<const vk::Semaphore>          signal_semaphores = {},
 	    vk::Fence                               fence = {});
 
-	RHICommandQueue getType() const { return type; }
+	RHICommandQueue getType() const noexcept { return type; }
 
-	uint32_t getFamilyIndex() const { return family_index; }
+	uint32_t getFamilyIndex() const noexcept { return family_index; }
 
-	vk::Queue     getHandle() const { return queue; }
-	vk::Semaphore getSemaphore() const { return timeline_semaphore; }
+	vk::Queue     getHandle() const noexcept { return queue; }
+	vk::Semaphore getSemaphore() const noexcept { return timeline_semaphore; }
 };

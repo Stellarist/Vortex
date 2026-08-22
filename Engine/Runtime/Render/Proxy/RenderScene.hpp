@@ -11,22 +11,23 @@
 
 class RenderScene {
 private:
-	// Set 0: Scene-level descriptor
-	std::unique_ptr<RHIDescriptorLayout> scene_layout;
-	std::unique_ptr<RHIDescriptorSet>    scene_descriptor;
-	std::unique_ptr<RHIBuffer>           scene_uniform;
-	RenderSceneData                      scene_data;
+	// Set 0: Scene-level bindings
+	RHIRef<RHIBindingLayout> scene_layout;
+	RHIRef<RHIBuffer>        scene_constant_buffer;
+	RHIRef<RHIBufferView>    scene_constant_buffer_view;
+	RHIRef<RHIBindingSet>    scene_binding_set;
+	RenderSceneData          scene_data;
 
 	// Set 1: Material-level
-	std::unique_ptr<RHIDescriptorLayout>         material_layout;
-	std::shared_ptr<RHISampler>                  material_sampler;
+	RHIRef<RHIBindingLayout>                     material_layout;
+	RHIRef<RHISampler>                           material_sampler;
 	std::vector<std::unique_ptr<RenderMaterial>> render_materials;
 	std::vector<std::unique_ptr<RenderTexture>>  render_textures;
 
 	std::unordered_map<std::shared_ptr<Texture>, RenderTexture*> render_texture_map;
 
 	// Set 2: Object-level
-	std::unique_ptr<RHIDescriptorLayout>     object_layout;
+	RHIRef<RHIBindingLayout>                 object_layout;
 	std::vector<std::unique_ptr<RenderMesh>> render_meshes;
 
 	std::unordered_map<std::shared_ptr<Material>, std::vector<RenderMesh*>> meshes_by_material;
@@ -41,7 +42,7 @@ private:
 	RHIContext* context{};
 
 	void createSceneLayouts();
-	void createSceneDescriptor();
+	void createSceneBindingSet();
 
 	void updateCamera();
 	void updateLights();
@@ -62,10 +63,10 @@ public:
 	void rebuild();
 	void draw(RHICommandList& command, const RHIGraphicsState& base_state);
 
-	RHIDescriptorSet*    getSceneDescriptor() { return scene_descriptor.get(); }
-	RHIDescriptorLayout* getSceneLayout() { return scene_layout.get(); }
-	RHIDescriptorLayout* getMaterialLayout() { return material_layout.get(); }
-	RHIDescriptorLayout* getObjectLayout() { return object_layout.get(); }
+	RHIBindingSet*    getSceneBindingSet() { return scene_binding_set.get(); }
+	RHIBindingLayout* getSceneLayout() { return scene_layout.get(); }
+	RHIBindingLayout* getMaterialLayout() { return material_layout.get(); }
+	RHIBindingLayout* getObjectLayout() { return object_layout.get(); }
 
 	const World* getWorld() const { return world; }
 };

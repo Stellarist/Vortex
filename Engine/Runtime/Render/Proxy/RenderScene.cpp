@@ -14,30 +14,31 @@ RenderScene::RenderScene(RHIContext& context, const World& world) :
     context(&context), world(&world)
 {
 	createSceneLayouts();
-	createSceneDescriptor();
+	createSceneBindingSet();
 
 	rebuild();
 }
 
 void RenderScene::createSceneLayouts()
 {
-	scene_layout = context->getDevice().createDescriptorLayout(RenderSceneData::layout(0));
-	material_layout = context->getDevice().createDescriptorLayout(RenderMaterialData::layout(0));
-	object_layout = context->getDevice().createDescriptorLayout(RenderObjectData::layout(0));
+	scene_layout = context->getDevice().createBindingLayout(RenderSceneData::layout(0));
+	material_layout = context->getDevice().createBindingLayout(RenderMaterialData::layout(0));
+	object_layout = context->getDevice().createBindingLayout(RenderObjectData::layout(0));
 }
 
-void RenderScene::createSceneDescriptor()
+void RenderScene::createSceneBindingSet()
 {
-	RHIBufferDesc uniform_desc{};
-	uniform_desc.setSize(sizeof(RenderSceneData))
-	    .setUsage(RHIBufferUsage::UniformBuffer | RHIBufferUsage::CopyDst)
+	RHIBufferDesc constant_buffer_desc{};
+	constant_buffer_desc.setSize(sizeof(RenderSceneData))
+	    .setUsage(RHIBufferUsage::ConstantBuffer | RHIBufferUsage::CopyDest)
 	    .setAccess(RHIAccessMode::Write);
-	scene_uniform = context->getDevice().createBuffer(uniform_desc);
+	scene_constant_buffer = context->getDevice().createBuffer(constant_buffer_desc);
+	scene_constant_buffer_view = context->getDevice().createBufferView(
+	    RHIBufferViewDesc{}.setBuffer(scene_constant_buffer.get()).setType(RHIBufferViewType::Constant));
 
-	RHIDescriptorSetDesc set_desc{};
-	set_desc.addItem(RHIDescriptorSetItem()
-	        .setBuffer(0, scene_uniform.get()));
-	scene_descriptor = context->getDevice().createDescriptorSet(set_desc, *scene_layout);
+	RHIBindingSetDesc set_desc{};
+	set_desc.addItem(RHIBindingSetItem().setBufferView(0, scene_constant_buffer_view.get()));
+	scene_binding_set = context->getDevice().createBindingSet(set_desc, *scene_layout);
 }
 
 void RenderScene::updateCamera()
@@ -100,8 +101,7 @@ void RenderScene::loadTextures()
 	render_textures.reserve(textures.size());
 	render_texture_map.clear();
 
-	auto sampler = context->getDevice().createSampler(RHISamplerDesc{});
-	material_sampler = std::shared_ptr<RHISampler>(std::move(sampler));
+	material_sampler = context->getDevice().createSampler(RHISamplerDesc{});
 	for (auto texture : textures) {
 		if (!texture || !texture->valid())
 			continue;
@@ -127,19 +127,19 @@ void RenderScene::loadMaterials()
 		if (!material)
 			continue;
 
-		RHITexture* base_color_texture = nullptr;
-		RHITexture* metallic_roughness_texture = nullptr;
-		RHISampler* mat_sampler = material_sampler.get();
+		RHITextureView* base_color_texture = nullptr;
+		RHITextureView* metallic_roughness_texture = nullptr;
+		RHISampler*     mat_sampler = material_sampler.get();
 
 		if (auto base_color_tex = material->getTexture("baseColor"); base_color_tex)
 			if (auto base_color_it = render_texture_map.find(base_color_tex); base_color_it != render_texture_map.end()) {
-				base_color_texture = base_color_it->second->getTexture();
+				base_color_texture = base_color_it->second->getTextureView();
 				mat_sampler = base_color_it->second->getSampler();
 			}
 
 		if (auto metallic_roughness_tex = material->getTexture("metallicRoughness"); metallic_roughness_tex)
 			if (auto metallic_roughness_it = render_texture_map.find(metallic_roughness_tex); metallic_roughness_it != render_texture_map.end())
-				metallic_roughness_texture = metallic_roughness_it->second->getTexture();
+				metallic_roughness_texture = metallic_roughness_it->second->getTextureView();
 
 		auto render_mat = std::make_unique<RenderMaterial>(
 		    *context,
@@ -234,9 +234,9 @@ void RenderScene::update(float dt)
 	updateLights();
 	updateMesh();
 
-	void* mapped = context->getDevice().mapBuffer(scene_uniform.get(), RHIAccessMode::Write);
+	void* mapped = context->getDevice().mapBuffer(scene_constant_buffer.get(), RHIAccessMode::Write);
 	std::memcpy(mapped, &scene_data, sizeof(RenderSceneData));
-	context->getDevice().unmapBuffer(scene_uniform.get());
+	context->getDevice().unmapBuffer(scene_constant_buffer.get());
 }
 
 void RenderScene::rebuild()
@@ -254,11 +254,11 @@ void RenderScene::rebuild()
 
 void RenderScene::draw(RHICommandList& command, const RHIGraphicsState& base_state)
 {
-	if (!scene_descriptor)
+	if (!scene_binding_set)
 		return;
 
 	auto scene_state = base_state;
-	scene_state.addBindingSet(scene_descriptor.get());
+	scene_state.addBindingSet(scene_binding_set.get());
 
 	for (auto& [material, meshes] : meshes_by_material) {
 		RenderMaterial* render_material = nullptr;

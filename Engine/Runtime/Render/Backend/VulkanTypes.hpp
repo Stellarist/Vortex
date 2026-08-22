@@ -15,7 +15,7 @@ struct VulkanBufferTransition {
 	vk::AccessFlags2        access{};
 };
 
-inline constexpr vk::Format toVkFormat(RHIFormat format)
+inline constexpr vk::Format toVkFormat(RHIFormat format) noexcept
 {
 	switch (format) {
 	case RHIFormat::Unknown:
@@ -115,25 +115,32 @@ inline constexpr vk::Format toVkFormat(RHIFormat format)
 	return vk::Format::eUndefined;
 }
 
-inline constexpr vk::DescriptorType toVkDescriptorType(RHIDescriptorType type)
+inline constexpr vk::DescriptorType toVkDescriptorType(RHIBindingType type) noexcept
 {
 	switch (type) {
-	case RHIDescriptorType::TextureSRV:
+	case RHIBindingType::TextureSRV:
 		return vk::DescriptorType::eSampledImage;
-	case RHIDescriptorType::TextureUAV:
+	case RHIBindingType::TextureUAV:
 		return vk::DescriptorType::eStorageImage;
-	case RHIDescriptorType::Sampler:
-		return vk::DescriptorType::eSampler;
-	case RHIDescriptorType::UniformBuffer:
-		return vk::DescriptorType::eUniformBuffer;
-	case RHIDescriptorType::StorageBuffer:
+	case RHIBindingType::TypedBufferSRV:
+		return vk::DescriptorType::eUniformTexelBuffer;
+	case RHIBindingType::TypedBufferUAV:
+		return vk::DescriptorType::eStorageTexelBuffer;
+	case RHIBindingType::StructuredBufferSRV:
+	case RHIBindingType::StructuredBufferUAV:
+	case RHIBindingType::RawBufferSRV:
+	case RHIBindingType::RawBufferUAV:
 		return vk::DescriptorType::eStorageBuffer;
-	default:
+	case RHIBindingType::ConstantBuffer:
 		return vk::DescriptorType::eUniformBuffer;
+	case RHIBindingType::Sampler:
+		return vk::DescriptorType::eSampler;
+	default:
+		return static_cast<vk::DescriptorType>(VK_DESCRIPTOR_TYPE_MAX_ENUM);
 	}
 }
 
-inline constexpr vk::ColorComponentFlags toVkColorComponentFlags(RHIColorMask mask)
+inline constexpr vk::ColorComponentFlags toVkColorComponentFlags(RHIColorMask mask) noexcept
 {
 	vk::ColorComponentFlags flags{};
 	if ((mask & RHIColorMask::R) != RHIColorMask::None)
@@ -148,7 +155,7 @@ inline constexpr vk::ColorComponentFlags toVkColorComponentFlags(RHIColorMask ma
 	return flags;
 }
 
-inline constexpr vk::IndexType toVkIndexType(RHIIndexType type)
+inline constexpr vk::IndexType toVkIndexType(RHIIndexType type) noexcept
 {
 	switch (type) {
 	case RHIIndexType::Uint8:
@@ -162,7 +169,7 @@ inline constexpr vk::IndexType toVkIndexType(RHIIndexType type)
 	return vk::IndexType::eNoneKHR;
 }
 
-inline constexpr vk::PrimitiveTopology toVkPrimitiveTopology(RHIPrimitiveType type)
+inline constexpr vk::PrimitiveTopology toVkPrimitiveTopology(RHIPrimitiveType type) noexcept
 {
 	switch (type) {
 	case RHIPrimitiveType::TriangleList:
@@ -180,7 +187,7 @@ inline constexpr vk::PrimitiveTopology toVkPrimitiveTopology(RHIPrimitiveType ty
 	return vk::PrimitiveTopology::eTriangleList;
 }
 
-inline constexpr vk::CompareOp toVkCompareOp(RHICompareOp op)
+inline constexpr vk::CompareOp toVkCompareOp(RHICompareOp op) noexcept
 {
 	switch (op) {
 	case RHICompareOp::Never:
@@ -202,7 +209,7 @@ inline constexpr vk::CompareOp toVkCompareOp(RHICompareOp op)
 	return vk::CompareOp::eAlways;
 }
 
-inline constexpr vk::BlendFactor toVkBlendFactor(RHIBlendFactor factor)
+inline constexpr vk::BlendFactor toVkBlendFactor(RHIBlendFactor factor) noexcept
 {
 	switch (factor) {
 	case RHIBlendFactor::Zero:
@@ -230,7 +237,7 @@ inline constexpr vk::BlendFactor toVkBlendFactor(RHIBlendFactor factor)
 	return vk::BlendFactor::eOne;
 }
 
-inline constexpr vk::BlendOp toVkBlendOp(RHIBlendOp op)
+inline constexpr vk::BlendOp toVkBlendOp(RHIBlendOp op) noexcept
 {
 	switch (op) {
 	case RHIBlendOp::Add:
@@ -248,7 +255,7 @@ inline constexpr vk::BlendOp toVkBlendOp(RHIBlendOp op)
 	return vk::BlendOp::eAdd;
 }
 
-inline constexpr vk::StencilOp toVkStencilOp(RHIStencilOp op)
+inline constexpr vk::StencilOp toVkStencilOp(RHIStencilOp op) noexcept
 {
 	switch (op) {
 	case RHIStencilOp::Keep:
@@ -272,7 +279,7 @@ inline constexpr vk::StencilOp toVkStencilOp(RHIStencilOp op)
 	return vk::StencilOp::eKeep;
 }
 
-inline constexpr vk::PolygonMode toVkPolygonMode(RHIPolygonMode mode)
+inline constexpr vk::PolygonMode toVkPolygonMode(RHIPolygonMode mode) noexcept
 {
 	switch (mode) {
 	case RHIPolygonMode::Fill:
@@ -286,7 +293,7 @@ inline constexpr vk::PolygonMode toVkPolygonMode(RHIPolygonMode mode)
 	return vk::PolygonMode::eFill;
 }
 
-inline constexpr vk::CullModeFlags toVkCullMode(RHICullMode mode)
+inline constexpr vk::CullModeFlags toVkCullMode(RHICullMode mode) noexcept
 {
 	switch (mode) {
 	case RHICullMode::None:
@@ -300,7 +307,7 @@ inline constexpr vk::CullModeFlags toVkCullMode(RHICullMode mode)
 	return vk::CullModeFlagBits::eBack;
 }
 
-inline constexpr vk::FrontFace toVkFrontFace(RHIFrontFace face)
+inline constexpr vk::FrontFace toVkFrontFace(RHIFrontFace face) noexcept
 {
 	switch (face) {
 	case RHIFrontFace::CounterClockwise:
@@ -312,7 +319,7 @@ inline constexpr vk::FrontFace toVkFrontFace(RHIFrontFace face)
 	return vk::FrontFace::eCounterClockwise;
 }
 
-inline constexpr vk::ImageType toVkImageType(RHITextureDimension dimension)
+inline constexpr vk::ImageType toVkImageType(RHITextureDimension dimension) noexcept
 {
 	switch (dimension) {
 	case RHITextureDimension::Texture1D:
@@ -327,7 +334,7 @@ inline constexpr vk::ImageType toVkImageType(RHITextureDimension dimension)
 	return vk::ImageType::e2D;
 }
 
-inline constexpr vk::ImageViewType toVkImageViewType(RHITextureDimension dimension)
+inline constexpr vk::ImageViewType toVkImageViewType(RHITextureDimension dimension) noexcept
 {
 	switch (dimension) {
 	case RHITextureDimension::Texture1D:
@@ -343,7 +350,31 @@ inline constexpr vk::ImageViewType toVkImageViewType(RHITextureDimension dimensi
 	return vk::ImageViewType::e2D;
 }
 
-inline constexpr vk::ImageUsageFlagBits toVkImageUsageFlagBits(RHITextureUsage usage)
+inline constexpr vk::ImageViewType toVkImageViewType(RHITextureViewDimension dimension) noexcept
+{
+	switch (dimension) {
+	case RHITextureViewDimension::Texture1D:
+		return vk::ImageViewType::e1D;
+	case RHITextureViewDimension::Texture1DArray:
+		return vk::ImageViewType::e1DArray;
+	case RHITextureViewDimension::Texture2D:
+		return vk::ImageViewType::e2D;
+	case RHITextureViewDimension::Texture2DArray:
+		return vk::ImageViewType::e2DArray;
+	case RHITextureViewDimension::Texture3D:
+		return vk::ImageViewType::e3D;
+	case RHITextureViewDimension::TextureCube:
+		return vk::ImageViewType::eCube;
+	case RHITextureViewDimension::TextureCubeArray:
+		return vk::ImageViewType::eCubeArray;
+	case RHITextureViewDimension::Automatic:
+		break;
+	}
+
+	return vk::ImageViewType::e2D;
+}
+
+inline constexpr vk::ImageUsageFlagBits toVkImageUsageFlagBits(RHITextureUsage usage) noexcept
 {
 	switch (usage) {
 	case RHITextureUsage::Sampled:
@@ -354,16 +385,16 @@ inline constexpr vk::ImageUsageFlagBits toVkImageUsageFlagBits(RHITextureUsage u
 		return vk::ImageUsageFlagBits::eDepthStencilAttachment;
 	case RHITextureUsage::Storage:
 		return vk::ImageUsageFlagBits::eStorage;
-	case RHITextureUsage::CopySrc:
+	case RHITextureUsage::CopySource:
 		return vk::ImageUsageFlagBits::eTransferSrc;
-	case RHITextureUsage::CopyDst:
+	case RHITextureUsage::CopyDest:
 		return vk::ImageUsageFlagBits::eTransferDst;
 	default:
 		return vk::ImageUsageFlagBits::eSampled;
 	}
 }
 
-inline constexpr vk::ImageUsageFlags toVkImageUsageFlags(RHITextureUsage usage)
+inline constexpr vk::ImageUsageFlags toVkImageUsageFlags(RHITextureUsage usage) noexcept
 {
 	vk::ImageUsageFlags flags{};
 	if ((usage & RHITextureUsage::Sampled) != RHITextureUsage::None)
@@ -374,15 +405,15 @@ inline constexpr vk::ImageUsageFlags toVkImageUsageFlags(RHITextureUsage usage)
 		flags |= vk::ImageUsageFlagBits::eDepthStencilAttachment;
 	if ((usage & RHITextureUsage::Storage) != RHITextureUsage::None)
 		flags |= vk::ImageUsageFlagBits::eStorage;
-	if ((usage & RHITextureUsage::CopySrc) != RHITextureUsage::None)
+	if ((usage & RHITextureUsage::CopySource) != RHITextureUsage::None)
 		flags |= vk::ImageUsageFlagBits::eTransferSrc;
-	if ((usage & RHITextureUsage::CopyDst) != RHITextureUsage::None)
+	if ((usage & RHITextureUsage::CopyDest) != RHITextureUsage::None)
 		flags |= vk::ImageUsageFlagBits::eTransferDst;
 
 	return flags;
 }
 
-inline constexpr vk::SamplerAddressMode toVkSamplerAddressMode(RHISamplerAddress address)
+inline constexpr vk::SamplerAddressMode toVkSamplerAddressMode(RHISamplerAddress address) noexcept
 {
 	switch (address) {
 	case RHISamplerAddress::Repeat:
@@ -398,12 +429,12 @@ inline constexpr vk::SamplerAddressMode toVkSamplerAddressMode(RHISamplerAddress
 	return vk::SamplerAddressMode::eRepeat;
 }
 
-inline constexpr vk::ShaderStageFlagBits toVkShaderStageFlagBits(RHIShaderType type)
+inline constexpr vk::ShaderStageFlagBits toVkShaderStageFlagBits(RHIShaderType type) noexcept
 {
 	switch (type) {
 	case RHIShaderType::Vertex:
 		return vk::ShaderStageFlagBits::eVertex;
-	case RHIShaderType::Fragment:
+	case RHIShaderType::Pixel:
 		return vk::ShaderStageFlagBits::eFragment;
 	case RHIShaderType::Geometry:
 		return vk::ShaderStageFlagBits::eGeometry;
@@ -418,12 +449,12 @@ inline constexpr vk::ShaderStageFlagBits toVkShaderStageFlagBits(RHIShaderType t
 	}
 }
 
-inline constexpr vk::ShaderStageFlags toVkShaderStageFlags(RHIShaderType type)
+inline constexpr vk::ShaderStageFlags toVkShaderStageFlags(RHIShaderType type) noexcept
 {
 	vk::ShaderStageFlags flags{};
 	if ((type & RHIShaderType::Vertex) != RHIShaderType::None)
 		flags |= vk::ShaderStageFlagBits::eVertex;
-	if ((type & RHIShaderType::Fragment) != RHIShaderType::None)
+	if ((type & RHIShaderType::Pixel) != RHIShaderType::None)
 		flags |= vk::ShaderStageFlagBits::eFragment;
 	if ((type & RHIShaderType::Geometry) != RHIShaderType::None)
 		flags |= vk::ShaderStageFlagBits::eGeometry;
@@ -433,50 +464,54 @@ inline constexpr vk::ShaderStageFlags toVkShaderStageFlags(RHIShaderType type)
 	return flags;
 }
 
-inline constexpr vk::BufferUsageFlagBits toVkBufferUsageFlagBits(RHIBufferUsage usage)
+inline constexpr vk::BufferUsageFlagBits toVkBufferUsageFlagBits(RHIBufferUsage usage) noexcept
 {
 	switch (usage) {
 	case RHIBufferUsage::VertexBuffer:
 		return vk::BufferUsageFlagBits::eVertexBuffer;
 	case RHIBufferUsage::IndexBuffer:
 		return vk::BufferUsageFlagBits::eIndexBuffer;
-	case RHIBufferUsage::UniformBuffer:
+	case RHIBufferUsage::ConstantBuffer:
 		return vk::BufferUsageFlagBits::eUniformBuffer;
 	case RHIBufferUsage::StorageBuffer:
 		return vk::BufferUsageFlagBits::eStorageBuffer;
-	case RHIBufferUsage::IndirectBuffer:
+	case RHIBufferUsage::IndirectArgument:
 		return vk::BufferUsageFlagBits::eIndirectBuffer;
-	case RHIBufferUsage::CopySrc:
+	case RHIBufferUsage::CopySource:
 		return vk::BufferUsageFlagBits::eTransferSrc;
-	case RHIBufferUsage::CopyDst:
+	case RHIBufferUsage::CopyDest:
 		return vk::BufferUsageFlagBits::eTransferDst;
+	case RHIBufferUsage::TypedBuffer:
+		return vk::BufferUsageFlagBits::eUniformTexelBuffer;
 	default:
 		return vk::BufferUsageFlagBits::eUniformBuffer;
 	}
 }
 
-inline constexpr vk::BufferUsageFlags toVkBufferUsageFlags(RHIBufferUsage usage)
+inline constexpr vk::BufferUsageFlags toVkBufferUsageFlags(RHIBufferUsage usage) noexcept
 {
 	vk::BufferUsageFlags flags{};
 	if ((usage & RHIBufferUsage::VertexBuffer) != RHIBufferUsage::None)
 		flags |= vk::BufferUsageFlagBits::eVertexBuffer;
 	if ((usage & RHIBufferUsage::IndexBuffer) != RHIBufferUsage::None)
 		flags |= vk::BufferUsageFlagBits::eIndexBuffer;
-	if ((usage & RHIBufferUsage::UniformBuffer) != RHIBufferUsage::None)
+	if ((usage & RHIBufferUsage::ConstantBuffer) != RHIBufferUsage::None)
 		flags |= vk::BufferUsageFlagBits::eUniformBuffer;
 	if ((usage & RHIBufferUsage::StorageBuffer) != RHIBufferUsage::None)
 		flags |= vk::BufferUsageFlagBits::eStorageBuffer;
-	if ((usage & RHIBufferUsage::IndirectBuffer) != RHIBufferUsage::None)
+	if ((usage & RHIBufferUsage::IndirectArgument) != RHIBufferUsage::None)
 		flags |= vk::BufferUsageFlagBits::eIndirectBuffer;
-	if ((usage & RHIBufferUsage::CopySrc) != RHIBufferUsage::None)
+	if ((usage & RHIBufferUsage::CopySource) != RHIBufferUsage::None)
 		flags |= vk::BufferUsageFlagBits::eTransferSrc;
-	if ((usage & RHIBufferUsage::CopyDst) != RHIBufferUsage::None)
+	if ((usage & RHIBufferUsage::CopyDest) != RHIBufferUsage::None)
 		flags |= vk::BufferUsageFlagBits::eTransferDst;
+	if ((usage & RHIBufferUsage::TypedBuffer) != RHIBufferUsage::None)
+		flags |= vk::BufferUsageFlagBits::eUniformTexelBuffer | vk::BufferUsageFlagBits::eStorageTexelBuffer;
 
 	return flags;
 }
 
-inline constexpr vk::Filter toVkFilter(RHIFilter filter)
+inline constexpr vk::Filter toVkFilter(RHIFilter filter) noexcept
 {
 	switch (filter) {
 	case RHIFilter::Nearest:
@@ -488,7 +523,7 @@ inline constexpr vk::Filter toVkFilter(RHIFilter filter)
 	return vk::Filter::eNearest;
 }
 
-inline constexpr vk::MemoryPropertyFlags toVkMemoryPropertyFlags(RHIAccessMode access)
+inline constexpr vk::MemoryPropertyFlags toVkMemoryPropertyFlags(RHIAccessMode access) noexcept
 {
 	switch (access) {
 	case RHIAccessMode::None:
@@ -502,7 +537,7 @@ inline constexpr vk::MemoryPropertyFlags toVkMemoryPropertyFlags(RHIAccessMode a
 	return vk::MemoryPropertyFlagBits::eDeviceLocal;
 }
 
-inline constexpr vk::ClearColorValue toVkClearColorValue(const RHIColor& color)
+inline constexpr vk::ClearColorValue toVkClearColorValue(const RHIColor& color) noexcept
 {
 	return vk::ClearColorValue(
 	    std::array<float, 4>{
@@ -512,14 +547,14 @@ inline constexpr vk::ClearColorValue toVkClearColorValue(const RHIColor& color)
 	        color.a});
 }
 
-inline constexpr vk::Extent2D toVkExtent2D(const RHIExtent& extent)
+inline constexpr vk::Extent2D toVkExtent2D(const RHIExtent& extent) noexcept
 {
 	return vk::Extent2D(
 	    extent.width,
 	    extent.height);
 }
 
-inline constexpr vk::Viewport toVkViewport(const RHIViewport& viewport)
+inline constexpr vk::Viewport toVkViewport(const RHIViewport& viewport) noexcept
 {
 	return vk::Viewport(
 	    viewport.x_min,
@@ -530,21 +565,21 @@ inline constexpr vk::Viewport toVkViewport(const RHIViewport& viewport)
 	    viewport.z_max);
 }
 
-inline constexpr vk::ClearValue toVkClearValue(const RHIClearValue& clear_value)
+inline constexpr vk::ClearValue toVkClearValue(const RHIClearValue& clear_value) noexcept
 {
 	return vk::ClearValue(clear_value.depth != 0.0f || clear_value.stencil != 0 ?
 	        vk::ClearValue().setDepthStencil({clear_value.depth, clear_value.stencil}) :
 	        vk::ClearValue().setColor(toVkClearColorValue(clear_value.color)));
 }
 
-inline constexpr vk::Rect2D toVkRect2D(const RHIRect& rect)
+inline constexpr vk::Rect2D toVkRect2D(const RHIRect& rect) noexcept
 {
 	return vk::Rect2D(
 	    vk::Offset2D(rect.x_min, rect.y_min),
 	    vk::Extent2D(rect.width(), rect.height()));
 }
 
-inline constexpr vk::SampleCountFlagBits toVkSampleCountFlagBits(uint32_t count)
+inline constexpr vk::SampleCountFlagBits toVkSampleCountFlagBits(uint32_t count) noexcept
 {
 	switch (count) {
 	case 1:
@@ -566,7 +601,7 @@ inline constexpr vk::SampleCountFlagBits toVkSampleCountFlagBits(uint32_t count)
 	}
 }
 
-inline constexpr vk::PipelineStageFlags2 getVkPipelineStageFlags(vk::ImageLayout layout)
+inline constexpr vk::PipelineStageFlags2 getVkPipelineStageFlags(vk::ImageLayout layout) noexcept
 {
 	switch (layout) {
 	case vk::ImageLayout::eTransferSrcOptimal:
@@ -588,7 +623,7 @@ inline constexpr vk::PipelineStageFlags2 getVkPipelineStageFlags(vk::ImageLayout
 	}
 }
 
-inline constexpr vk::ImageAspectFlags getVkImageAspectFlags(RHIFormat format)
+inline constexpr vk::ImageAspectFlags getVkImageAspectFlags(RHIFormat format) noexcept
 {
 	switch (format) {
 	case RHIFormat::D16_UNORM:
@@ -601,7 +636,7 @@ inline constexpr vk::ImageAspectFlags getVkImageAspectFlags(RHIFormat format)
 	}
 }
 
-inline constexpr vk::DeviceSize getVkFormatByteSize(RHIFormat format)
+inline constexpr vk::DeviceSize getVkFormatByteSize(RHIFormat format) noexcept
 {
 	switch (format) {
 	case RHIFormat::Unknown:
@@ -669,15 +704,15 @@ inline constexpr vk::DeviceSize getVkFormatByteSize(RHIFormat format)
 	return 0;
 }
 
-inline constexpr VulkanTextureTransition getTextureTransition(RHIResourceState state)
+inline constexpr VulkanTextureTransition getTextureTransition(RHIResourceState state) noexcept
 {
 	VulkanTextureTransition info{};
 
-	if ((state & CopySrc) != 0) {
+	if ((state & CopySource) != 0) {
 		info.layout = vk::ImageLayout::eTransferSrcOptimal;
 		info.stage = vk::PipelineStageFlagBits2::eCopy;
 		info.access = vk::AccessFlagBits2::eTransferRead;
-	} else if ((state & CopyDst) != 0) {
+	} else if ((state & CopyDest) != 0) {
 		info.layout = vk::ImageLayout::eTransferDstOptimal;
 		info.stage = vk::PipelineStageFlagBits2::eCopy;
 		info.access = vk::AccessFlagBits2::eTransferWrite;
@@ -714,17 +749,17 @@ inline constexpr VulkanTextureTransition getTextureTransition(RHIResourceState s
 	return info;
 }
 
-inline constexpr VulkanBufferTransition getBufferTransition(RHIResourceState state)
+inline constexpr VulkanBufferTransition getBufferTransition(RHIResourceState state) noexcept
 {
 	VulkanBufferTransition info{};
 
 	if (state == Unknown) {
 		info.stage = vk::PipelineStageFlagBits2::eTopOfPipe;
 		info.access = {};
-	} else if ((state & CopySrc) != 0) {
+	} else if ((state & CopySource) != 0) {
 		info.stage = vk::PipelineStageFlagBits2::eCopy;
 		info.access = vk::AccessFlagBits2::eTransferRead;
-	} else if ((state & CopyDst) != 0) {
+	} else if ((state & CopyDest) != 0) {
 		info.stage = vk::PipelineStageFlagBits2::eCopy;
 		info.access = vk::AccessFlagBits2::eTransferWrite;
 	} else if ((state & VertexBuffer) != 0) {

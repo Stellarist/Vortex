@@ -8,6 +8,7 @@
 
 #include "Editor/Window.hpp"
 #include "Runtime/Render/RHI/RHIDevice.hpp"
+#include "Runtime/Render/RHI/RHIContext.hpp"
 
 class VulkanDevice;
 class VulkanContext;
@@ -23,8 +24,9 @@ struct VulkanSwapchainImages {
 
 class VulkanFrame {
 private:
-	std::vector<std::unique_ptr<RHICommandList>> frame_commands{};
-	std::vector<std::unique_ptr<RHITexture>>     backbuffers{};
+	std::vector<RHIRef<RHICommandList>> frame_commands{};
+	std::vector<RHIRef<RHITexture>>     backbuffers{};
+	std::vector<RHIRef<RHITextureView>> backbuffer_views{};
 
 	std::vector<vk::Semaphore> image_available_semaphores{};
 	std::vector<vk::Semaphore> render_finished_semaphores{};
@@ -51,8 +53,9 @@ public:
 	void present();
 	void advance();
 
-	RHICommandList& getCommand() { return *frame_commands[current_frame]; }
-	RHITexture&     getBackbuffer() { return *backbuffers[image_index]; }
+	RHICommandList& getCommand() noexcept { return *frame_commands[current_frame]; }
+	RHITexture&     getBackbuffer() noexcept { return *backbuffers[image_index]; }
+	RHITextureView& getBackbufferView() noexcept { return *backbuffer_views[image_index]; }
 };
 
 class VulkanContext : public RHIContext {
@@ -74,26 +77,27 @@ private:
 
 public:
 	VulkanContext(Window& window);
-	~VulkanContext();
+	~VulkanContext() noexcept override;
 
 	void beginFrame() override;
 	void endFrame() override;
 
-	RHICommandList& getCommand() override { return frame->getCommand(); }
-	RHITexture&     getBackbuffer() override { return frame->getBackbuffer(); }
+	RHICommandList& getCommand() noexcept override { return frame->getCommand(); }
+	RHITexture&     getBackbuffer() noexcept override { return frame->getBackbuffer(); }
+	RHITextureView& getBackbufferView() noexcept override { return frame->getBackbufferView(); }
 
-	RHIDevice& getDevice() override;
+	RHIDevice& getDevice() noexcept override;
 
-	RHIFormat getFormat() const override { return desc.format; }
-	RHIExtent getExtent() const override { return desc.extent; }
+	RHIFormat getFormat() const noexcept override { return desc.format; }
+	RHIExtent getExtent() const noexcept override { return desc.extent; }
 
-	VulkanFrame* getFrame() { return frame.get(); }
+	VulkanFrame* getFrame() noexcept { return frame.get(); }
 
-	vk::Instance       getInstance() const { return instance; }
-	vk::SurfaceKHR     getSurface() const { return surface; }
-	vk::PhysicalDevice getPhysicalDevice() const { return physical_device; }
-	vk::SwapchainKHR   getSwapchain() const { return swapchain; }
+	vk::Instance       getInstance() const noexcept { return instance; }
+	vk::SurfaceKHR     getSurface() const noexcept { return surface; }
+	vk::PhysicalDevice getPhysicalDevice() const noexcept { return physical_device; }
+	vk::SwapchainKHR   getSwapchain() const noexcept { return swapchain; }
 
-	const VulkanQueueIndices&    getQueueIndices() const { return queue_indices; }
-	const VulkanSwapchainImages& getSwapchainImages() const { return swapchain_images; }
+	const VulkanQueueIndices&    getQueueIndices() const noexcept { return queue_indices; }
+	const VulkanSwapchainImages& getSwapchainImages() const noexcept { return swapchain_images; }
 };

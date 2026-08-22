@@ -24,8 +24,8 @@ FScreenOutput vertexMain(uint vertexID : SV_VertexID)
 }
 
 
-[shader("fragment")] 
-float4 fragmentMain(FScreenOutput input) : SV_Target
+[shader("pixel")] 
+float4 pixelMain(FScreenOutput input) : SV_Target
 {
 	float3 world_pos = position_gbuffer.Sample(input.uv).rgb;
 	float3 N = normalize(normal_gbuffer.Sample(input.uv).rgb);
