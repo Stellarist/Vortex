@@ -37,10 +37,10 @@ private:
 
 	static constexpr uint32 FRAMES_IN_FLIGHT = 2;
 
-	friend class VulkanContext;
-
 	static void transitionSwapchainImage(vk::CommandBuffer command, vk::Image image, vk::ImageLayout old_layout, vk::ImageLayout new_layout);
 	static void blitToSwapchain(vk::CommandBuffer command, vk::Image src, vk::Image dst, const RHIExtent& extent);
+
+	friend class VulkanContext;
 
 public:
 	VulkanFrame(VulkanContext& context);

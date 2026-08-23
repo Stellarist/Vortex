@@ -62,9 +62,9 @@ Widget::Widget(Window& window, Renderer& renderer) :
 	    .DescriptorPool = descriptor_pool,
 	    .MinImageCount = 3,
 	    .ImageCount = 3,
-		.PipelineInfoMain = {
-			.PipelineRenderingCreateInfo = rendering_info,
-		},
+	    .PipelineInfoMain = {
+	        .PipelineRenderingCreateInfo = rendering_info,
+	    },
 	    .UseDynamicRendering = true,
 	};
 
@@ -145,6 +145,8 @@ void Widget::drawSceneGraph(const World* world, float dt)
 		return;
 
 	auto* scene = world->getActiveScene();
+	if (!scene)
+		return;
 
 	ImGui::Begin("Scene Graph");
 
@@ -153,9 +155,10 @@ void Widget::drawSceneGraph(const World* world, float dt)
 		ImGui::Text("Scene: %s", scene->getName().c_str());
 		ImGui::Separator();
 
-		drawSceneNodes(scene->getRoot());
+		for (auto* root_actor : scene->getRootActors())
+			drawSceneActors(root_actor);
 		drawSceneComponents(scene);
-		drawSceneResources(scene);
+		drawAssets(world->getAssetManager());
 
 		ImGui::TreePop();
 	}
@@ -163,20 +166,20 @@ void Widget::drawSceneGraph(const World* world, float dt)
 	ImGui::End();
 }
 
-void Widget::drawSceneNodes(const Node* root)
+void Widget::drawSceneActors(const Actor* actor)
 {
-	if (!root)
+	if (!actor)
 		return;
 
-	auto* node = const_cast<Node*>(root);
-	auto  node_title = std::format("[{}] {}", node->getType().name(), node->getName());
+	auto* mutable_actor = const_cast<Actor*>(actor);
+	auto  actor_title = std::format("[{}] {}", mutable_actor->getType().name(), mutable_actor->getName());
 
 	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth;
-	if (ImGui::TreeNodeEx((void*) (intptr) node->getUid(), flags, "%s", node_title.c_str())) {
+	if (ImGui::TreeNodeEx((void*) (intptr) mutable_actor->getUid(), flags, "%s", actor_title.c_str())) {
 		ImGui::Indent();
 
-		if (node != node->getScene()->getRoot()) {
-			auto& transform = node->getTransform();
+		if (auto* root_component = mutable_actor->getRootComponent()) {
+			auto& transform = root_component->getTransform();
 			auto  translation = transform.getTranslation();
 			auto  rotation = Math::degrees(Math::eulerAngles(transform.getRotation()));
 			auto  scale = transform.getScaling();
@@ -203,94 +206,86 @@ void Widget::drawSceneNodes(const Node* root)
 			transform.setTranslation(translation);
 			transform.setRotation(Math::fromEuler(Math::radians(rotation)));
 			transform.setScaling(scale);
+		}
 
-			node->getTransform().invalidateWorldMatrix();
+		if (mutable_actor->hasComponent<CameraComponent>()) {
+			auto* camera = &mutable_actor->getComponent<CameraComponent>();
+			if (auto* persp_camera = dynamic_cast<PerspectiveCameraComponent*>(camera)) {
+				auto aspect_ratio = persp_camera->getAspectRatio();
+				auto fov = persp_camera->getFov();
+				auto near_plane = persp_camera->getNearPlane();
+				auto far_plane = persp_camera->getFarPlane();
 
-			if (node->hasComponent<Camera>()) {
-				auto* camera = &node->getComponent<Camera>();
-				if (auto* persp_camera = dynamic_cast<PerspectiveCamera*>(camera)) {
-					auto aspect_ratio = persp_camera->getAspectRatio();
-					auto fov = persp_camera->getFov();
-					auto near_plane = persp_camera->getNearPlane();
-					auto far_plane = persp_camera->getFarPlane();
+				ImGui::DragFloat("Aspect Ratio", &aspect_ratio, 0.01f, 0.1f, 10.0f);
+				ImGui::DragFloat("FOV", &fov, 0.01f, 0.1f, 1.57f);
+				ImGui::DragFloat("Near Plane", &near_plane, 0.01f, 0.01f, 1000.0f);
+				ImGui::DragFloat("Far Plane", &far_plane, 0.1f, 1.0f, 10000.0f);
 
-					ImGui::DragFloat("Aspect Ratio", &aspect_ratio, 0.01f, 0.1f, 10.0f);
-					ImGui::DragFloat("FOV", &fov, 0.01f, 0.1f, 1.57f);
-					ImGui::DragFloat("Near Plane", &near_plane, 0.01f, 0.01f, 1000.0f);
-					ImGui::DragFloat("Far Plane", &far_plane, 0.1f, 1.0f, 10000.0f);
-
-					persp_camera->setAspectRatio(aspect_ratio);
-					persp_camera->setFov(fov);
-					persp_camera->setNearPlane(near_plane);
-					persp_camera->setFarPlane(far_plane);
-				}
-
-				if (auto* ortho_camera = dynamic_cast<OrthoCamera*>(camera)) {
-					auto left = ortho_camera->getLeft();
-					auto right = ortho_camera->getRight();
-					auto top = ortho_camera->getTop();
-					auto bottom = ortho_camera->getBottom();
-					auto near_plane = ortho_camera->getNearPlane();
-					auto far_plane = ortho_camera->getFarPlane();
-
-					ImGui::DragFloat("Left", &left, 0.1f, -1000.0f, 1000.0f);
-					ImGui::DragFloat("Right", &right, 0.1f, -1000.0f, 1000.0f);
-					ImGui::DragFloat("Top", &top, 0.1f, -1000.0f, 1000.0f);
-					ImGui::DragFloat("Bottom", &bottom, 0.1f, -1000.0f, 1000.0f);
-					ImGui::DragFloat("Near Plane", &near_plane, 0.01f, 0.01f, 1000.0f);
-					ImGui::DragFloat("Far Plane", &far_plane, 0.1f, 1.0f, 10000.0f);
-
-					ortho_camera->setLeft(left);
-					ortho_camera->setRight(right);
-					ortho_camera->setTop(top);
-					ortho_camera->setBottom(bottom);
-					ortho_camera->setNearPlane(near_plane);
-					ortho_camera->setFarPlane(far_plane);
-				}
+				persp_camera->setAspectRatio(aspect_ratio);
+				persp_camera->setFov(fov);
+				persp_camera->setNearPlane(near_plane);
+				persp_camera->setFarPlane(far_plane);
 			}
 
-			if (node->hasComponent<Light>()) {
-				auto* light = &node->getComponent<Light>();
-				auto  color = light->getColor();
-				auto  intensity = light->getIntensity();
+			if (auto* ortho_camera = dynamic_cast<OrthographicCameraComponent*>(camera)) {
+				auto left = ortho_camera->getLeft();
+				auto right = ortho_camera->getRight();
+				auto top = ortho_camera->getTop();
+				auto bottom = ortho_camera->getBottom();
+				auto near_plane = ortho_camera->getNearPlane();
+				auto far_plane = ortho_camera->getFarPlane();
 
-				ImGui::ColorEdit3("Color", &color.r);
-				ImGui::DragFloat("Intensity", &intensity, 100.0f, 0.0f);
+				ImGui::DragFloat("Left", &left, 0.1f, -1000.0f, 1000.0f);
+				ImGui::DragFloat("Right", &right, 0.1f, -1000.0f, 1000.0f);
+				ImGui::DragFloat("Top", &top, 0.1f, -1000.0f, 1000.0f);
+				ImGui::DragFloat("Bottom", &bottom, 0.1f, -1000.0f, 1000.0f);
+				ImGui::DragFloat("Near Plane", &near_plane, 0.01f, 0.01f, 1000.0f);
+				ImGui::DragFloat("Far Plane", &far_plane, 0.1f, 1.0f, 10000.0f);
 
-				light->setColor(color);
-				light->setIntensity(intensity);
-
-				if (auto* directional_light = dynamic_cast<DirectionalLight*>(light)) {
-					auto direction = directional_light->getDirection();
-					ImGui::DragFloat3("Direction", &direction.x, 0.001f, -1.0f, 1.0f);
-					directional_light->setDirection(direction);
-				}
-
-				if (auto* point_light = dynamic_cast<PointLight*>(light)) {
-					auto range = point_light->getRange();
-					ImGui::DragFloat("Range", &range, 10.0f, 0.0f);
-					point_light->setRange(range);
-				}
-
-				if (auto* spot_light = dynamic_cast<SpotLight*>(light)) {
-					auto range = spot_light->getRange();
-					auto inner_cone = Math::degrees(spot_light->getInnerConeAngle());
-					auto outer_cone = Math::degrees(spot_light->getOuterConeAngle());
-
-					ImGui::DragFloat("Range", &range, 10.0f, 0.0f);
-					ImGui::DragFloat("Inner Cone Angle", &inner_cone, 0.1f, 0.0f, 90.0f);
-					ImGui::DragFloat("Outer Cone Angle", &outer_cone, 0.1f, 0.0f, 90.0f);
-
-					spot_light->setRange(range);
-					spot_light->setInnerConeAngle(Math::radians(inner_cone));
-					spot_light->setOuterConeAngle(Math::radians(outer_cone));
-				}
+				ortho_camera->setLeft(left);
+				ortho_camera->setRight(right);
+				ortho_camera->setTop(top);
+				ortho_camera->setBottom(bottom);
+				ortho_camera->setNearPlane(near_plane);
+				ortho_camera->setFarPlane(far_plane);
 			}
 		}
 
-		const auto& children = node->getChildren();
+		if (mutable_actor->hasComponent<LightComponent>()) {
+			auto* light = &mutable_actor->getComponent<LightComponent>();
+			auto  color = light->getColor();
+			auto  intensity = light->getIntensity();
+
+			ImGui::ColorEdit3("Color", &color.r);
+			ImGui::DragFloat("Intensity", &intensity, 100.0f, 0.0f);
+
+			light->setColor(color);
+			light->setIntensity(intensity);
+
+			if (auto* point_light = dynamic_cast<PointLightComponent*>(light)) {
+				auto range = point_light->getRange();
+				ImGui::DragFloat("Range", &range, 10.0f, 0.0f);
+				point_light->setRange(range);
+			}
+
+			if (auto* spot_light = dynamic_cast<SpotLightComponent*>(light)) {
+				auto range = spot_light->getRange();
+				auto inner_cone = Math::degrees(spot_light->getInnerConeAngle());
+				auto outer_cone = Math::degrees(spot_light->getOuterConeAngle());
+
+				ImGui::DragFloat("Range", &range, 10.0f, 0.0f);
+				ImGui::DragFloat("Inner Cone Angle", &inner_cone, 0.1f, 0.0f, 90.0f);
+				ImGui::DragFloat("Outer Cone Angle", &outer_cone, 0.1f, 0.0f, 90.0f);
+
+				spot_light->setRange(range);
+				spot_light->setInnerConeAngle(Math::radians(inner_cone));
+				spot_light->setOuterConeAngle(Math::radians(outer_cone));
+			}
+		}
+
+		const auto& children = mutable_actor->getAttachedActors();
 		for (const auto& child : children)
-			drawSceneNodes(child);
+			drawSceneActors(child);
 
 		ImGui::Unindent();
 		ImGui::TreePop();
@@ -306,10 +301,10 @@ void Widget::drawSceneComponents(const Scene* scene)
 	if (ImGui::TreeNodeEx("Components", flags)) {
 		ImGui::Indent();
 
-		if (scene->hasComponent<Camera>() && ImGui::TreeNodeEx("Cameras", flags)) {
+		if (scene->hasComponent<CameraComponent>() && ImGui::TreeNodeEx("Camera Components", flags)) {
 			ImGui::Indent();
 
-			auto cameras = scene->getComponents<Camera>();
+			auto cameras = scene->getComponents<CameraComponent>();
 			for (const auto& camera : cameras) {
 				auto camera_title = std::format("[{}] {}", camera->getType().name(), camera->getName());
 				ImGui::Text("%s", camera_title.c_str());
@@ -319,10 +314,10 @@ void Widget::drawSceneComponents(const Scene* scene)
 			ImGui::TreePop();
 		}
 
-		if (scene->hasComponent<Camera>() && ImGui::TreeNodeEx("Lights", flags)) {
+		if (scene->hasComponent<LightComponent>() && ImGui::TreeNodeEx("Light Components", flags)) {
 			ImGui::Indent();
 
-			auto lights = scene->getComponents<Light>();
+			auto lights = scene->getComponents<LightComponent>();
 			for (const auto& light : lights) {
 				auto light_title = std::format("[{}] {}", light->getType().name(), light->getName());
 				ImGui::Text("%s", light_title.c_str());
@@ -332,10 +327,10 @@ void Widget::drawSceneComponents(const Scene* scene)
 			ImGui::TreePop();
 		}
 
-		if (scene->hasComponent<Camera>() && ImGui::TreeNodeEx("Meshes", flags)) {
+		if (scene->hasComponent<MeshComponent>() && ImGui::TreeNodeEx("Mesh Components", flags)) {
 			ImGui::Indent();
 
-			auto meshes = scene->getComponents<Mesh>();
+			auto meshes = scene->getComponents<MeshComponent>();
 			for (const auto& mesh : meshes) {
 				auto mesh_title = std::format("[{}] {}", mesh->getType().name(), mesh->getName());
 				ImGui::Text("%s", mesh_title.c_str());
@@ -350,19 +345,19 @@ void Widget::drawSceneComponents(const Scene* scene)
 	}
 }
 
-void Widget::drawSceneResources(const Scene* scene)
+void Widget::drawAssets(const AssetManager* assets)
 {
-	if (!scene)
+	if (!assets)
 		return;
 
 	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth;
-	if (ImGui::TreeNodeEx("Resources", flags)) {
+	if (ImGui::TreeNodeEx("Assets", flags)) {
 		ImGui::Indent();
 
-		if (scene->hasResource<Material>() && ImGui::TreeNodeEx("Materials", flags)) {
+		auto materials = assets->getLoadedAssets<MaterialAsset>();
+		if (!materials.empty() && ImGui::TreeNodeEx("Materials", flags)) {
 			ImGui::Indent();
 
-			auto materials = scene->getResources<Material>();
 			for (const auto& material : materials) {
 				auto material_title = std::format("[{}] {}", material->getType().name(), material->getName());
 				ImGui::Text("%s", material_title.c_str());
@@ -372,10 +367,10 @@ void Widget::drawSceneResources(const Scene* scene)
 			ImGui::TreePop();
 		}
 
-		if (scene->hasResource<Texture>() && ImGui::TreeNodeEx("Textures", flags)) {
+		auto textures = assets->getLoadedAssets<TextureAsset>();
+		if (!textures.empty() && ImGui::TreeNodeEx("Textures", flags)) {
 			ImGui::Indent();
 
-			auto textures = scene->getResources<Texture>();
 			for (const auto& texture : textures) {
 				auto texture_title = std::format("[{}] {}", texture->getType().name(), texture->getName());
 				ImGui::Text("%s", texture_title.c_str());
@@ -385,13 +380,13 @@ void Widget::drawSceneResources(const Scene* scene)
 			ImGui::TreePop();
 		}
 
-		if (scene->hasResource<SubMesh>() && ImGui::TreeNodeEx("SubMeshes", flags)) {
+		auto meshes = assets->getLoadedAssets<MeshAsset>();
+		if (!meshes.empty() && ImGui::TreeNodeEx("Meshes", flags)) {
 			ImGui::Indent();
 
-			auto submeshes = scene->getResources<SubMesh>();
-			for (const auto& submesh : submeshes) {
-				auto submesh_title = std::format("[{}] {}", submesh->getType().name(), submesh->getName());
-				ImGui::Text("%s", submesh_title.c_str());
+			for (const auto& mesh : meshes) {
+				auto mesh_title = std::format("[{}] {}", mesh->getType().name(), mesh->getName());
+				ImGui::Text("%s", mesh_title.c_str());
 			}
 
 			ImGui::Unindent();
@@ -402,4 +397,4 @@ void Widget::drawSceneResources(const Scene* scene)
 		ImGui::TreePop();
 	}
 }
-} // namespace Vortex
+}        // namespace Vortex

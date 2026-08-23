@@ -37,7 +37,7 @@ struct RenderCameraData {
 	Mat4 projection{1.0f};
 	Vec4 position{0.0f, 0.0f, 0.0f, 1.0f};
 
-	static RenderCameraData convert(const Camera& camera);
+	static RenderCameraData convert(const CameraComponent& camera);
 };
 
 struct RenderLightData {
@@ -46,7 +46,7 @@ struct RenderLightData {
 	Vec4 color;
 	Vec4 params;
 
-	static RenderLightData convert(const Light& light);
+	static RenderLightData convert(const LightComponent& light);
 };
 
 struct RenderObjectData {

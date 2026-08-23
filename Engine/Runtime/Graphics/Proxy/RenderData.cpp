@@ -26,7 +26,7 @@ std::vector<RHIVertexAttributeDesc> RenderVertex::attributes(uint32 binding)
 }
 
 
-RenderCameraData RenderCameraData::convert(const Camera& camera)
+RenderCameraData RenderCameraData::convert(const CameraComponent& camera)
 {
 	RenderCameraData data{};
 
@@ -38,27 +38,27 @@ RenderCameraData RenderCameraData::convert(const Camera& camera)
 }
 
 
-RenderLightData RenderLightData::convert(const Light& light)
+RenderLightData RenderLightData::convert(const LightComponent& light)
 {
 	RenderLightData data{};
 
-	Mat4 world_matrix = light.getNode()->getTransform().getWorldMatrix();
+	Mat4 world_matrix = light.getWorldMatrix();
 	Vec3 position = Vec3(world_matrix[3]);
 	Vec3 direction = Math::normalize(Vec3(world_matrix * Vec4(0.0f, -1.0f, 0.0f, 0.0f)));
 
-	if (const auto* dir_light = dynamic_cast<const DirectionalLight*>(&light)) {
+	if (const auto* dir_light = dynamic_cast<const DirectionalLightComponent*>(&light)) {
 		data.position = Vec4(direction, 0.0f);
 		data.direction = Vec4(direction, 0.0f);
 		data.color = Vec4(dir_light->getColor(), dir_light->getIntensity());
 		data.params = Vec4(0.0f, 0.0f, 0.0f, 0.0f);
 
-	} else if (const auto* point_light = dynamic_cast<const PointLight*>(&light)) {
+	} else if (const auto* point_light = dynamic_cast<const PointLightComponent*>(&light)) {
 		data.position = Vec4(position, 1.0f);
 		data.direction = Vec4(0.0f);
 		data.color = Vec4(point_light->getColor(), point_light->getIntensity());
 		data.params = Vec4(point_light->getRange(), 0.0f, 0.0f, 1.0f);
 
-	} else if (const auto* spot_light = dynamic_cast<const SpotLight*>(&light)) {
+	} else if (const auto* spot_light = dynamic_cast<const SpotLightComponent*>(&light)) {
 		data.position = Vec4(position, 2.0f);
 		data.direction = Vec4(direction, 0.0f);
 		data.color = Vec4(spot_light->getColor(), spot_light->getIntensity());

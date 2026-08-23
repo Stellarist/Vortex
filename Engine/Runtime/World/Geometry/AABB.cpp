@@ -2,66 +2,66 @@ module Runtime.World;
 
 namespace Vortex {
 
-AABB::AABB()
+AABB::AABB() noexcept
 {
 	reset();
 }
 
-AABB::AABB(const Vec3& min, const Vec3& max) :
+AABB::AABB(const Vec3& min, const Vec3& max) noexcept :
     min_bound(min), max_bound(max)
 {}
 
-Vec3 AABB::min() const
+Vec3 AABB::min() const noexcept
 {
 	return min_bound;
 }
 
-Vec3 AABB::max() const
+Vec3 AABB::max() const noexcept
 {
 	return max_bound;
 }
 
-Vec3 AABB::center() const
+Vec3 AABB::center() const noexcept
 {
 	return (min_bound + max_bound) * 0.5f;
 }
 
-Vec3 AABB::scale() const
+Vec3 AABB::scale() const noexcept
 {
 	return max_bound - min_bound;
 }
 
-float AABB::area() const
+float AABB::area() const noexcept
 {
 	Vec3 extent = scale();
 	return 2.0f * (extent.x * extent.y + extent.y * extent.z + extent.z * extent.x);
 }
 
-float AABB::volume() const
+float AABB::volume() const noexcept
 {
 	Vec3 extent = scale();
 	return extent.x * extent.y * extent.z;
 }
 
-void AABB::expand(const Vec3& point)
+void AABB::expand(const Vec3& point) noexcept
 {
 	min_bound = Math::min(min_bound, point);
 	max_bound = Math::max(max_bound, point);
 }
 
-void AABB::expand(const AABB& other)
+void AABB::expand(const AABB& other) noexcept
 {
 	expand(other.min());
 	expand(other.max());
 }
 
-void AABB::expand(std::span<const Vec3> points)
+void AABB::expand(std::span<const Vec3> points) noexcept
 {
 	for (const auto& point : points)
 		expand(point);
 }
 
-bool AABB::intersects(const AABB& other) const
+bool AABB::intersects(const AABB& other) const noexcept
 {
 	if (!valid() || !other.valid())
 		return false;
@@ -69,7 +69,7 @@ bool AABB::intersects(const AABB& other) const
 	return (min_bound.x <= other.max().x && max_bound.x >= other.min().x) && (min_bound.y <= other.max().y && max_bound.y >= other.min().y) && (min_bound.z <= other.max().z && max_bound.z >= other.min().z);
 }
 
-bool AABB::intersects(const Ray& ray, float& tmin, float& tmax) const
+bool AABB::intersects(const Ray& ray, float& tmin, float& tmax) const noexcept
 {
 	if (!valid())
 		return false;
@@ -89,23 +89,23 @@ bool AABB::intersects(const Ray& ray, float& tmin, float& tmax) const
 	return tmax >= tmin && tmax >= 0.0f;
 }
 
-bool AABB::contains(const Vec3& point) const
+bool AABB::contains(const Vec3& point) const noexcept
 {
 	return (point.x >= min_bound.x && point.x <= max_bound.x) && (point.y >= min_bound.y && point.y <= max_bound.y) && (point.z >= min_bound.z && point.z <= max_bound.z);
 }
 
-bool AABB::contains(const AABB& other) const
+bool AABB::contains(const AABB& other) const noexcept
 {
 	return contains(other.min()) && contains(other.max());
 }
 
-void AABB::reset()
+void AABB::reset() noexcept
 {
 	min_bound = Vec3(std::numeric_limits<float>::max());
 	max_bound = Vec3(std::numeric_limits<float>::lowest());
 }
 
-void AABB::transform(const Mat4& matrix)
+void AABB::transform(const Mat4& matrix) noexcept
 {
 	if (!valid())
 		return;
@@ -123,7 +123,7 @@ void AABB::transform(const Mat4& matrix)
 	*this = result;
 }
 
-bool AABB::valid() const
+bool AABB::valid() const noexcept
 {
 	return (min_bound.x <= max_bound.x) && (min_bound.y <= max_bound.y) && (min_bound.z <= max_bound.z);
 }

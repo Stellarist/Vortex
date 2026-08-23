@@ -11,32 +11,32 @@ private:
 	Vec3 max_bound;
 
 public:
-	AABB();
-	AABB(const Vec3& min, const Vec3& max);
+	AABB() noexcept;
+	AABB(const Vec3& min, const Vec3& max) noexcept;
 
-	Vec3 min() const;
-	Vec3 max() const;
+	Vec3 min() const noexcept;
+	Vec3 max() const noexcept;
 
-	Vec3 center() const;
-	Vec3 scale() const;
+	Vec3 center() const noexcept;
+	Vec3 scale() const noexcept;
 
-	float area() const;
-	float volume() const;
+	float area() const noexcept;
+	float volume() const noexcept;
 
-	void expand(const Vec3& point);
-	void expand(const AABB& other);
-	void expand(std::span<const Vec3> points);
+	void expand(const Vec3& point) noexcept;
+	void expand(const AABB& other) noexcept;
+	void expand(std::span<const Vec3> points) noexcept;
 
-	bool intersects(const AABB& other) const;
-	bool intersects(const Ray& ray, float& tmin, float& tmax) const;
+	bool intersects(const AABB& other) const noexcept;
+	bool intersects(const Ray& ray, float& tmin, float& tmax) const noexcept;
 
-	bool contains(const Vec3& point) const;
-	bool contains(const AABB& other) const;
+	bool contains(const Vec3& point) const noexcept;
+	bool contains(const AABB& other) const noexcept;
 
-	void reset();
-	void transform(const Mat4& matrix);
+	void reset() noexcept;
+	void transform(const Mat4& matrix) noexcept;
 
-	bool valid() const;
+	bool valid() const noexcept;
 };
 
 }        // namespace Vortex

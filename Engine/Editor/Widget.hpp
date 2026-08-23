@@ -33,9 +33,9 @@ public:
 	void hook(std::function<void()> callback);
 
 	void drawSceneGraph(const World* world, float dt);
-	void drawSceneNodes(const Node* root);
+	void drawSceneActors(const Actor* actor);
 	void drawSceneComponents(const Scene* scene);
-	void drawSceneResources(const Scene* scene);
+	void drawAssets(const AssetManager* assets);
 };
 
 }        // namespace Vortex

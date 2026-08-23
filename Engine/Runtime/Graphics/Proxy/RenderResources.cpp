@@ -6,33 +6,33 @@ module Runtime.Graphics;
 
 namespace Vortex {
 
-RenderMesh::RenderMesh(RHIContext& context, std::shared_ptr<SubMesh> submesh, RHIBindingLayout& layout) :
-    RenderResource(context), submesh(submesh)
+RenderMesh::RenderMesh(RHIContext& context, AssetHandle<MeshAsset> mesh, RHIBindingLayout& layout) :
+    RenderResource(context), source_mesh(std::move(mesh))
 {
-	assert(submesh && "Cannot create a render mesh with an empty submesh");
+	assert(source_mesh && "Cannot create a render mesh with an empty mesh asset");
 
 	auto command = getDevice().createCommandList(RHICommandListDesc{});
 	command->open();
 
-	if (submesh->getVerticesCount()) {
+	if (source_mesh->getVertexCount()) {
 		RHIBufferDesc desc{};
-		desc.setSize(submesh->getVerticesCount() * sizeof(Vertex))
+		desc.setSize(source_mesh->getVertexCount() * sizeof(Vertex))
 		    .setStride(sizeof(Vertex))
 		    .setUsage(RHIBufferUsage::VertexBuffer | RHIBufferUsage::CopyDest);
 
 		vertex_buffer = getDevice().createBuffer(desc);
-		command->writeBuffer(vertex_buffer.get(), 0, submesh->getVertices().data(), desc.size);
+		command->writeBuffer(vertex_buffer.get(), 0, source_mesh->getVertices().data(), desc.size);
 		command->transitionBuffer(vertex_buffer.get(), VertexBuffer);
 	}
 
-	if (submesh->getIndicesCount()) {
+	if (source_mesh->getIndexCount()) {
 		RHIBufferDesc desc{};
-		desc.setSize(submesh->getIndicesCount() * sizeof(uint32))
+		desc.setSize(source_mesh->getIndexCount() * sizeof(uint32))
 		    .setStride(sizeof(uint32))
 		    .setUsage(RHIBufferUsage::IndexBuffer | RHIBufferUsage::CopyDest);
 
 		index_buffer = getDevice().createBuffer(desc);
-		command->writeBuffer(index_buffer.get(), 0, submesh->getIndices().data(), desc.size);
+		command->writeBuffer(index_buffer.get(), 0, source_mesh->getIndices().data(), desc.size);
 		command->transitionBuffer(index_buffer.get(), IndexBuffer);
 	}
 
@@ -78,27 +78,27 @@ void RenderMesh::updateUniforms()
 	getDevice().unmapBuffer(object_constant_buffer.get());
 }
 
-void RenderMesh::draw(RHICommandList& command) const
+void RenderMesh::draw(RHICommandList& command, const MeshSection& section) const
 {
 	RHIDrawArguments args{};
-	args.setVertexCount(submesh->getIndicesCount())
+	args.setVertexCount(section.index_count)
 	    .setInstanceCount(1)
-	    .setStartIndex(0)
-	    .setStartVertex(0)
+	    .setStartIndex(section.first_index)
+	    .setStartVertex(section.first_vertex)
 	    .setStartInstance(0);
 
 	command.drawIndexed(args);
 }
 
 
-RenderTexture::RenderTexture(RHIContext& context, std::shared_ptr<Texture> texture, RHIRef<RHISampler> default_sampler) :
-    RenderResource(context), source_texture(texture)
+RenderTexture::RenderTexture(RHIContext& context, AssetHandle<TextureAsset> texture, RHIRef<RHISampler> default_sampler) :
+    RenderResource(context), source_texture(std::move(texture))
 {
-	assert(texture && "Cannot create a render texture with an empty texture");
+	assert(source_texture && "Cannot create a render texture with an empty texture asset");
 
 	RHITextureDesc texture_desc{};
-	texture_desc.setWidth(texture->getWidth())
-	    .setHeight(texture->getHeight())
+	texture_desc.setWidth(source_texture->getWidth())
+	    .setHeight(source_texture->getHeight())
 	    .setFormat(RHIFormat::RGBA8_SRGB)
 	    .setUsage(RHITextureUsage::Sampled | RHITextureUsage::CopyDest);
 	image = getDevice().createTexture(texture_desc);
@@ -109,11 +109,11 @@ RenderTexture::RenderTexture(RHIContext& context, std::shared_ptr<Texture> textu
 	command->open();
 
 	RHITextureSlice slice{};
-	slice.setExtent(static_cast<int>(texture->getWidth()),
-	    static_cast<int>(texture->getHeight()),
+	slice.setExtent(static_cast<int>(source_texture->getWidth()),
+	    static_cast<int>(source_texture->getHeight()),
 	    1);
 
-	command->writeTexture(image.get(), slice, texture->getData().data(), texture->getData().size());
+	command->writeTexture(image.get(), slice, source_texture->getData().data(), source_texture->getData().size());
 	command->transitionTexture(image.get(), ShaderResource);
 	command->close();
 
@@ -122,18 +122,18 @@ RenderTexture::RenderTexture(RHIContext& context, std::shared_ptr<Texture> textu
 
 
 RenderMaterial::RenderMaterial(RHIContext& ctx,
-    std::shared_ptr<Material>              material,
+    AssetHandle<MaterialAsset>             material,
     RHIBindingLayout&                      layout,
     RHITextureView*                        albedo,
     RHITextureView*                        metallic_roughness,
     RHISampler*                            sampler) :
     RenderResource(ctx),
-    src_material(material)
+    source_material(std::move(material))
 {
-	if (auto* mat = dynamic_cast<const Material*>(material.get())) {
-		material_data.albedo = mat->getAlbedo();
-		material_data.metallic = mat->getMetallic();
-		material_data.roughness = mat->getRoughness();
+	if (source_material) {
+		material_data.albedo = source_material->getAlbedo();
+		material_data.metallic = source_material->getMetallic();
+		material_data.roughness = source_material->getRoughness();
 	}
 
 	RHIBufferDesc constant_buffer_desc{};

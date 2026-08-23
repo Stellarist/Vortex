@@ -50,7 +50,7 @@ private:
 
 	struct AdoptTag {};
 
-	explicit RHIRef(T* new_reference, AdoptTag) noexcept :
+	RHIRef(T* new_reference, AdoptTag) noexcept :
 	    reference(new_reference)
 	{}
 
@@ -62,7 +62,7 @@ public:
 	RHIRef(std::nullptr_t) noexcept
 	{}
 
-	explicit RHIRef(T* new_reference) noexcept :
+	RHIRef(T* new_reference) noexcept :
 	    reference(new_reference)
 	{
 		if (reference)
@@ -169,7 +169,7 @@ public:
 	{
 		return reference;
 	}
-	explicit operator bool() const noexcept
+	operator bool() const noexcept
 	{
 		return reference != nullptr;
 	}

@@ -20,32 +20,41 @@ private:
 	static uint32 getAttributeSize(const tinygltf::Model* tfmodel, uint32 accessor_id);
 	static uint32 getAttributeStride(const tinygltf::Model* tfmodel, uint32 accessor_id);
 
-	static std::weak_ptr<Material> default_pbr_material;
-	static std::weak_ptr<Texture>  default_base_color_texture;
-	static std::weak_ptr<Texture>  default_metallic_roughness_texture;
+	static void initDefaultCameraComponent(Scene& scene);
+	static void initDefaultLightComponent(Scene& scene);
+	static void initDefaultCameraControllerComponent(Scene& scene);
 
-	static void initDefaultCamera(Scene& scene);
-	static void initDefaultLight(Scene& scene);
-	static void initDefaultTextures(Scene& scene);
-	static void initDefaultMaterials(Scene& scene);
-	static void initDefaultCameraController(Scene& scene);
+	static auto getDefaultBaseColorTexture(AssetManager& assets) -> AssetHandle<TextureAsset>;
+	static auto getDefaultMetallicRoughnessTexture(AssetManager& assets) -> AssetHandle<TextureAsset>;
+	static auto getDefaultMaterial(AssetManager& assets) -> AssetHandle<MaterialAsset>;
 
 public:
-	static std::unique_ptr<Scene> loadScene(std::string_view scene_path);
+	static std::unique_ptr<Scene> loadScene(AssetManager& assets, std::string_view scene_path);
 
-	static std::unique_ptr<Node>     parseNode(const tinygltf::Node& tfnode);
-	static std::unique_ptr<Mesh>     parseMesh(const tinygltf::Mesh& tfmesh);
-	static std::unique_ptr<Camera>   parseCamera(const tinygltf::Camera& tfcamera);
-	static std::unique_ptr<Light>    parseLight(const tinygltf::Light& tflight);
-	static std::shared_ptr<SubMesh>  parseSubmesh(const tinygltf::Mesh& tfmesh, const tinygltf::Model& tfmodel, uint32 indexm, const std::vector<std::shared_ptr<Material>>& materials);
-	static std::shared_ptr<Texture>  parseTexture(const tinygltf::Texture& tftexture, const tinygltf::Model& tfmodel);
-	static std::shared_ptr<Material> parseMaterial(const tinygltf::Material& tfmaterial, const tinygltf::Model& tfmodel, const std::vector<std::shared_ptr<Texture>>& textures);
+	static std::unique_ptr<Actor>           parseActor(const tinygltf::Node& tfnode);
+	static std::unique_ptr<MeshComponent>   parseMeshComponent(const tinygltf::Mesh& tfmesh);
+	static std::unique_ptr<CameraComponent> parseCameraComponent(const tinygltf::Camera& tfcamera);
+	static std::unique_ptr<LightComponent>  parseLightComponent(const tinygltf::Light& tflight);
+	static std::shared_ptr<MeshAsset>       parseMeshAsset(const tinygltf::Mesh& tfmesh,
+	    const tinygltf::Model&                                             tfmodel,
+	    const std::vector<AssetHandle<MaterialAsset>>&                     materials,
+	    AssetHandle<MaterialAsset>                                         default_material,
+	    std::string                                                        virtual_path);
+	static std::shared_ptr<TextureAsset>    parseTextureAsset(const tinygltf::Texture& tftexture,
+	    const tinygltf::Model&                                                      tfmodel,
+	    std::string                                                                 virtual_path);
+	static std::shared_ptr<MaterialAsset>   parseMaterialAsset(const tinygltf::Material& tfmaterial,
+	    const tinygltf::Model&                                                         tfmodel,
+	    const std::vector<AssetHandle<TextureAsset>>&                                  textures,
+	    AssetHandle<TextureAsset>                                                      default_base_color,
+	    AssetHandle<TextureAsset>                                                      default_metallic_roughness,
+	    std::string                                                                    virtual_path);
 
-	static std::unique_ptr<Camera>           createDefaultCamera(const std::string& = "Default_Camera");
-	static std::unique_ptr<Light>            createDefaultLight(const std::string& = "Default_Light");
-	static std::shared_ptr<Texture>          createDefaultTexture(const std::string& = "Default_Texture");
-	static std::shared_ptr<Material>         createDefaultMaterial(const std::string& = "Default_Material");
-	static std::unique_ptr<CameraController> createDefaultCameraController(const std::string& = "Default_Camera_Controller");
+	static std::unique_ptr<CameraComponent>           createDefaultCameraComponent(const std::string& = "DefaultCameraComponent");
+	static std::unique_ptr<LightComponent>            createDefaultLightComponent(const std::string& = "DefaultLightComponent");
+	static std::shared_ptr<TextureAsset>              createDefaultTextureAsset(std::string name = "DefaultTexture", std::string virtual_path = {});
+	static std::shared_ptr<MaterialAsset>             createDefaultMaterialAsset(std::string name = "DefaultMaterial", std::string virtual_path = {});
+	static std::unique_ptr<CameraControllerComponent> createDefaultCameraControllerComponent(const std::string& = "DefaultCameraControllerComponent");
 };
 
 template <typename S, typename D>

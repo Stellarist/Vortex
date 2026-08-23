@@ -69,16 +69,6 @@ Mat4 inverse(const Mat4& matrix)
 	return glm::inverse(matrix);
 }
 
-Mat4 perspective(float fov, float aspect_ratio, float near_plane, float far_plane)
-{
-	return glm::gtc::perspectiveRH_ZO(fov, aspect_ratio, near_plane, far_plane);
-}
-
-Mat4 orthographic(float left, float right, float bottom, float top, float near_plane, float far_plane)
-{
-	return glm::gtc::orthoRH_ZO(left, right, bottom, top, near_plane, far_plane);
-}
-
 Mat4 translate(const Mat4& matrix, const Vec3& translation)
 {
 	return glm::gtc::translate(matrix, translation);
@@ -89,9 +79,30 @@ Mat4 scale(const Mat4& matrix, const Vec3& scaling)
 	return glm::gtc::scale(matrix, scaling);
 }
 
-Mat4 toMat4(const Quat& quaternion)
+Mat4 perspective(float fov, float aspect_ratio, float near_plane, float far_plane)
 {
-	return glm::gtc::mat4_cast(quaternion);
+	return glm::gtc::perspectiveRH_ZO(fov, aspect_ratio, near_plane, far_plane);
+}
+
+Mat4 orthographic(float left, float right, float bottom, float top, float near_plane, float far_plane)
+{
+	return glm::gtc::orthoRH_ZO(left, right, bottom, top, near_plane, far_plane);
+}
+
+Mat4 composeTransform(const Vec3& translation, const Quat& rotation, const Vec3& scaling)
+{
+	return glm::gtc::translate(Mat4(1.0f), translation) * glm::gtc::mat4_cast(glm::normalize(rotation)) * glm::gtc::scale(Mat4(1.0f), scaling);
+}
+
+bool decomposeTransform(const Mat4& matrix, Vec3& translation, Quat& rotation, Vec3& scaling)
+{
+	Vec3 skew;
+	Vec4 perspective;
+	if (!glm::gtx::decompose(matrix, scaling, rotation, translation, skew, perspective))
+		return false;
+
+	rotation = glm::normalize(rotation);
+	return true;
 }
 
 }        // namespace Vortex::Math

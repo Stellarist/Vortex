@@ -11,11 +11,11 @@ private:
 	Vec3 inv_direction_vec;
 
 public:
-	Ray(const Vec3& origin, const Vec3& direction);
+	Ray(const Vec3& origin, const Vec3& direction) noexcept;
 
-	const Vec3& origin() const;
-	const Vec3& direction() const;
-	const Vec3& invDirection() const;
+	const Vec3& origin() const noexcept;
+	const Vec3& direction() const noexcept;
+	const Vec3& invDirection() const noexcept;
 };
 
 }        // namespace Vortex

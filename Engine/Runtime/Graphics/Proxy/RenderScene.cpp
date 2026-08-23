@@ -2,16 +2,31 @@ module Runtime.Graphics;
 
 namespace Vortex {
 
-constexpr uint32 MAX_SCENE_SETS = 1;
-constexpr uint32 MAX_MATERIAL_SETS = 10;
-constexpr uint32 MAX_OBJECT_SETS = 100;
+namespace {
+
+void hashCombine(size_t& seed, size_t value) noexcept
+{
+	seed ^= value + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
+}
+
+template <IsAsset T>
+void hashAssetHandle(size_t& seed, const AssetHandle<T>& asset) noexcept
+{
+	if (!asset) {
+		hashCombine(seed, 0);
+		return;
+	}
+	hashCombine(seed, std::hash<uint64>{}(asset->getUid()));
+	hashCombine(seed, std::hash<uint64>{}(asset->getRevision()));
+}
+
+}        // namespace
 
 RenderScene::RenderScene(RHIContext& context, const World& world) :
     context(&context), world(&world)
 {
 	createSceneLayouts();
 	createSceneBindingSet();
-
 	rebuild();
 }
 
@@ -39,173 +54,171 @@ void RenderScene::createSceneBindingSet()
 
 void RenderScene::updateCamera()
 {
-	if (!world)
-		return;
-
-	auto* camera = world->getActiveCamera();
-	if (!camera)
-		return;
-
-	scene_data.camera = RenderCameraData::convert(*camera);
+	if (world)
+		if (auto* camera = world->getActiveCamera())
+			scene_data.camera = RenderCameraData::convert(*camera);
 }
 
 void RenderScene::updateLights()
 {
-	if (!world)
-		return;
-
-	auto* scene = world->getActiveScene();
-	if (!scene)
-		return;
-
-	auto lights = scene->getComponents<Light>();
-	if (lights.empty())
-		return;
-
-	scene_data.light_count = std::min(static_cast<uint32>(lights.size()), MAX_LIGHTS_COUNT);
-	for (uint32 i = 0; i < scene_data.light_count; i++)
-		scene_data.lights[i] = RenderLightData::convert(*lights[i]);
-}
-
-void RenderScene::updateMesh()
-{
 	if (!world || !world->getActiveScene())
 		return;
 
-	auto scene = world->getActiveScene();
-	auto meshes = scene->getComponents<Mesh>();
+	auto lights = world->getActiveScene()->getComponents<LightComponent>();
+	scene_data.light_count = std::min(static_cast<uint32>(lights.size()), MAX_LIGHTS_COUNT);
+	for (uint32 index = 0; index < scene_data.light_count; ++index)
+		scene_data.lights[index] = RenderLightData::convert(*lights[index]);
+}
 
-	for (auto& mesh : meshes) {
-		auto transform = mesh->getNode()->getTransform();
-		for (auto submesh : mesh->getSubmeshes()) {
-			auto it = render_mesh_map.find(submesh);
-			if (it != render_mesh_map.end()) {
-				it->second->setModelMatrix(transform.getWorldMatrix());
-				it->second->updateUniforms();
-			}
-		}
+void RenderScene::updateMeshes()
+{
+	for (const auto& [component, render_mesh] : render_mesh_map) {
+		if (!component || !render_mesh)
+			continue;
+		render_mesh->setModelMatrix(component->getWorldMatrix());
+		render_mesh->updateUniforms();
 	}
 }
 
-void RenderScene::loadTextures()
+void RenderScene::collectAssets(std::vector<MeshComponent*>& meshes,
+    std::vector<AssetHandle<MaterialAsset>>&                 materials,
+    std::vector<AssetHandle<TextureAsset>>&                  textures) const
 {
 	if (!world || !world->getActiveScene())
 		return;
 
-	auto textures = world->getActiveScene()->getResources<Texture>();
-	render_textures.clear();
-	render_textures.reserve(textures.size());
-	render_texture_map.clear();
+	std::unordered_set<uint64> material_ids;
+	std::unordered_set<uint64> texture_ids;
 
+	for (auto* mesh_component : world->getActiveScene()->getComponents<MeshComponent>()) {
+		if (!mesh_component || !mesh_component->isVisible() || !mesh_component->getMesh() || !mesh_component->getMesh()->valid())
+			continue;
+
+		meshes.push_back(mesh_component);
+		for (const auto& section : mesh_component->getMesh()->getSections()) {
+			auto material = mesh_component->getMaterial(section.material_slot);
+			if (material && material_ids.insert(material->getUid()).second)
+				materials.push_back(std::move(material));
+		}
+	}
+
+	for (const auto& material : materials)
+		for (const auto& [name, texture] : material->getTextures())
+			if (texture && texture_ids.insert(texture->getUid()).second)
+				textures.push_back(texture);
+}
+
+void RenderScene::loadTextures(const std::vector<AssetHandle<TextureAsset>>& textures)
+{
 	material_sampler = context->getDevice().createSampler(RHISamplerDesc{});
-	for (auto texture : textures) {
+	render_textures.reserve(textures.size());
+	for (const auto& texture : textures) {
 		if (!texture || !texture->valid())
 			continue;
 
 		auto render_texture = std::make_unique<RenderTexture>(*context, texture, material_sampler);
-		render_texture_map[texture] = render_texture.get();
+		render_texture_map.insert_or_assign(texture->getUid(), render_texture.get());
 		render_textures.push_back(std::move(render_texture));
 	}
-
-	last_texture_count = textures.size();
 }
 
-void RenderScene::loadMaterials()
+void RenderScene::loadMaterials(const std::vector<AssetHandle<MaterialAsset>>& materials)
 {
-	if (!world || !world->getActiveScene())
-		return;
-
-	auto materials = world->getActiveScene()->getResources<Material>();
-	render_materials.clear();
 	render_materials.reserve(materials.size());
-
-	for (auto material : materials) {
+	for (const auto& material : materials) {
 		if (!material)
 			continue;
 
 		RHITextureView* base_color_texture = nullptr;
 		RHITextureView* metallic_roughness_texture = nullptr;
-		RHISampler*     mat_sampler = material_sampler.get();
+		RHISampler*     sampler = material_sampler.get();
 
-		if (auto base_color_tex = material->getTexture("baseColor"); base_color_tex)
-			if (auto base_color_it = render_texture_map.find(base_color_tex); base_color_it != render_texture_map.end()) {
-				base_color_texture = base_color_it->second->getTextureView();
-				mat_sampler = base_color_it->second->getSampler();
+		if (auto texture = material->getTexture("baseColor"); texture) {
+			auto texture_it = render_texture_map.find(texture->getUid());
+			if (texture_it != render_texture_map.end()) {
+				base_color_texture = texture_it->second->getTextureView();
+				sampler = texture_it->second->getSampler();
 			}
+		}
 
-		if (auto metallic_roughness_tex = material->getTexture("metallicRoughness"); metallic_roughness_tex)
-			if (auto metallic_roughness_it = render_texture_map.find(metallic_roughness_tex); metallic_roughness_it != render_texture_map.end())
-				metallic_roughness_texture = metallic_roughness_it->second->getTextureView();
+		if (auto texture = material->getTexture("metallicRoughness"); texture) {
+			auto texture_it = render_texture_map.find(texture->getUid());
+			if (texture_it != render_texture_map.end())
+				metallic_roughness_texture = texture_it->second->getTextureView();
+		}
 
-		auto render_mat = std::make_unique<RenderMaterial>(
+		auto render_material = std::make_unique<RenderMaterial>(
 		    *context,
 		    material,
 		    *material_layout,
 		    base_color_texture,
 		    metallic_roughness_texture,
-		    mat_sampler);
-
-		render_materials.push_back(std::move(render_mat));
+		    sampler);
+		render_material_map.insert_or_assign(material->getUid(), render_material.get());
+		render_materials.push_back(std::move(render_material));
 	}
-
-	last_material_count = materials.size();
 }
 
-void RenderScene::loadMeshes()
+void RenderScene::loadMeshes(const std::vector<MeshComponent*>& meshes)
 {
-	if (!world || !world->getActiveScene())
-		return;
+	render_meshes.reserve(meshes.size());
+	for (auto* component : meshes) {
+		auto render_mesh = std::make_unique<RenderMesh>(*context, component->getMesh(), *object_layout);
+		render_mesh->setModelMatrix(component->getWorldMatrix());
+		render_mesh->updateUniforms();
+		render_mesh_map.insert_or_assign(component, render_mesh.get());
+		render_meshes.push_back(std::move(render_mesh));
+	}
+}
 
-	auto submeshes = world->getActiveScene()->getResources<SubMesh>();
+void RenderScene::sortMeshes(const std::vector<MeshComponent*>& meshes)
+{
+	for (auto* component : meshes) {
+		auto render_mesh_it = render_mesh_map.find(component);
+		if (render_mesh_it == render_mesh_map.end())
+			continue;
 
-	render_meshes.clear();
-	render_mesh_map.clear();
-	render_meshes.reserve(submeshes.size());
-
-	for (auto submesh : submeshes) {
-		if (submesh && submesh->isVisible()) {
-			auto render_mesh = std::make_unique<RenderMesh>(
-			    *context,
-			    submesh,
-			    *object_layout);
-
-			render_mesh_map[submesh] = render_mesh.get();
-			render_meshes.push_back(std::move(render_mesh));
+		const auto& sections = component->getMesh()->getSections();
+		for (uint32 section_index = 0; section_index < sections.size(); ++section_index) {
+			auto material = component->getMaterial(sections[section_index].material_slot);
+			if (material && render_material_map.contains(material->getUid()))
+				meshes_by_material[material->getUid()].push_back({render_mesh_it->second, section_index});
 		}
 	}
-
-	last_submesh_count = submeshes.size();
 }
 
-void RenderScene::sortMeshes()
+size_t RenderScene::calculateAssetState() const
 {
-	meshes_by_material.clear();
-
 	if (!world || !world->getActiveScene())
-		return;
+		return 0;
 
-	for (auto& render_mesh : render_meshes) {
-		auto submesh = render_mesh->getSrcSubMesh();
-		auto material = submesh->getMaterial();
+	size_t state = 0;
+	for (auto* component : world->getActiveScene()->getComponents<MeshComponent>()) {
+		hashCombine(state, std::hash<uint64>{}(component->getUid()));
+		hashCombine(state, std::hash<bool>{}(component->isVisible()));
 
-		if (!material && !render_materials.empty())
-			material = render_materials[0]->getSrcMaterial();
+		const auto& mesh = component->getMesh();
+		hashAssetHandle(state, mesh);
+		if (!mesh)
+			continue;
 
-		if (material)
-			meshes_by_material[material].push_back(render_mesh.get());
+		for (const auto& section : mesh->getSections()) {
+			auto material = component->getMaterial(section.material_slot);
+			hashAssetHandle(state, material);
+			if (!material)
+				continue;
+			for (const auto& [name, texture] : material->getTextures()) {
+				hashCombine(state, std::hash<std::string>{}(name));
+				hashAssetHandle(state, texture);
+			}
+		}
 	}
+	return state;
 }
 
 bool RenderScene::needsRebuild() const
 {
-	if (!world || !world->getActiveScene())
-		return false;
-
-	const auto& textures = world->getActiveScene()->getResources<Texture>();
-	const auto& submeshes = world->getActiveScene()->getResources<SubMesh>();
-	const auto& materials = world->getActiveScene()->getResources<Material>();
-
-	return submeshes.size() != last_submesh_count || materials.size() != last_material_count || textures.size() != last_texture_count;
+	return calculateAssetState() != asset_state;
 }
 
 void RenderScene::clear()
@@ -213,12 +226,13 @@ void RenderScene::clear()
 	meshes_by_material.clear();
 	render_mesh_map.clear();
 	render_meshes.clear();
+	render_material_map.clear();
 	render_materials.clear();
-	render_textures.clear();
 	render_texture_map.clear();
+	render_textures.clear();
 }
 
-void RenderScene::update(float dt)
+void RenderScene::update(float)
 {
 	if (!world || !world->getActiveScene())
 		return;
@@ -228,7 +242,7 @@ void RenderScene::update(float dt)
 
 	updateCamera();
 	updateLights();
-	updateMesh();
+	updateMeshes();
 
 	void* mapped = context->getDevice().mapBuffer(scene_constant_buffer.get(), RHIAccessMode::Write);
 	std::memcpy(mapped, &scene_data, sizeof(RenderSceneData));
@@ -239,13 +253,15 @@ void RenderScene::rebuild()
 {
 	clear();
 
-	if (!world || !world->getActiveScene())
-		return;
-
-	loadTextures();
-	loadMaterials();
-	loadMeshes();
-	sortMeshes();
+	std::vector<MeshComponent*>             meshes;
+	std::vector<AssetHandle<MaterialAsset>> materials;
+	std::vector<AssetHandle<TextureAsset>>  textures;
+	collectAssets(meshes, materials, textures);
+	loadTextures(textures);
+	loadMaterials(materials);
+	loadMeshes(meshes);
+	sortMeshes(meshes);
+	asset_state = calculateAssetState();
 }
 
 void RenderScene::draw(RHICommandList& command, const RHIGraphicsState& base_state)
@@ -256,26 +272,25 @@ void RenderScene::draw(RHICommandList& command, const RHIGraphicsState& base_sta
 	auto scene_state = base_state;
 	scene_state.addBindingSet(scene_binding_set.get());
 
-	for (auto& [material, meshes] : meshes_by_material) {
-		RenderMaterial* render_material = nullptr;
-		for (auto& gm : render_materials) {
-			if (gm->getSrcMaterial() == material) {
-				render_material = gm.get();
-				break;
-			}
-		}
-
-		if (!render_material)
+	for (const auto& [material_id, draws] : meshes_by_material) {
+		auto material_it = render_material_map.find(material_id);
+		if (material_it == render_material_map.end())
 			continue;
 
 		auto material_state = scene_state;
-		render_material->updateGraphicsState(material_state);
+		material_it->second->updateGraphicsState(material_state);
 
-		for (auto* mesh : meshes) {
+		for (const auto& draw : draws) {
+			if (!draw.mesh || !draw.mesh->getSourceMesh())
+				continue;
+			const auto& sections = draw.mesh->getSourceMesh()->getSections();
+			if (draw.section_index >= sections.size())
+				continue;
+
 			auto mesh_state = material_state;
-			mesh->updateGraphicsState(mesh_state);
+			draw.mesh->updateGraphicsState(mesh_state);
 			command.setGraphicsState(mesh_state);
-			mesh->draw(command);
+			draw.mesh->draw(command, sections[draw.section_index]);
 		}
 	}
 }

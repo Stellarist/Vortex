@@ -9,11 +9,11 @@ Application::Application()
 	Time::setMainClock(&clock);
 
 	auto path = JsonParser::readJson(PathResolver::getConfigsDir() / "config.json")["scene"];
-	auto scene = AssetImporter::loadScene((PathResolver::getAssetsDir() / (path.get<std::string>())).string());
+	auto scene = AssetImporter::loadScene(asset_manager, (PathResolver::getAssetsDir() / (path.get<std::string>())).string());
 
 	window = std::make_unique<Window>("Vortex", 2560, 1440);
 
-	world = std::make_unique<World>();
+	world = std::make_unique<World>(asset_manager);
 	world->setActiveScene(std::move(scene));
 
 	renderer = std::make_unique<Renderer>(*window);
@@ -75,8 +75,10 @@ void Application::tickRender(float dt)
 void Application::loadWorld(std::unique_ptr<World>&& new_world)
 {
 	world = std::move(new_world);
-	if (world)
+	if (world) {
+		world->setAssetManager(&asset_manager);
 		renderer->setActiveWorld(*world);
+	}
 }
 
 void Application::loadRenderer(std::unique_ptr<Renderer>&& new_renderer)
