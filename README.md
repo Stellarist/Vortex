@@ -4,6 +4,30 @@ Maybe a toy Vulkan Engine in future, but just a toy Demo at now.
 
 Until Version 3.0:
 
+## Module Layout
+
+```text
+Core
+Editor.Window
+Runtime.World
+├─ Assets.*
+├─ Components.*
+└─ Geometry.*
+Runtime.Graphics
+├─ RHI.*
+├─ Vulkan.*
+├─ Render.*
+└─ RDG.*
+Editor
+├─ CameraController
+├─ AssetImporter
+├─ Widget
+└─ Application
+```
+
+Runtime modules use directory-prefixed partitions internally while consumers
+only import `Runtime.World`, `Runtime.Graphics`, or `Editor`.
+
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                                  LAYERS                                     │
@@ -31,20 +55,20 @@ Until Version 3.0:
 │ └─────────────────────────────────┘ │ │ • Backbuffer / Depth              │ │
 │ ┌─────────────────────────────────┐ │ │ • Graphics pipeline/state         │ │
 │ │ Scene                           │ │ │ • Forward/Deferred shader select  │ │
-│ │ • Node hierarchy                │ │ │ • UI render callbacks             │ │
+│ │ • Actor ownership/attachment    │ │ │ • UI render callbacks             │ │
 │ │ • Component registry            │ │ └───────────────────────────────────┘ │
-│ │ • Resource registry             │ │                                       │
-│ │ • Behaviour update              │ │ ┌───────────────────────────────────┐ │
+│ │ • Asset references              │ │                                       │
+│ │ • Component lifecycle/Tick      │ │ ┌───────────────────────────────────┐ │
 │ └─────────────────────────────────┘ │ │ AssetImporter                     │ │
 │ ┌───────────────┬─────────────────┐ │ │ • tinygltf loader                 │ │
-│ │ Components    │ Resources       │ │ │ • Scene/Node conversion           │ │
-│ │ • Transform   │ • SubMesh       │ │ │ • Mesh/Material/Texture import    │ │
-│ │ • Mesh        │ • Material      │ │ │ • Camera/Light import             │ │
-│ │ • Camera      │ • Texture       │ │ └───────────────────────────────────┘ │
+│ │ Components    │ Assets          │ │ │ • Scene/Actor conversion          │ │
+│ │ • Scene       │ • MeshAsset     │ │ │ • Mesh/Material/Texture import    │ │
+│ │ • Primitive   │ • MaterialAsset │ │ │ • Camera/Light import             │ │
+│ │ • Mesh/Camera │ • TextureAsset  │ │ └───────────────────────────────────┘ │
 │ │ • Light       │                 │ │                                       │
 │ ├───────────────┴─────────────────┤ │                                       │
-│ │ Entity / Node / Behaviour       │ │                                       │
-│ │ CameraController / AABB / Ray   │ │                                       │
+│ │ Object / Actor / Component      │ │                                       │
+│ │ Transform / AABB / Ray          │ │                                       │
 │ └─────────────────────────────────┘ │                                       │
 └─────────────────────────────────────┴───────────────────────────────────────┘
                     │                                   │

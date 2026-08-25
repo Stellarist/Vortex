@@ -1,8 +1,8 @@
-export module Runtime.World:SceneComponent;
+export module Runtime.World:Components.SceneComponent;
 
 import Core;
-import :Component;
-import :Transform;
+import :Components.Component;
+import :Geometry.Transform;
 
 export namespace Vortex {
 

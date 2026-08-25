@@ -2,7 +2,7 @@ module;
 
 #include <cassert>
 
-export module Runtime.Graphics:RHIResource;
+export module Runtime.Graphics:RHI.Resource;
 
 import Core;
 
@@ -19,6 +19,7 @@ protected:
 public:
 	RHIResource(const RHIResource&) = delete;
 	RHIResource& operator=(const RHIResource&) = delete;
+
 	RHIResource(RHIResource&&) = delete;
 	RHIResource& operator=(RHIResource&&) = delete;
 
@@ -51,16 +52,13 @@ private:
 	struct AdoptTag {};
 
 	RHIRef(T* new_reference, AdoptTag) noexcept :
-	    reference(new_reference)
-	{}
+	    reference(new_reference) {}
 
-	template <typename U>
-	friend class RHIRef;
+	template <typename U> friend class RHIRef;
 
 public:
 	RHIRef() noexcept = default;
-	RHIRef(std::nullptr_t) noexcept
-	{}
+	RHIRef(std::nullptr_t) noexcept	{}
 
 	RHIRef(T* new_reference) noexcept :
 	    reference(new_reference)
@@ -70,24 +68,18 @@ public:
 	}
 
 	RHIRef(const RHIRef& other) noexcept :
-	    RHIRef(other.reference)
-	{}
+	    RHIRef(other.reference)	{}
 
-	template <typename U>
-	    requires std::is_convertible_v<U*, T*>
+	template <typename U> requires std::is_convertible_v<U*, T*>
 	RHIRef(const RHIRef<U>& other) noexcept :
-	    RHIRef(other.reference)
-	{}
+	    RHIRef(other.reference)	{}
 
 	RHIRef(RHIRef&& other) noexcept :
-	    reference(std::exchange(other.reference, nullptr))
-	{}
+	    reference(std::exchange(other.reference, nullptr)) {}
 
-	template <typename U>
-	    requires std::is_convertible_v<U*, T*>
+	template <typename U> requires std::is_convertible_v<U*, T*>
 	RHIRef(RHIRef<U>&& other) noexcept :
-	    reference(std::exchange(other.reference, nullptr))
-	{}
+	    reference(std::exchange(other.reference, nullptr)) {}
 
 	~RHIRef() noexcept
 	{
@@ -101,8 +93,7 @@ public:
 		return *this;
 	}
 
-	template <typename U>
-	    requires std::is_convertible_v<U*, T*>
+	template <typename U> requires std::is_convertible_v<U*, T*>
 	RHIRef& operator=(const RHIRef<U>& other) noexcept
 	{
 		reset(other.reference);
@@ -119,8 +110,7 @@ public:
 		return *this;
 	}
 
-	template <typename U>
-	    requires std::is_convertible_v<U*, T*>
+	template <typename U> requires std::is_convertible_v<U*, T*>
 	RHIRef& operator=(RHIRef<U>&& other) noexcept
 	{
 		if (reference)
@@ -161,14 +151,17 @@ public:
 	{
 		return reference;
 	}
+
 	T& operator*() const noexcept
 	{
 		return *reference;
 	}
+
 	T* operator->() const noexcept
 	{
 		return reference;
 	}
+
 	operator bool() const noexcept
 	{
 		return reference != nullptr;

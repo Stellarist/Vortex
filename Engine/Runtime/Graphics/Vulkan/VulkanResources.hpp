@@ -2,16 +2,16 @@ module;
 
 #include <vk_mem_alloc.h>
 
-export module Runtime.Graphics:VulkanResources;
+export module Runtime.Graphics:Vulkan.Resources;
 
 import vulkan;
 import Core;
-import :VulkanDevice;
-import :RHIBuffer;
-import :RHIFramebuffer;
-import :RHISampler;
-import :RHIShader;
-import :RHITexture;
+import :Vulkan.Device;
+import :RHI.Buffer;
+import :RHI.Framebuffer;
+import :RHI.Sampler;
+import :RHI.Shader;
+import :RHI.Texture;
 
 export namespace Vortex {
 

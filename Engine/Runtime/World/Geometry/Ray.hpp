@@ -1,4 +1,4 @@
-export module Runtime.World:Ray;
+export module Runtime.World:Geometry.Ray;
 
 import Core;
 

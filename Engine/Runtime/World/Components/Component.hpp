@@ -1,7 +1,7 @@
-export module Runtime.World:Component;
+export module Runtime.World:Components.Component;
 
 import Core;
-import Runtime.Object;
+import :Object;
 
 export namespace Vortex {
 
@@ -36,6 +36,7 @@ public:
 
 	Component(const Component&) = delete;
 	Component& operator=(const Component&) = delete;
+
 	Component(Component&&) noexcept = delete;
 	Component& operator=(Component&&) noexcept = delete;
 

@@ -2,11 +2,11 @@ module;
 
 #include <vk_mem_alloc.h>
 
-export module Runtime.Graphics:VulkanDevice;
+export module Runtime.Graphics:Vulkan.Device;
 
 import vulkan;
 import Core;
-import :RHIDevice;
+import :RHI.Device;
 
 export namespace Vortex {
 

@@ -1,8 +1,8 @@
-export module Runtime.Asset:MeshAsset;
+export module Runtime.World:Assets.MeshAsset;
 
 import Core;
-import :Asset;
-import :MaterialAsset;
+import :Assets.Asset;
+import :Assets.MaterialAsset;
 
 export namespace Vortex {
 

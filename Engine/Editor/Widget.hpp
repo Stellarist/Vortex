@@ -2,13 +2,13 @@ module;
 
 #include <SDL3/SDL.h>
 
-export module Editor.Widget;
+export module Editor:Widget;
 
 import vulkan;
 
-export import Editor.Window;
-export import Runtime.World;
-export import Runtime.Graphics;
+import Editor.Window;
+import Runtime.World;
+import Runtime.Graphics;
 
 export namespace Vortex {
 

@@ -1,10 +1,10 @@
-export module Editor.Launch;
+export module Editor:Application;
 
-export import Core;
-export import Runtime.World;
-export import Runtime.Graphics;
-export import Editor.Window;
-export import Editor.Widget;
+import Core;
+import Runtime.World;
+import Runtime.Graphics;
+import Editor.Window;
+import :Widget;
 
 export namespace Vortex {
 

@@ -1,6 +1,6 @@
-export module Runtime.Graphics:RHIContext;
+export module Runtime.Graphics:RHI.Context;
 
-import :RHITypes;
+import :RHI.Types;
 
 export namespace Vortex {
 
@@ -24,6 +24,7 @@ public:
 
 	RHIContext(const RHIContext&) = delete;
 	RHIContext& operator=(const RHIContext&) = delete;
+
 	RHIContext(RHIContext&&) = delete;
 	RHIContext& operator=(RHIContext&&) = delete;
 

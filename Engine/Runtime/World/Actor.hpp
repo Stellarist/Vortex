@@ -1,9 +1,9 @@
 export module Runtime.World:Actor;
 
 import Core;
-import Runtime.Object;
-import :Component;
-import :SceneComponent;
+import :Object;
+import :Components.Component;
+import :Components.SceneComponent;
 
 export namespace Vortex {
 
@@ -34,6 +34,7 @@ public:
 
 	Actor(const Actor&) = delete;
 	Actor& operator=(const Actor&) = delete;
+
 	Actor(Actor&&) noexcept = delete;
 	Actor& operator=(Actor&&) noexcept = delete;
 

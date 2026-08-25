@@ -1,17 +1,18 @@
-export module Runtime.Graphics:RHIBinding;
+export module Runtime.Graphics:RHI.Binding;
 
 import Core;
-import :RHISampler;
-import :RHIBuffer;
-import :RHITexture;
+import :RHI.Sampler;
+import :RHI.Buffer;
+import :RHI.Texture;
 
 export namespace Vortex {
 
 struct RHIBindingLayoutItem {
 	RHIBindingType type{RHIBindingType::None};
-	uint32         slot{};
-	uint32         count{1};
-	uint32         size{};
+
+	uint32 slot{};
+	uint32 count{1};
+	uint32 size{};
 
 	RHIBindingLayoutItem& setSlot(uint32 new_slot) noexcept
 	{
@@ -42,7 +43,8 @@ struct RHIBindingLayoutItem {
 };
 
 struct RHIBindingLayoutDesc {
-	RHIShaderType                     visibility{RHIShaderType::None};
+	RHIShaderType visibility{RHIShaderType::None};
+
 	std::vector<RHIBindingLayoutItem> bindings{};
 
 	RHIBindingLayoutDesc& setVisibility(RHIShaderType new_visibility) noexcept
@@ -72,14 +74,9 @@ public:
 
 struct RHIBindingSetItem {
 	RHIRef<RHIResource> resource{};
-	uint32              slot{};
-	RHIBindingType      type{RHIBindingType::None};
 
-	RHIBindingSetItem& setSlot(uint32 new_slot) noexcept
-	{
-		slot = new_slot;
-		return *this;
-	}
+	RHIBindingType type{RHIBindingType::None};
+	uint32         slot{};
 
 	RHIBindingSetItem& setType(RHIBindingType new_type) noexcept
 	{
@@ -87,8 +84,13 @@ struct RHIBindingSetItem {
 		return *this;
 	}
 
-	RHIBindingSetItem& setTextureView(
-	    uint32 new_slot, RHITextureView* new_texture_view, RHIBindingType new_type = RHIBindingType::TextureSRV) noexcept
+	RHIBindingSetItem& setSlot(uint32 new_slot) noexcept
+	{
+		slot = new_slot;
+		return *this;
+	}
+
+	RHIBindingSetItem& setTextureView(uint32 new_slot, RHITextureView* new_texture_view, RHIBindingType new_type = RHIBindingType::TextureSRV) noexcept
 	{
 		slot = new_slot;
 		type = new_type;
@@ -104,8 +106,7 @@ struct RHIBindingSetItem {
 		return *this;
 	}
 
-	RHIBindingSetItem& setBufferView(
-	    uint32 new_slot, RHIBufferView* new_buffer_view, RHIBindingType new_type = RHIBindingType::ConstantBuffer) noexcept
+	RHIBindingSetItem& setBufferView(uint32 new_slot, RHIBufferView* new_buffer_view, RHIBindingType new_type = RHIBindingType::ConstantBuffer) noexcept
 	{
 		slot = new_slot;
 		type = new_type;

@@ -1,8 +1,8 @@
-export module Runtime.Graphics:RHIBuffer;
+export module Runtime.Graphics:RHI.Buffer;
 
 import Core;
-import :RHIResource;
-import :RHITypes;
+import :RHI.Resource;
+import :RHI.Types;
 
 export namespace Vortex {
 

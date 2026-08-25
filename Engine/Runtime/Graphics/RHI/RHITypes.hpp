@@ -1,4 +1,4 @@
-export module Runtime.Graphics:RHITypes;
+export module Runtime.Graphics:RHI.Types;
 
 import Core;
 

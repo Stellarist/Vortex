@@ -1,4 +1,4 @@
-export module Runtime.World:Transform;
+export module Runtime.World:Geometry.Transform;
 
 import Core;
 

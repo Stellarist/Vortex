@@ -2,9 +2,10 @@ module;
 
 #include <tiny_gltf.h>
 
-export module Editor.Importer;
+export module Editor:AssetImporter;
 
-export import Runtime.World;
+import Runtime.World;
+import :CameraController;
 
 export namespace Vortex {
 

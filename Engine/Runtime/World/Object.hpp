@@ -1,4 +1,4 @@
-export module Runtime.Object;
+export module Runtime.World:Object;
 
 import Core;
 
@@ -17,6 +17,7 @@ public:
 
 	Object(const Object&) = delete;
 	Object& operator=(const Object&) = delete;
+
 	Object(Object&&) noexcept = delete;
 	Object& operator=(Object&&) noexcept = delete;
 

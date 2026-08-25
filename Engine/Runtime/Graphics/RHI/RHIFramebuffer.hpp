@@ -1,14 +1,15 @@
-export module Runtime.Graphics:RHIFramebuffer;
+export module Runtime.Graphics:RHI.Framebuffer;
 
 import Core;
-import :RHITexture;
+import :RHI.Texture;
 
 export namespace Vortex {
 
 struct RHIFramebufferAttachment {
 	RHIRef<RHITextureView> texture_view{};
-	RHIFormat              format{RHIFormat::Unknown};
-	bool                   read_only{false};
+
+	RHIFormat format{RHIFormat::Unknown};
+	bool      read_only{false};
 
 	bool valid() const noexcept
 	{

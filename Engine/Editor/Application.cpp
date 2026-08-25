@@ -1,6 +1,6 @@
-module Editor.Launch;
+module Editor;
 
-import Editor.Importer;
+import :AssetImporter;
 
 namespace Vortex {
 

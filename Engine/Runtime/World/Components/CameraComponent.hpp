@@ -1,7 +1,7 @@
-export module Runtime.World:CameraComponent;
+export module Runtime.World:Components.CameraComponent;
 
 import Core;
-import :SceneComponent;
+import :Components.SceneComponent;
 
 export namespace Vortex {
 

@@ -1,4 +1,4 @@
-module Runtime.Asset;
+module Runtime.World;
 
 namespace Vortex {
 

@@ -1,6 +1,6 @@
-export module Runtime.World:PrimitiveComponent;
+export module Runtime.World:Components.PrimitiveComponent;
 
-import :SceneComponent;
+import :Components.SceneComponent;
 
 export namespace Vortex {
 

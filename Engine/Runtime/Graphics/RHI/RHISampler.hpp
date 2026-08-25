@@ -1,7 +1,7 @@
-export module Runtime.Graphics:RHISampler;
+export module Runtime.Graphics:RHI.Sampler;
 
-import :RHIResource;
-import :RHITypes;
+import :RHI.Resource;
+import :RHI.Types;
 
 export namespace Vortex {
 

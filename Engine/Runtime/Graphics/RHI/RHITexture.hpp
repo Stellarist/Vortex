@@ -1,8 +1,8 @@
-export module Runtime.Graphics:RHITexture;
+export module Runtime.Graphics:RHI.Texture;
 
 import Core;
-import :RHIResource;
-import :RHITypes;
+import :RHI.Resource;
+import :RHI.Types;
 
 export namespace Vortex {
 

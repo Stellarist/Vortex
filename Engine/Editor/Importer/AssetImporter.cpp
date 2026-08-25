@@ -7,7 +7,7 @@ module;
 #include <cassert>
 #include <tiny_gltf.h>
 
-module Editor.Importer;
+module Editor;
 
 namespace Vortex {
 

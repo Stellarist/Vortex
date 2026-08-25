@@ -1,7 +1,7 @@
-export module Runtime.World:AABB;
+export module Runtime.World:Geometry.AABB;
 
 import Core;
-import :Ray;
+import :Geometry.Ray;
 
 export namespace Vortex {
 

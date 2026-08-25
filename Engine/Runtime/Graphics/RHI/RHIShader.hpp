@@ -1,8 +1,8 @@
-export module Runtime.Graphics:RHIShader;
+export module Runtime.Graphics:RHI.Shader;
 
 import Core;
-import :RHIResource;
-import :RHITypes;
+import :RHI.Resource;
+import :RHI.Types;
 
 export namespace Vortex {
 

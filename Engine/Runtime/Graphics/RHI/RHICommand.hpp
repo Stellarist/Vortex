@@ -1,14 +1,13 @@
-export module Runtime.Graphics:RHICommand;
+export module Runtime.Graphics:RHI.Command;
 
 import Core;
-import :RHIBuffer;
-import :RHIFramebuffer;
-import :RHIPipeline;
-import :RHITexture;
+import :RHI.Buffer;
+import :RHI.Framebuffer;
+import :RHI.Pipeline;
+import :RHI.Texture;
 
 export namespace Vortex {
 
-// vertex buffer binding
 struct RHIVertexBufferBinding {
 	RHIRef<RHIBuffer> buffer{};
 	uint32            slot{};
@@ -34,7 +33,6 @@ struct RHIVertexBufferBinding {
 };
 
 
-// index buffer binding
 struct RHIIndexBufferBinding {
 	RHIRef<RHIBuffer> buffer{};
 	RHIIndexType      index_type{RHIIndexType::Uint32};
@@ -60,7 +58,6 @@ struct RHIIndexBufferBinding {
 };
 
 
-// graphics state
 struct RHIGraphicsState {
 	RHIRef<RHIGraphicsPipeline> pipeline{};
 	RHIRef<RHIFramebuffer>      framebuffer{};
@@ -108,7 +105,6 @@ struct RHIGraphicsState {
 };
 
 
-// command list
 struct RHICommandListDesc {
 	RHICommandQueue queue_type{RHICommandQueue::Graphics};
 };

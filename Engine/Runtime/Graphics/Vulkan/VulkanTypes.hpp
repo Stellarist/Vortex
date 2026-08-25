@@ -1,8 +1,8 @@
-export module Runtime.Graphics:VulkanTypes;
+export module Runtime.Graphics:Vulkan.Types;
 
 import vulkan;
 import Core;
-import :RHITypes;
+import :RHI.Types;
 
 export namespace Vortex {
 

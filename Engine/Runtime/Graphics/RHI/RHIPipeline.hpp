@@ -1,12 +1,11 @@
-export module Runtime.Graphics:RHIPipeline;
+export module Runtime.Graphics:RHI.Pipeline;
 
 import Core;
-import :RHIBinding;
-import :RHIShader;
+import :RHI.Binding;
+import :RHI.Shader;
 
 export namespace Vortex {
 
-// Input Layout
 struct RHIVertexBindingDesc {
 	uint32 binding{};
 	uint32 stride{};
@@ -105,7 +104,6 @@ public:
 };
 
 
-// Viewport State
 struct RHIViewportState {
 	std::vector<RHIViewport> viewports{};
 	std::vector<RHIRect>     scissors{};
@@ -124,7 +122,6 @@ struct RHIViewportState {
 };
 
 
-// Color Blend State
 struct RHIColorBlendState {
 	struct BlendDesc {
 		bool           blend_enable{false};
@@ -203,7 +200,6 @@ struct RHIColorBlendState {
 };
 
 
-// Depth Stencil State
 struct RHIDepthStencilState {
 	struct StencilOp {
 		RHIStencilOp fail_op{RHIStencilOp::Keep};
@@ -288,7 +284,6 @@ struct RHIDepthStencilState {
 };
 
 
-// Raster State
 struct RHIRasterState {
 	RHIPolygonMode polygon_mode{RHIPolygonMode::Fill};
 	RHICullMode    cull_mode{RHICullMode::Back};
@@ -349,7 +344,6 @@ struct RHIRasterState {
 };
 
 
-// Graphics Pipeline
 struct RHIGraphicsPipelineDesc {
 	RHIPrimitiveType primitive_type{RHIPrimitiveType::TriangleList};
 

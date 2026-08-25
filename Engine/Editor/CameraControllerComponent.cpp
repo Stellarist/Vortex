@@ -1,4 +1,4 @@
-module Runtime.World;
+module Editor;
 
 namespace Vortex {
 

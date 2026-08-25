@@ -1,9 +1,9 @@
-export module Runtime.Graphics:VulkanBinding;
+export module Runtime.Graphics:Vulkan.Binding;
 
 import vulkan;
 import Core;
-import :RHIBinding;
-import :VulkanDevice;
+import :RHI.Binding;
+import :Vulkan.Device;
 
 export namespace Vortex {
 

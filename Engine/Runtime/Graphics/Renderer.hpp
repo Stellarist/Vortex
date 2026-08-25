@@ -3,10 +3,10 @@ export module Runtime.Graphics:Renderer;
 import Core;
 import Editor.Window;
 import Runtime.World;
-import :RHICommand;
-import :RHIContext;
-import :RHIPipeline;
-import :RenderScene;
+import :RHI.Command;
+import :RHI.Context;
+import :RHI.Pipeline;
+import :Render.Scene;
 
 export namespace Vortex {
 

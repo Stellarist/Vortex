@@ -1,10 +1,9 @@
-export module Runtime.Graphics:RenderScene;
+export module Runtime.Graphics:Render.Scene;
 
 import Core;
-import Runtime.Asset;
 import Runtime.World;
-import :RenderResources;
-import :RHICommand;
+import :Render.Resources;
+import :RHI.Command;
 
 export namespace Vortex {
 

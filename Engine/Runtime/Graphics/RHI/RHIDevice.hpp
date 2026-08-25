@@ -1,7 +1,7 @@
-export module Runtime.Graphics:RHIDevice;
+export module Runtime.Graphics:RHI.Device;
 
 import Core;
-import :RHICommand;
+import :RHI.Command;
 
 export namespace Vortex {
 
@@ -12,6 +12,7 @@ public:
 
 	RHIDevice(const RHIDevice&) = delete;
 	RHIDevice& operator=(const RHIDevice&) = delete;
+
 	RHIDevice(RHIDevice&&) = delete;
 	RHIDevice& operator=(RHIDevice&&) = delete;
 

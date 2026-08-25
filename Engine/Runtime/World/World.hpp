@@ -1,9 +1,9 @@
 export module Runtime.World:World;
 
 import Core;
-import Runtime.Asset;
+import :Assets;
 import :Scene;
-import :CameraComponent;
+import :Components.CameraComponent;
 
 export namespace Vortex {
 
@@ -27,6 +27,7 @@ public:
 
 	World(const World&) = delete;
 	World& operator=(const World&) = delete;
+
 	World(World&&) noexcept = delete;
 	World& operator=(World&&) noexcept = delete;
 

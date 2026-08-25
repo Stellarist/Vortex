@@ -1,7 +1,7 @@
-export module Runtime.Asset:TextureAsset;
+export module Runtime.World:Assets.TextureAsset;
 
 import Core;
-import :Asset;
+import :Assets.Asset;
 
 export namespace Vortex {
 

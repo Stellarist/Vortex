@@ -1,7 +1,7 @@
-export module Runtime.World:LightComponent;
+export module Runtime.World:Components.LightComponent;
 
 import Core;
-import :SceneComponent;
+import :Components.SceneComponent;
 
 export namespace Vortex {
 

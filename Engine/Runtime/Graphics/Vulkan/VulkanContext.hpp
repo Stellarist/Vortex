@@ -1,10 +1,10 @@
-export module Runtime.Graphics:VulkanContext;
+export module Runtime.Graphics:Vulkan.Context;
 
 import vulkan;
 import Core;
 import Editor.Window;
-import :RHIDevice;
-import :RHIContext;
+import :RHI.Device;
+import :RHI.Context;
 
 export namespace Vortex {
 

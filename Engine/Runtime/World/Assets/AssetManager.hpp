@@ -1,7 +1,7 @@
-export module Runtime.Asset:AssetManager;
+export module Runtime.World:Assets.AssetManager;
 
 import Core;
-import :Asset;
+import :Assets.Asset;
 
 export namespace Vortex {
 
@@ -16,6 +16,7 @@ public:
 
 	AssetManager(const AssetManager&) = delete;
 	AssetManager& operator=(const AssetManager&) = delete;
+
 	AssetManager(AssetManager&&) noexcept = delete;
 	AssetManager& operator=(AssetManager&&) noexcept = delete;
 

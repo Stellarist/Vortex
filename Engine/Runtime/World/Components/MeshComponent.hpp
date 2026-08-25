@@ -1,8 +1,8 @@
-export module Runtime.World:MeshComponent;
+export module Runtime.World:Components.MeshComponent;
 
 import Core;
-import Runtime.Asset;
-import :PrimitiveComponent;
+import :Assets.MeshAsset;
+import :Components.PrimitiveComponent;
 
 export namespace Vortex {
 

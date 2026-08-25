@@ -2,11 +2,11 @@ module;
 
 #include <cassert>
 
-export module Runtime.Graphics:VulkanPipeline;
+export module Runtime.Graphics:Vulkan.Pipeline;
 
 import vulkan;
 import Core;
-import :VulkanDevice;
+import :Vulkan.Device;
 
 export namespace Vortex {
 
