@@ -3,7 +3,7 @@ module Runtime.World;
 namespace Vortex {
 
 MeshComponent::MeshComponent(std::string component_name) :
-    PrimitiveComponent(std::move(component_name))
+    SceneComponent(std::move(component_name))
 {}
 
 const AssetHandle<MeshAsset>& MeshComponent::getMesh() const noexcept
@@ -50,6 +50,28 @@ MeshComponent& MeshComponent::clearMaterial(uint32 slot) noexcept
 MeshComponent& MeshComponent::clearMaterials() noexcept
 {
 	materials.clear();
+	return *this;
+}
+
+bool MeshComponent::isVisible() const noexcept
+{
+	return visible;
+}
+
+MeshComponent& MeshComponent::setVisible(bool new_visible) noexcept
+{
+	visible = new_visible;
+	return *this;
+}
+
+bool MeshComponent::castsShadow() const noexcept
+{
+	return casts_shadow;
+}
+
+MeshComponent& MeshComponent::setCastsShadow(bool new_casts_shadow) noexcept
+{
+	casts_shadow = new_casts_shadow;
 	return *this;
 }
 

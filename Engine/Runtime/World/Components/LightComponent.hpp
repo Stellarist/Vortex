@@ -18,7 +18,7 @@ public:
 	auto setColor(const Vec3& color) noexcept -> LightComponent&;
 
 	float getIntensity() const noexcept;
-	auto  setIntensity(float intensity) noexcept -> LightComponent&;
+	auto setIntensity(float intensity) noexcept -> LightComponent&;
 };
 
 
@@ -40,7 +40,7 @@ public:
 	~PointLightComponent() override = default;
 
 	float getRange() const noexcept;
-	auto  setRange(float range) noexcept -> PointLightComponent&;
+	auto setRange(float range) noexcept -> PointLightComponent&;
 };
 
 
@@ -57,13 +57,13 @@ public:
 	Vec3 getDirection() const noexcept;
 
 	float getRange() const noexcept;
-	auto  setRange(float range) noexcept -> SpotLightComponent&;
+	auto setRange(float range) noexcept -> SpotLightComponent&;
 
 	float getInnerConeAngle() const noexcept;
-	auto  setInnerConeAngle(float angle) noexcept -> SpotLightComponent&;
+	auto setInnerConeAngle(float angle) noexcept -> SpotLightComponent&;
 
 	float getOuterConeAngle() const noexcept;
-	auto  setOuterConeAngle(float angle) noexcept -> SpotLightComponent&;
+	auto setOuterConeAngle(float angle) noexcept -> SpotLightComponent&;
 };
 
 }        // namespace Vortex

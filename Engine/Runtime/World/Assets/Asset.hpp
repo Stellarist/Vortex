@@ -23,7 +23,7 @@ public:
 	Asset(Asset&&) noexcept = delete;
 	Asset& operator=(Asset&&) noexcept = delete;
 
-	auto   getVirtualPath() const noexcept -> const std::string&;
+	auto getVirtualPath() const noexcept -> const std::string&;
 	uint64 getRevision() const noexcept;
 };
 
@@ -48,11 +48,10 @@ public:
 	T& operator*() const { return *asset; }
 	T* operator->() const noexcept { return asset.get(); }
 
+	bool operator==(const AssetHandle& other) const noexcept { return asset == other.asset; }
 	operator bool() const noexcept { return asset != nullptr; }
 
 	void reset() noexcept { asset.reset(); }
-
-	bool operator==(const AssetHandle& other) const noexcept { return asset == other.asset; }
 };
 
 }        // namespace Vortex

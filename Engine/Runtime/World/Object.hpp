@@ -22,7 +22,7 @@ public:
 	Object& operator=(Object&&) noexcept = delete;
 
 	uint64 getUid() const noexcept;
-	auto   getName() const noexcept -> const std::string&;
+	auto getName() const noexcept -> const std::string&;
 
 	template <typename Self>
 	auto&& setName(this Self&& self, std::string name)

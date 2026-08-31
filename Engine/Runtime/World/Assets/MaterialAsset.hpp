@@ -6,6 +6,15 @@ import :Assets.TextureAsset;
 
 export namespace Vortex {
 
+enum class MaterialTextureSlot : uint8 {
+	BaseColor,
+	MetallicRoughness,
+	Normal,
+	Occlusion,
+	Emissive,
+	Count,
+};
+
 class MaterialAsset : public Asset {
 public:
 	enum class ShadingModel : uint8 {
@@ -33,7 +42,7 @@ private:
 	float     alpha_cutoff{0.5f};
 	AlphaMode alpha_mode{AlphaMode::Opaque};
 
-	std::unordered_map<std::string, AssetHandle<TextureAsset>> textures;
+	std::array<AssetHandle<TextureAsset>, static_cast<size_t>(MaterialTextureSlot::Count)> textures;
 
 public:
 	MaterialAsset(std::string name, ShadingModel shading_model = ShadingModel::Lit, std::string virtual_path = {});
@@ -58,15 +67,15 @@ public:
 	auto setDoubleSided(bool double_sided) noexcept -> MaterialAsset&;
 
 	float getAlphaCutoff() const noexcept;
-	auto  setAlphaCutoff(float alpha_cutoff) noexcept -> MaterialAsset&;
+	auto setAlphaCutoff(float alpha_cutoff) noexcept -> MaterialAsset&;
 
 	auto getAlphaMode() const noexcept -> AlphaMode;
 	auto setAlphaMode(AlphaMode alpha_mode) noexcept -> MaterialAsset&;
 
-	auto getTextures() const noexcept -> const std::unordered_map<std::string, AssetHandle<TextureAsset>>&;
+	auto getTextures() const noexcept -> const std::array<AssetHandle<TextureAsset>, static_cast<size_t>(MaterialTextureSlot::Count)>&;
 
-	auto getTexture(std::string_view name) const -> AssetHandle<TextureAsset>;
-	auto setTexture(std::string name, AssetHandle<TextureAsset> texture) -> MaterialAsset&;
+	auto getTexture(MaterialTextureSlot slot) const -> AssetHandle<TextureAsset>;
+	auto setTexture(MaterialTextureSlot slot, AssetHandle<TextureAsset> texture) -> MaterialAsset&;
 };
 
 }        // namespace Vortex

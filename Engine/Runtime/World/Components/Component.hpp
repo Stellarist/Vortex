@@ -6,7 +6,6 @@ import :Object;
 export namespace Vortex {
 
 class Actor;
-class Scene;
 class World;
 
 class Component : public Object {
@@ -27,7 +26,7 @@ private:
 	void endPlayInternal();
 
 	friend class Actor;
-	friend class Scene;
+	friend class World;
 
 public:
 	Component() = default;
@@ -41,7 +40,6 @@ public:
 	Component& operator=(Component&&) noexcept = delete;
 
 	Actor* getOwner() const noexcept;
-	Scene* getScene() const noexcept;
 	World* getWorld() const noexcept;
 
 	bool isEnabled() const noexcept;

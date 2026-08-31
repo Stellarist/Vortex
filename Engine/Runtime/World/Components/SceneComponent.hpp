@@ -2,7 +2,6 @@ export module Runtime.World:Components.SceneComponent;
 
 import Core;
 import :Components.Component;
-import :Geometry.Transform;
 
 export namespace Vortex {
 
@@ -17,17 +16,17 @@ public:
 	SceneComponent(std::string name = "SceneComponent");
 	~SceneComponent() noexcept override;
 
-	Transform&       getTransform() noexcept;
+	Transform& getTransform() noexcept;
 	const Transform& getTransform() const noexcept;
 
 	Mat4 getWorldMatrix() const noexcept;
 	Vec3 getWorldPosition() const noexcept;
 
 	SceneComponent* getAttachParent() const noexcept;
-	auto            getAttachChildren() const noexcept -> const std::vector<SceneComponent*>&;
+	auto getAttachChildren() const noexcept -> const std::vector<SceneComponent*>&;
 
 	auto attachTo(SceneComponent& parent) -> SceneComponent&;
-	auto detach() noexcept -> SceneComponent&;
+	auto detach() -> SceneComponent&;
 };
 
 template <typename T>

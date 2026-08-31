@@ -14,7 +14,7 @@ public:
 	~CameraComponent() override = default;
 
 	virtual Mat4 getProjection() const noexcept = 0;
-	Mat4         getView() const noexcept;
+	Mat4 getView() const noexcept;
 
 	Mat4 getPreRotation() const noexcept;
 	auto setPreRotation(const Mat4& pre_rotation) noexcept -> CameraComponent&;
@@ -34,16 +34,16 @@ public:
 	~PerspectiveCameraComponent() override = default;
 
 	float getFarPlane() const noexcept;
-	auto  setFarPlane(float far_plane) noexcept -> PerspectiveCameraComponent&;
+	auto setFarPlane(float far_plane) noexcept -> PerspectiveCameraComponent&;
 
 	float getNearPlane() const noexcept;
-	auto  setNearPlane(float near_plane) noexcept -> PerspectiveCameraComponent&;
+	auto setNearPlane(float near_plane) noexcept -> PerspectiveCameraComponent&;
 
 	float getAspectRatio() const noexcept;
-	auto  setAspectRatio(float aspect_ratio) noexcept -> PerspectiveCameraComponent&;
+	auto setAspectRatio(float aspect_ratio) noexcept -> PerspectiveCameraComponent&;
 
 	float getFov() const noexcept;
-	auto  setFov(float fov) noexcept -> PerspectiveCameraComponent&;
+	auto setFov(float fov) noexcept -> PerspectiveCameraComponent&;
 
 	Vec3 getFront() const noexcept;
 	Vec3 getUp() const noexcept;
@@ -68,22 +68,22 @@ public:
 	~OrthographicCameraComponent() override = default;
 
 	float getLeft() const noexcept;
-	auto  setLeft(float left) noexcept -> OrthographicCameraComponent&;
+	auto setLeft(float left) noexcept -> OrthographicCameraComponent&;
 
 	float getRight() const noexcept;
-	auto  setRight(float right) noexcept -> OrthographicCameraComponent&;
+	auto setRight(float right) noexcept -> OrthographicCameraComponent&;
 
 	float getTop() const noexcept;
-	auto  setTop(float top) noexcept -> OrthographicCameraComponent&;
+	auto setTop(float top) noexcept -> OrthographicCameraComponent&;
 
 	float getBottom() const noexcept;
-	auto  setBottom(float bottom) noexcept -> OrthographicCameraComponent&;
+	auto setBottom(float bottom) noexcept -> OrthographicCameraComponent&;
 
 	float getNearPlane() const noexcept;
-	auto  setNearPlane(float near_plane) noexcept -> OrthographicCameraComponent&;
+	auto setNearPlane(float near_plane) noexcept -> OrthographicCameraComponent&;
 
 	float getFarPlane() const noexcept;
-	auto  setFarPlane(float far_plane) noexcept -> OrthographicCameraComponent&;
+	auto setFarPlane(float far_plane) noexcept -> OrthographicCameraComponent&;
 
 	Mat4 getProjection() const noexcept override;
 };

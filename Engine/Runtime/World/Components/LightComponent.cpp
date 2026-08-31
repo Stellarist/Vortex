@@ -2,9 +2,19 @@ module Runtime.World;
 
 namespace Vortex {
 
+static float nonNegative(float value) noexcept
+{
+	return std::isfinite(value) ? std::max(value, 0.0f) : 0.0f;
+}
+
+static float coneAngle(float value) noexcept
+{
+	return std::clamp(std::isfinite(value) ? value : 0.0f, 0.0f, std::numbers::pi_v<float> * 0.5f);
+}
+
 static Vec3 forwardDirection(const SceneComponent& component) noexcept
 {
-	return Math::normalize(Vec3(component.getWorldMatrix() * Vec4(0.0f, -1.0f, 0.0f, 0.0f)));
+	return Math::safeNormalize(Vec3(component.getWorldMatrix() * Vec4(0.0f, -1.0f, 0.0f, 0.0f)));
 }
 
 LightComponent::LightComponent(std::string component_name) :
@@ -18,7 +28,7 @@ Vec3 LightComponent::getColor() const noexcept
 
 LightComponent& LightComponent::setColor(const Vec3& value) noexcept
 {
-	color = value;
+	color = Vec3{nonNegative(value.x), nonNegative(value.y), nonNegative(value.z)};
 	return *this;
 }
 
@@ -29,7 +39,7 @@ float LightComponent::getIntensity() const noexcept
 
 LightComponent& LightComponent::setIntensity(float value) noexcept
 {
-	intensity = value;
+	intensity = nonNegative(value);
 	return *this;
 }
 
@@ -55,7 +65,7 @@ float PointLightComponent::getRange() const noexcept
 
 PointLightComponent& PointLightComponent::setRange(float value) noexcept
 {
-	range = value;
+	range = nonNegative(value);
 	return *this;
 }
 
@@ -76,7 +86,7 @@ float SpotLightComponent::getRange() const noexcept
 
 SpotLightComponent& SpotLightComponent::setRange(float value) noexcept
 {
-	range = value;
+	range = nonNegative(value);
 	return *this;
 }
 
@@ -87,7 +97,8 @@ float SpotLightComponent::getInnerConeAngle() const noexcept
 
 SpotLightComponent& SpotLightComponent::setInnerConeAngle(float value) noexcept
 {
-	inner_cone_angle = value;
+	inner_cone_angle = coneAngle(value);
+	outer_cone_angle = std::max(outer_cone_angle, inner_cone_angle);
 	return *this;
 }
 
@@ -98,7 +109,8 @@ float SpotLightComponent::getOuterConeAngle() const noexcept
 
 SpotLightComponent& SpotLightComponent::setOuterConeAngle(float value) noexcept
 {
-	outer_cone_angle = value;
+	outer_cone_angle = coneAngle(value);
+	inner_cone_angle = std::min(inner_cone_angle, outer_cone_angle);
 	return *this;
 }
 

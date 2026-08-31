@@ -2,6 +2,16 @@ module Runtime.World;
 
 namespace Vortex {
 
+static constexpr float minimum_plane = 0.001f;
+static constexpr float minimum_extent = 0.001f;
+static constexpr float minimum_fov = 0.0174532925f;
+static constexpr float maximum_fov = 3.12413936f;
+
+static float finiteOr(float value, float fallback) noexcept
+{
+	return std::isfinite(value) ? value : fallback;
+}
+
 CameraComponent::CameraComponent(std::string component_name) :
     SceneComponent(std::move(component_name))
 {}
@@ -33,12 +43,13 @@ PerspectiveCameraComponent::PerspectiveCameraComponent(
     float       new_aspect_ratio,
     float       new_near_plane,
     float       new_far_plane) :
-    CameraComponent(std::move(component_name)),
-    aspect_ratio(new_aspect_ratio),
-    fov(new_fov),
-    far_plane(new_far_plane),
-    near_plane(new_near_plane)
-{}
+    CameraComponent(std::move(component_name))
+{
+	setAspectRatio(new_aspect_ratio);
+	setFov(new_fov);
+	setNearPlane(new_near_plane);
+	setFarPlane(new_far_plane);
+}
 
 float PerspectiveCameraComponent::getFarPlane() const noexcept
 {
@@ -47,7 +58,7 @@ float PerspectiveCameraComponent::getFarPlane() const noexcept
 
 PerspectiveCameraComponent& PerspectiveCameraComponent::setFarPlane(float new_far_plane) noexcept
 {
-	far_plane = new_far_plane;
+	far_plane = std::max(finiteOr(new_far_plane, near_plane + 100.0f), near_plane + minimum_plane);
 	return *this;
 }
 
@@ -58,7 +69,8 @@ float PerspectiveCameraComponent::getNearPlane() const noexcept
 
 PerspectiveCameraComponent& PerspectiveCameraComponent::setNearPlane(float new_near_plane) noexcept
 {
-	near_plane = new_near_plane;
+	near_plane = std::max(finiteOr(new_near_plane, 0.1f), minimum_plane);
+	far_plane = std::max(far_plane, near_plane + minimum_plane);
 	return *this;
 }
 
@@ -69,7 +81,7 @@ float PerspectiveCameraComponent::getAspectRatio() const noexcept
 
 PerspectiveCameraComponent& PerspectiveCameraComponent::setAspectRatio(float new_aspect_ratio) noexcept
 {
-	aspect_ratio = new_aspect_ratio;
+	aspect_ratio = std::max(finiteOr(new_aspect_ratio, 1.0f), minimum_extent);
 	return *this;
 }
 
@@ -80,23 +92,23 @@ float PerspectiveCameraComponent::getFov() const noexcept
 
 PerspectiveCameraComponent& PerspectiveCameraComponent::setFov(float new_fov) noexcept
 {
-	fov = new_fov;
+	fov = std::clamp(finiteOr(new_fov, 0.785f), minimum_fov, maximum_fov);
 	return *this;
 }
 
 Vec3 PerspectiveCameraComponent::getFront() const noexcept
 {
-	return Math::normalize(Vec3(getWorldMatrix() * Vec4(0.0f, 0.0f, -1.0f, 0.0f)));
+	return Math::safeNormalize(Vec3(getWorldMatrix() * Vec4(0.0f, 0.0f, -1.0f, 0.0f)));
 }
 
 Vec3 PerspectiveCameraComponent::getUp() const noexcept
 {
-	return Math::normalize(Vec3(getWorldMatrix() * Vec4(0.0f, 1.0f, 0.0f, 0.0f)));
+	return Math::safeNormalize(Vec3(getWorldMatrix() * Vec4(0.0f, 1.0f, 0.0f, 0.0f)));
 }
 
 Vec3 PerspectiveCameraComponent::getRight() const noexcept
 {
-	return Math::normalize(Vec3(getWorldMatrix() * Vec4(1.0f, 0.0f, 0.0f, 0.0f)));
+	return Math::safeNormalize(Vec3(getWorldMatrix() * Vec4(1.0f, 0.0f, 0.0f, 0.0f)));
 }
 
 Mat4 PerspectiveCameraComponent::getProjection() const noexcept
@@ -119,14 +131,15 @@ OrthographicCameraComponent::OrthographicCameraComponent(
     float       new_top,
     float       new_near_plane,
     float       new_far_plane) :
-    CameraComponent(std::move(component_name)),
-    left(new_left),
-    right(new_right),
-    top(new_top),
-    bottom(new_bottom),
-    near_plane(new_near_plane),
-    far_plane(new_far_plane)
-{}
+    CameraComponent(std::move(component_name))
+{
+	setLeft(new_left);
+	setRight(new_right);
+	setBottom(new_bottom);
+	setTop(new_top);
+	setNearPlane(new_near_plane);
+	setFarPlane(new_far_plane);
+}
 
 float OrthographicCameraComponent::getLeft() const noexcept
 {
@@ -135,7 +148,9 @@ float OrthographicCameraComponent::getLeft() const noexcept
 
 OrthographicCameraComponent& OrthographicCameraComponent::setLeft(float value) noexcept
 {
-	left = value;
+	left = finiteOr(value, -1.0f);
+	if (right <= left)
+		right = left + minimum_extent;
 	return *this;
 }
 
@@ -146,7 +161,9 @@ float OrthographicCameraComponent::getRight() const noexcept
 
 OrthographicCameraComponent& OrthographicCameraComponent::setRight(float value) noexcept
 {
-	right = value;
+	right = finiteOr(value, 1.0f);
+	if (right <= left)
+		left = right - minimum_extent;
 	return *this;
 }
 
@@ -157,7 +174,9 @@ float OrthographicCameraComponent::getTop() const noexcept
 
 OrthographicCameraComponent& OrthographicCameraComponent::setTop(float value) noexcept
 {
-	top = value;
+	top = finiteOr(value, 1.0f);
+	if (top <= bottom)
+		bottom = top - minimum_extent;
 	return *this;
 }
 
@@ -168,7 +187,9 @@ float OrthographicCameraComponent::getBottom() const noexcept
 
 OrthographicCameraComponent& OrthographicCameraComponent::setBottom(float value) noexcept
 {
-	bottom = value;
+	bottom = finiteOr(value, -1.0f);
+	if (top <= bottom)
+		top = bottom + minimum_extent;
 	return *this;
 }
 
@@ -179,7 +200,8 @@ float OrthographicCameraComponent::getNearPlane() const noexcept
 
 OrthographicCameraComponent& OrthographicCameraComponent::setNearPlane(float value) noexcept
 {
-	near_plane = value;
+	near_plane = std::max(finiteOr(value, minimum_plane), minimum_plane);
+	far_plane = std::max(far_plane, near_plane + minimum_plane);
 	return *this;
 }
 
@@ -190,7 +212,7 @@ float OrthographicCameraComponent::getFarPlane() const noexcept
 
 OrthographicCameraComponent& OrthographicCameraComponent::setFarPlane(float value) noexcept
 {
-	far_plane = value;
+	far_plane = std::max(finiteOr(value, near_plane + 1.0f), near_plane + minimum_plane);
 	return *this;
 }
 

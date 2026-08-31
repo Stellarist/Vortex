@@ -10,37 +10,31 @@ Actor::Actor(std::string actor_name) :
 
 Actor::~Actor() noexcept = default;
 
-Scene* Actor::getScene() const noexcept
-{
-	return scene;
-}
-
 World* Actor::getWorld() const noexcept
 {
-	return scene ? scene->getWorld() : nullptr;
+	return world;
 }
 
-void Actor::setScene(Scene* new_scene)
+void Actor::setWorld(World* new_world)
 {
-	if (scene == new_scene)
+	if (world == new_world)
 		return;
 
-	if (scene && new_scene)
-		throw std::logic_error("An actor cannot belong to multiple scenes");
+	CHECK(!world || !new_world, "An actor cannot belong to multiple worlds");
 
-	if (scene) {
-		auto* previous_scene = scene;
+	if (world) {
+		auto* previous_world = world;
 		for (size_t index = 0; index < components.size(); ++index)
-			previous_scene->unregisterComponent(*components[index]);
+			previous_world->unregisterComponent(*components[index]);
 
-		scene = nullptr;
+		world = nullptr;
 		return;
 	}
 
-	scene = new_scene;
-	if (scene)
+	world = new_world;
+	if (world)
 		for (size_t index = 0; index < components.size(); ++index)
-			scene->registerComponent(*components[index]);
+			world->registerComponent(*components[index]);
 }
 
 SceneComponent* Actor::getRootComponent() noexcept
@@ -103,19 +97,16 @@ std::vector<Actor*> Actor::getAttachedActors() const
 
 void Actor::attachActor(Actor& actor)
 {
-	if (&actor == this)
-		throw std::invalid_argument("An actor cannot attach to itself");
+	CHECK(Argument, &actor != this, "An actor cannot attach to itself");
 
-	if (!root_component || !actor.root_component)
-		throw std::logic_error("Both actors must have root scene components before attachment");
+	CHECK(root_component && actor.root_component, "Both actors must have root scene components before attachment");
 
-	if (scene != actor.scene && (scene || actor.scene))
-		throw std::logic_error("Actors from different scenes cannot be attached");
+	CHECK(world == actor.world || !world && !actor.world, "Actors from different worlds cannot be attached");
 
 	actor.root_component->attachTo(*root_component);
 }
 
-void Actor::detachFromParent() noexcept
+void Actor::detachFromParent()
 {
 	if (root_component)
 		root_component->detach();
@@ -123,14 +114,12 @@ void Actor::detachFromParent() noexcept
 
 Component& Actor::addComponent(std::unique_ptr<Component> component)
 {
-	if (!component)
-		throw std::invalid_argument("Cannot add an empty component to an actor");
+	CHECK(Argument, component, "Cannot add an empty component to an actor");
 
-	if (scene && (scene->updating || scene->dispatching_lifecycle))
-		throw std::logic_error("Components cannot be added during tick or lifecycle callbacks");
+	CHECK(!world || !world->updating && !world->dispatching_lifecycle,
+	    "Components cannot be added during tick or lifecycle callbacks");
 
-	if (component->getOwner())
-		throw std::logic_error("A component can only have one owning actor");
+	CHECK(component->getOwner() == nullptr, "A component can only have one owning actor");
 
 	auto* result = component.get();
 	component->setOwner(this);
@@ -143,8 +132,8 @@ Component& Actor::addComponent(std::unique_ptr<Component> component)
 			root_component = scene_component;
 	}
 
-	if (scene)
-		scene->registerComponent(*result);
+	if (world)
+		world->registerComponent(*result);
 
 	return *result;
 }
@@ -154,8 +143,8 @@ bool Actor::removeComponent(Component& component)
 	if (&component == root_component || component.getOwner() != this)
 		return false;
 
-	if (scene && (scene->updating || scene->dispatching_lifecycle))
-		throw std::logic_error("Components cannot be removed during tick or lifecycle callbacks");
+	CHECK(!world || !world->updating && !world->dispatching_lifecycle,
+	    "Components cannot be removed during tick or lifecycle callbacks");
 
 	auto it = std::ranges::find_if(components, [&component](const auto& owned_component) {
 		return owned_component.get() == &component;
@@ -171,8 +160,8 @@ bool Actor::removeComponent(Component& component)
 		scene_component->detach();
 	}
 
-	if (scene)
-		scene->unregisterComponent(component);
+	if (world)
+		world->unregisterComponent(component);
 	component.setOwner(nullptr);
 
 	it = std::ranges::find_if(components, [&component](const auto& owned_component) {

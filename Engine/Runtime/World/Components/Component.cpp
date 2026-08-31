@@ -8,8 +8,8 @@ Component::Component(std::string component_name) :
 
 void Component::setOwner(Actor* new_owner)
 {
-	if (owner && new_owner && owner != new_owner)
-		throw std::logic_error("A component cannot change its owning actor");
+	CHECK(!owner || !new_owner || owner == new_owner,
+	    "A component cannot change its owning actor");
 
 	owner = new_owner;
 }
@@ -17,11 +17,6 @@ void Component::setOwner(Actor* new_owner)
 Actor* Component::getOwner() const noexcept
 {
 	return owner;
-}
-
-Scene* Component::getScene() const noexcept
-{
-	return owner ? owner->getScene() : nullptr;
 }
 
 World* Component::getWorld() const noexcept

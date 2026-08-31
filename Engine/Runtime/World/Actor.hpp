@@ -7,26 +7,26 @@ import :Components.SceneComponent;
 
 export namespace Vortex {
 
-class Scene;
 class World;
 
 class Actor : public Object {
 private:
-	std::vector<std::unique_ptr<Component>> components;
+	std::vector<std::unique_ptr<Component>> components{};
 
 	SceneComponent* root_component{};
-	Scene*          scene{};
+
+	World* world{};
 
 	bool enabled{true};
 	bool tick_enabled{false};
 	bool begun_play{false};
 
-	void setScene(Scene* scene);
+	void setWorld(World* world);
 
 	void beginPlayInternal();
 	void endPlayInternal();
 
-	friend class Scene;
+	friend class World;
 
 public:
 	Actor(std::string name = "Actor");
@@ -38,21 +38,20 @@ public:
 	Actor(Actor&&) noexcept = delete;
 	Actor& operator=(Actor&&) noexcept = delete;
 
-	Scene* getScene() const noexcept;
 	World* getWorld() const noexcept;
 
-	SceneComponent*       getRootComponent() noexcept;
+	SceneComponent* getRootComponent() noexcept;
 	const SceneComponent* getRootComponent() const noexcept;
-	bool                  hasRootComponent() const noexcept;
+	bool hasRootComponent() const noexcept;
 
-	Transform*       getTransform() noexcept;
+	Transform* getTransform() noexcept;
 	const Transform* getTransform() const noexcept;
 
 	Actor* getParent() const noexcept;
-	auto   getAttachedActors() const -> std::vector<Actor*>;
+	auto getAttachedActors() const -> std::vector<Actor*>;
 
 	void attachActor(Actor& actor);
-	void detachFromParent() noexcept;
+	void detachFromParent();
 
 	template <IsComponent T>
 	T& addComponent(std::unique_ptr<T> component);
@@ -61,7 +60,7 @@ public:
 	T& addComponent(Args&&... args);
 
 	Component& addComponent(std::unique_ptr<Component> component);
-	bool       removeComponent(Component& component);
+	bool removeComponent(Component& component);
 
 	template <IsComponent T>
 	T& getComponent() const;
@@ -90,8 +89,7 @@ public:
 template <IsComponent T>
 T& Actor::addComponent(std::unique_ptr<T> component)
 {
-	if (!component)
-		throw std::invalid_argument("Cannot add an empty component to an actor");
+	CHECK(Argument, component, "Cannot add an empty component to an actor");
 
 	auto* result = component.get();
 	addComponent(std::unique_ptr<Component>(std::move(component)));
@@ -111,7 +109,7 @@ T& Actor::getComponent() const
 		if (auto* result = dynamic_cast<T*>(component.get()))
 			return *result;
 
-	throw std::out_of_range("Actor does not contain the requested component type");
+	ERROR(Range, "Actor does not contain the requested component type");
 }
 
 template <IsComponent T>

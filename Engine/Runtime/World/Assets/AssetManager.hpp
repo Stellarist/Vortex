@@ -11,14 +11,17 @@ private:
 	std::unordered_map<uint64, std::shared_ptr<Asset>> pinned_assets;
 	std::unordered_map<std::string, uint64>            assets_by_path;
 
-public:
 	AssetManager() = default;
+	~AssetManager() = default;
 
 	AssetManager(const AssetManager&) = delete;
 	AssetManager& operator=(const AssetManager&) = delete;
 
 	AssetManager(AssetManager&&) noexcept = delete;
 	AssetManager& operator=(AssetManager&&) noexcept = delete;
+
+public:
+	static AssetManager& instance() noexcept;
 
 	template <IsAsset T>
 	AssetHandle<T> add(std::shared_ptr<T> asset);
@@ -39,8 +42,7 @@ public:
 template <IsAsset T>
 AssetHandle<T> AssetManager::add(std::shared_ptr<T> asset)
 {
-	if (!asset)
-		throw std::invalid_argument("Cannot add an empty asset");
+	CHECK(Argument, asset, "Cannot add an empty asset");
 
 	const auto& virtual_path = asset->getVirtualPath();
 	if (!virtual_path.empty()) {
@@ -48,8 +50,7 @@ AssetHandle<T> AssetManager::add(std::shared_ptr<T> asset)
 			if (auto loaded_it = loaded_assets.find(path_it->second); loaded_it != loaded_assets.end()) {
 				if (auto existing = loaded_it->second.lock()) {
 					auto typed_existing = std::dynamic_pointer_cast<T>(existing);
-					if (!typed_existing)
-						throw std::logic_error("An asset path cannot refer to multiple asset types");
+					CHECK(typed_existing, "An asset path cannot refer to multiple asset types");
 					return AssetHandle<T>(std::move(typed_existing));
 				}
 			}

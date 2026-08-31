@@ -2,14 +2,17 @@ export module Runtime.World:Components.MeshComponent;
 
 import Core;
 import :Assets.MeshAsset;
-import :Components.PrimitiveComponent;
+import :Components.SceneComponent;
 
 export namespace Vortex {
 
-class MeshComponent : public PrimitiveComponent {
+class MeshComponent : public SceneComponent {
 private:
 	AssetHandle<MeshAsset>                  mesh;
 	std::vector<AssetHandle<MaterialAsset>> materials;
+
+	bool visible{true};
+	bool casts_shadow{true};
 
 public:
 	MeshComponent(std::string name);
@@ -24,6 +27,12 @@ public:
 
 	auto clearMaterial(uint32 slot) noexcept -> MeshComponent&;
 	auto clearMaterials() noexcept -> MeshComponent&;
+
+	bool isVisible() const noexcept;
+	auto setVisible(bool visible) noexcept -> MeshComponent&;
+
+	bool castsShadow() const noexcept;
+	auto setCastsShadow(bool casts_shadow) noexcept -> MeshComponent&;
 };
 
 }        // namespace Vortex

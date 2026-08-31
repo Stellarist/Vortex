@@ -1,29 +1,38 @@
 export module Runtime.World:World;
 
 import Core;
-import :Assets;
-import :Scene;
+import :Object;
+import :Actor;
+import :Components.Component;
 import :Components.CameraComponent;
 
 export namespace Vortex {
 
-class World {
+class World : public Object {
 private:
-	std::unique_ptr<Scene> active_scene;
-	CameraComponent*       active_camera{};
-	AssetManager*          asset_manager{};
+	std::vector<std::unique_ptr<Actor>> actors{};
+	std::vector<Component*>             components{};
 
-	void onComponentRegistered(Component& component);
-	void onComponentUnregistering(Component& component);
+	mutable CameraComponent* active_camera{};
 
-	friend class Scene;
+	bool playing{false};
+	bool updating{false};
+	bool dispatching_lifecycle{false};
+	bool registering_actor{false};
+
+	void registerComponent(Component& component);
+	void unregisterComponent(Component& component);
+
+	bool removeActorImmediate(Actor& actor);
+	void clearActors();
+	void refreshActiveCamera() const noexcept;
+
+	friend class Actor;
 
 public:
 	World() = default;
-	World(AssetManager& asset_manager) noexcept;
-	World(std::unique_ptr<Scene> scene);
-	World(AssetManager& asset_manager, std::unique_ptr<Scene> scene);
-	~World();
+	World(std::string name);
+	~World() override;
 
 	World(const World&) = delete;
 	World& operator=(const World&) = delete;
@@ -31,16 +40,64 @@ public:
 	World(World&&) noexcept = delete;
 	World& operator=(World&&) noexcept = delete;
 
-	void tick(float dt);
+	auto setActors(std::vector<std::unique_ptr<Actor>> actors) -> World&;
+	Actor& addActor(std::unique_ptr<Actor> actor);
 
-	Scene* getActiveScene() const noexcept;
-	auto   setActiveScene(std::unique_ptr<Scene> scene) -> World&;
+	bool removeActor(Actor& actor);
+	auto getActors() const noexcept -> const std::vector<std::unique_ptr<Actor>>&;
+
+	auto getRootActors() -> std::vector<Actor*>;
+	auto getRootActors() const -> std::vector<const Actor*>;
+
+	template <IsComponent T>
+	auto getComponents() const -> std::vector<T*>;
+
+	template <IsComponent T>
+	void clearComponents();
+
+	template <IsComponent T>
+	bool hasComponent() const noexcept;
+
+	Actor* findActor(const std::string& name);
+	const Actor* findActor(const std::string& name) const;
 
 	CameraComponent* getActiveCamera() const noexcept;
-	auto             setActiveCamera(CameraComponent* camera) -> World&;
+	auto setActiveCamera(CameraComponent* camera) -> World&;
 
-	AssetManager* getAssetManager() const noexcept;
-	auto          setAssetManager(AssetManager* asset_manager) noexcept -> World&;
+	bool isPlaying() const noexcept;
+	bool isUpdating() const noexcept;
+
+	void beginPlay();
+	void tick(float dt);
+	void endPlay();
 };
+
+template <IsComponent T>
+auto World::getComponents() const -> std::vector<T*>
+{
+	std::vector<T*> result;
+	result.reserve(components.size());
+	for (auto* component : components)
+		if (auto* typed_component = dynamic_cast<T*>(component))
+			result.push_back(typed_component);
+	return result;
+}
+
+template <IsComponent T>
+void World::clearComponents()
+{
+	auto matching_components = getComponents<T>();
+	for (auto* component : matching_components)
+		if (auto* owner = component->getOwner())
+			owner->removeComponent(*component);
+}
+
+template <IsComponent T>
+bool World::hasComponent() const noexcept
+{
+	return std::ranges::any_of(components, [](const auto* component) {
+		return dynamic_cast<const T*>(component) != nullptr;
+	});
+}
 
 }        // namespace Vortex

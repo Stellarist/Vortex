@@ -6,7 +6,7 @@ import :Assets.MaterialAsset;
 
 export namespace Vortex {
 
-struct Vertex {
+struct MeshVertex {
 	Vec3 pos{0.0f};
 	Vec3 normal{0.0f, 0.0f, 1.0f};
 	Vec2 uv{0.0f};
@@ -23,17 +23,19 @@ struct MeshSection {
 
 class MeshAsset : public Asset {
 private:
-	std::vector<Vertex>                     vertices;
+	std::vector<MeshVertex>                 vertices;
 	std::vector<uint32>                     indices;
 	std::vector<MeshSection>                sections;
 	std::vector<AssetHandle<MaterialAsset>> materials;
+
+	Bounds local_bounds;
 
 public:
 	MeshAsset(std::string name, std::string virtual_path = {});
 	~MeshAsset() override = default;
 
-	auto getVertices() const noexcept -> const std::vector<Vertex>&;
-	auto setVertices(std::vector<Vertex> vertices) -> MeshAsset&;
+	auto getVertices() const noexcept -> const std::vector<MeshVertex>&;
+	auto setVertices(std::vector<MeshVertex> vertices) -> MeshAsset&;
 
 	auto getIndices() const noexcept -> const std::vector<uint32>&;
 	auto setIndices(std::vector<uint32> indices) -> MeshAsset&;
@@ -45,6 +47,7 @@ public:
 	auto setMaterials(std::vector<AssetHandle<MaterialAsset>> materials) -> MeshAsset&;
 
 	auto getMaterial(uint32 slot) const -> AssetHandle<MaterialAsset>;
+	auto getLocalBounds() const noexcept -> const Bounds&;
 
 	uint32 getVertexCount() const noexcept;
 	uint32 getIndexCount() const noexcept;

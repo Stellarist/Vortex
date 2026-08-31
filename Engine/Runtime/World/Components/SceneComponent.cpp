@@ -51,27 +51,24 @@ const std::vector<SceneComponent*>& SceneComponent::getAttachChildren() const no
 
 SceneComponent& SceneComponent::attachTo(SceneComponent& parent)
 {
-	if (&parent == this)
-		throw std::invalid_argument("A scene component cannot attach to itself");
+	CHECK(Argument, &parent != this, "A scene component cannot attach to itself");
 
 	for (auto* ancestor = &parent; ancestor; ancestor = ancestor->attach_parent)
-		if (ancestor == this)
-			throw std::logic_error("Scene component attachment would create a cycle");
+		CHECK(ancestor != this, "Scene component attachment would create a cycle");
 
-	if (!getOwner() || !parent.getOwner())
-		throw std::logic_error("Scene components must have owners before attachment");
+	CHECK(getOwner() && parent.getOwner(), "Scene components must have owners before attachment");
 
-	if (getOwner() == parent.getOwner() && getOwner()->getRootComponent() == this)
-		throw std::logic_error("An actor's root component cannot attach beneath another component of the same actor");
+	CHECK(getOwner() != parent.getOwner() || getOwner()->getRootComponent() != this,
+	    "An actor's root component cannot attach beneath another component of the same actor");
 
-	if (getOwner() != parent.getOwner() && getOwner()->getRootComponent() != this)
-		throw std::logic_error("Only an actor's root component can attach across actors");
+	CHECK(getOwner() == parent.getOwner() || getOwner()->getRootComponent() == this,
+	    "Only an actor's root component can attach across actors");
 
-	auto* scene = getScene();
-	auto* parent_scene = parent.getScene();
+	auto* world = getWorld();
+	auto* parent_world = parent.getWorld();
 
-	if (scene != parent_scene && (scene || parent_scene))
-		throw std::logic_error("Scene components from different scenes cannot be attached");
+	CHECK(world == parent_world || !world && !parent_world,
+	    "Scene components from different worlds cannot be attached");
 
 	if (attach_parent == &parent)
 		return *this;
@@ -82,7 +79,7 @@ SceneComponent& SceneComponent::attachTo(SceneComponent& parent)
 	return *this;
 }
 
-SceneComponent& SceneComponent::detach() noexcept
+SceneComponent& SceneComponent::detach()
 {
 	if (!attach_parent)
 		return *this;
