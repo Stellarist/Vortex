@@ -157,18 +157,16 @@ inline constexpr vk::ColorComponentFlags toVkColorComponentFlags(RHIColorMask ma
 	return flags;
 }
 
-inline constexpr vk::IndexType toVkIndexType(RHIIndexType type) noexcept
+inline constexpr vk::IndexType toVkIndexType(RHIFormat format) noexcept
 {
-	switch (type) {
-	case RHIIndexType::Uint8:
-		return vk::IndexType::eUint8EXT;
-	case RHIIndexType::Uint16:
+	switch (format) {
+	case RHIFormat::R16_UINT:
 		return vk::IndexType::eUint16;
-	case RHIIndexType::Uint32:
+	case RHIFormat::R32_UINT:
 		return vk::IndexType::eUint32;
+	default:
+		return vk::IndexType::eNoneKHR;
 	}
-
-	return vk::IndexType::eNoneKHR;
 }
 
 inline constexpr vk::PrimitiveTopology toVkPrimitiveTopology(RHIPrimitiveType type) noexcept
@@ -466,30 +464,6 @@ inline constexpr vk::ShaderStageFlags toVkShaderStageFlags(RHIShaderType type) n
 	return flags;
 }
 
-inline constexpr vk::BufferUsageFlagBits toVkBufferUsageFlagBits(RHIBufferUsage usage) noexcept
-{
-	switch (usage) {
-	case RHIBufferUsage::VertexBuffer:
-		return vk::BufferUsageFlagBits::eVertexBuffer;
-	case RHIBufferUsage::IndexBuffer:
-		return vk::BufferUsageFlagBits::eIndexBuffer;
-	case RHIBufferUsage::ConstantBuffer:
-		return vk::BufferUsageFlagBits::eUniformBuffer;
-	case RHIBufferUsage::StorageBuffer:
-		return vk::BufferUsageFlagBits::eStorageBuffer;
-	case RHIBufferUsage::IndirectArgument:
-		return vk::BufferUsageFlagBits::eIndirectBuffer;
-	case RHIBufferUsage::CopySource:
-		return vk::BufferUsageFlagBits::eTransferSrc;
-	case RHIBufferUsage::CopyDest:
-		return vk::BufferUsageFlagBits::eTransferDst;
-	case RHIBufferUsage::TypedBuffer:
-		return vk::BufferUsageFlagBits::eUniformTexelBuffer;
-	default:
-		return vk::BufferUsageFlagBits::eUniformBuffer;
-	}
-}
-
 inline constexpr vk::BufferUsageFlags toVkBufferUsageFlags(RHIBufferUsage usage) noexcept
 {
 	vk::BufferUsageFlags flags{};
@@ -509,7 +483,6 @@ inline constexpr vk::BufferUsageFlags toVkBufferUsageFlags(RHIBufferUsage usage)
 		flags |= vk::BufferUsageFlagBits::eTransferDst;
 	if ((usage & RHIBufferUsage::TypedBuffer) != RHIBufferUsage::None)
 		flags |= vk::BufferUsageFlagBits::eUniformTexelBuffer | vk::BufferUsageFlagBits::eStorageTexelBuffer;
-
 	return flags;
 }
 

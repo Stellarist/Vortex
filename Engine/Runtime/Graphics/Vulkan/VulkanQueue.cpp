@@ -1,7 +1,3 @@
-module;
-
-#include <cassert>
-
 module Runtime.Graphics;
 
 import vulkan;
@@ -21,6 +17,7 @@ VulkanQueue::VulkanQueue(VulkanDevice& device, RHICommandQueue type, uint32 fami
 	timeline_semaphore = device.getHandle().createSemaphore(create_info);
 	queue = device.getHandle().getQueue(family_index, 0);
 	command_pool = std::make_unique<VulkanCommandPool>(device, *this);
+	LOG(Debug, "Vulkan queue ready (family {})", family_index);
 }
 
 VulkanQueue::~VulkanQueue()
@@ -53,11 +50,11 @@ void VulkanQueue::submit(VulkanCommandList* command_list,
 {
 	retireCompletedCommands();
 
-	assert(command_list && command_list->getDesc().queue_type == type &&
-	    "Cannot submit a null command list or a command list that belongs to a different queue type.");
+	CHECK(command_list && command_list->getDesc().queue_type == type,
+	    "Cannot submit a null command list or a command list that belongs to a different queue type");
 
 	auto command = command_list->getCurrentCommand();
-	assert(command && "Cannot submit a command list without a recorded command buffer.");
+	CHECK(command, "Cannot submit a command list without a recorded command buffer");
 
 	std::array command_buffers{command->getHandle()};
 	uint64     signal_value = ++next_timeline_value;
@@ -73,7 +70,8 @@ void VulkanQueue::submit(VulkanCommandList* command_list,
 	if (!wait_semaphores.empty() && submit_wait_stages.empty())
 		submit_wait_stages.assign(wait_semaphores.size(), vk::PipelineStageFlagBits::eAllCommands);
 
-	assert(wait_semaphores.size() == submit_wait_stages.size() && "Queue submit wait stage count must match wait semaphore count.");
+	CHECK(wait_semaphores.size() == submit_wait_stages.size(),
+	    "Queue submit wait stage count must match wait semaphore count");
 
 	vk::TimelineSemaphoreSubmitInfo timeline_info{};
 	timeline_info.setWaitSemaphoreValues(wait_values)

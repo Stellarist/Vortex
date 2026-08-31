@@ -9,136 +9,50 @@ import vulkan;
 
 namespace Vortex {
 
-VulkanFrame::VulkanFrame(VulkanContext& context) :
-    context(context)
+#if VDEBUG
+VKAPI_ATTR VkBool32 VKAPI_CALL vortexValidationCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT      message_severity,
+    VkDebugUtilsMessageTypeFlagsEXT             message_type,
+    const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
+    void*                                       user_data)
 {
-	RHITextureDesc backbuffer_desc{};
-	backbuffer_desc.setWidth(context.getExtent().width)
-	    .setHeight(context.getExtent().height)
-	    .setFormat(context.getFormat())
-	    .setUsage(RHITextureUsage::RenderTarget | RHITextureUsage::CopySource | RHITextureUsage::CopyDest);
+	if ((message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) != 0 && user_data)
+		static_cast<std::atomic_uint32_t*>(user_data)->fetch_add(1, std::memory_order_relaxed);
 
-	vk::SemaphoreCreateInfo semaphore_info{};
-	vk::FenceCreateInfo     fence_info{};
-	fence_info.setFlags(vk::FenceCreateFlagBits::eSignaled);
-
-	auto& device = static_cast<VulkanDevice&>(context.getDevice());
-
-	for (uint32 i = 0; i < FRAMES_IN_FLIGHT; i++) {
-		frame_commands.push_back(device.createCommandList(RHICommandListDesc{}));
-		image_available_semaphores.push_back(device.getHandle().createSemaphore(semaphore_info));
-		in_flight_fences.push_back(device.getHandle().createFence(fence_info));
+	static_cast<void>(message_type);
+	const std::string_view message = callback_data && callback_data->pMessage ?
+	    callback_data->pMessage :
+	    "Vulkan validation produced an empty message";
+	try {
+		if ((message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) != 0)
+			LOG(Error, "Vulkan validation: {}", message);
+		else if ((message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) != 0)
+			LOG(Warn, "Vulkan validation: {}", message);
+		else
+			LOG(Debug, "Vulkan validation: {}", message);
+	} catch (...) {
+		// Never allow logging failures to escape through a Vulkan C callback.
 	}
-
-	for (size_t i = 0; i < context.getSwapchainImages().images.size(); i++) {
-		auto texture = device.createTexture(backbuffer_desc);
-
-		RHITextureViewDesc view_desc{};
-		view_desc.setTexture(texture.get())
-		    .setType(RHITextureViewType::RenderTarget);
-
-		backbuffer_views.push_back(device.createTextureView(view_desc));
-		backbuffers.push_back(std::move(texture));
-		render_finished_semaphores.push_back(device.getHandle().createSemaphore(semaphore_info));
-	}
+	return VK_FALSE;
 }
-
-VulkanFrame::~VulkanFrame()
-{
-	auto& device = static_cast<VulkanDevice&>(context.getDevice());
-
-	for (auto fence : in_flight_fences)
-		device.getHandle().destroyFence(fence);
-
-	for (auto semaphore : image_available_semaphores)
-		device.getHandle().destroySemaphore(semaphore);
-
-	for (auto semaphore : render_finished_semaphores)
-		device.getHandle().destroySemaphore(semaphore);
-
-	frame_commands.clear();
-	backbuffer_views.clear();
-	backbuffers.clear();
-}
-
-void VulkanFrame::blit()
-{
-	auto* vk_command_list = static_cast<VulkanCommandList*>(&getCommand());
-	auto* vk_backbuffer = static_cast<VulkanTexture*>(&getBackbuffer());
-	auto  vk_command_buffer = vk_command_list->getCurrentCommand()->getHandle();
-	auto  swapchain_image = context.getSwapchainImages().images[image_index];
-
-	vk_command_list->transitionTexture(&getBackbuffer(), CopySource);
-
-	transitionSwapchainImage(vk_command_buffer, swapchain_image, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-	blitToSwapchain(vk_command_buffer, vk_backbuffer->getHandle(), swapchain_image, context.getExtent());
-	transitionSwapchainImage(vk_command_buffer, swapchain_image, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
-}
-
-void VulkanFrame::submit()
-{
-	auto& command = getCommand();
-	auto& device = static_cast<VulkanDevice&>(context.getDevice());
-	auto* vk_command_list = static_cast<VulkanCommandList*>(&command);
-
-	command.close();
-
-	auto wait_semaphore = image_available_semaphores[current_frame];
-	auto signal_semaphore = render_finished_semaphores[image_index];
-	auto fence = in_flight_fences[current_frame];
-	auto wait_stage = vk::PipelineStageFlags(vk::PipelineStageFlagBits::eTransfer);
-
-	device.getQueue().submit(vk_command_list,
-	    std::span<const vk::Semaphore>(&wait_semaphore, 1),
-	    std::span<const vk::PipelineStageFlags>(&wait_stage, 1),
-	    std::span<const vk::Semaphore>(&signal_semaphore, 1),
-	    fence);
-}
-
-void VulkanFrame::present()
-{
-	auto& device = static_cast<VulkanDevice&>(context.getDevice());
-	auto  signal_semaphore = render_finished_semaphores[image_index];
-	auto  swapchain = context.getSwapchain();
-
-	vk::PresentInfoKHR present_info{};
-	present_info.setWaitSemaphores(signal_semaphore)
-	    .setSwapchains(swapchain)
-	    .setImageIndices(image_index);
-
-	if (device.getQueue().getHandle().presentKHR(present_info) != vk::Result::eSuccess)
-		throw std::runtime_error("Failed to present Vulkan swapchain image");
-}
-
-void VulkanFrame::advance()
-{
-	current_frame = (current_frame + 1) % FRAMES_IN_FLIGHT;
-}
-
+#endif
 
 VulkanContext::VulkanContext(Window& window) :
     window(&window)
 {
-	desc = RHIContextDesc{
-	    .api = RHIAPI::Vulkan,
-	    .extent = {
-	        window.getWidth(),
-	        window.getHeight(),
-	    },
-	    .format = RHIFormat::RGBA8_SRGB,
-	};
+	vkb::InstanceBuilder instance_builder{};
+	instance_builder.set_app_name("Vortex")
+	    .require_api_version(1, 4, 0);
+#if VDEBUG
+	instance_builder.request_validation_layers()
+	    .set_debug_callback(vortexValidationCallback)
+	    .set_debug_callback_user_data_pointer(&validation_error_count);
+#endif
 
-	auto vkb_instance =
-	    vkb::InstanceBuilder()
-	        .set_app_name("Vortex")
-	        .require_api_version(1, 4, 0)
-	        .request_validation_layers()
-	        .build()
-	        .value();
-
+	auto vkb_instance = instance_builder.build().value();
 	auto vk_surface = VkSurfaceKHR{};
-	if (!SDL_Vulkan_CreateSurface(window.get(), vkb_instance.instance, nullptr, &vk_surface))
-		throw std::runtime_error("Failed to create Vulkan surface");
+	CHECK(SDL_Vulkan_CreateSurface(window.get(), vkb_instance.instance, nullptr, &vk_surface),
+	    "Failed to create Vulkan surface: {}", SDL_GetError());
 
 	vk::PhysicalDeviceVulkan11Features features11{};
 	features11.setShaderDrawParameters(true);
@@ -164,48 +78,49 @@ VulkanContext::VulkanContext(Window& window) :
 	        .build()
 	        .value();
 
-	auto vkb_swapchain =
-	    vkb::SwapchainBuilder(vkb_physical_device, vkb_device, vk_surface)
-	        .set_desired_format({static_cast<VkFormat>(toVkFormat(getFormat())), {}})
-	        .set_desired_present_mode(VK_PRESENT_MODE_MAILBOX_KHR)
-	        .set_desired_extent(getExtent().width, getExtent().height)
-	        .add_image_usage_flags(VK_IMAGE_USAGE_TRANSFER_DST_BIT)
-	        .build()
-	        .value();
-
-	auto vkb_images = vkb_swapchain.get_images().value();
-	auto vkb_image_views = vkb_swapchain.get_image_views().value();
-
 	instance = std::move(vkb_instance);
+	debug_messenger = vkb_instance.debug_messenger;
 	surface = std::move(vk_surface);
 	physical_device = std::move(vkb_physical_device);
-	swapchain = std::move(vkb_swapchain);
 
 	queue_indices.graphics_family = vkb_device.get_queue_index(vkb::QueueType::graphics).value();
-	swapchain_images.images.assign(vkb_images.begin(), vkb_images.end());
-	swapchain_images.image_views.assign(vkb_image_views.begin(), vkb_image_views.end());
 
 	device = std::make_unique<VulkanDevice>(*this, vkb_device.device);
-	frame = std::make_unique<VulkanFrame>(*this);
+
+	uint32 pixel_width{};
+	uint32 pixel_height{};
+	window.getPixelSize(pixel_width, pixel_height);
+	presentation = std::make_unique<VulkanPresentation>(
+	    *device,
+	    physical_device,
+	    surface,
+	    queue_indices.graphics_family.value(),
+	    RHIExtent{pixel_width, pixel_height});
+
+	const auto properties = physical_device.getProperties();
+	LOG("Vulkan initialized on '{}' (graphics queue {}, {}x{})",
+	    properties.deviceName.data(), queue_indices.graphics_family.value(),
+	    pixel_width, pixel_height);
 }
 
 VulkanContext::~VulkanContext() noexcept
 {
 	if (device)
-		device->getHandle().waitIdle();
+		device->waitIdle();
 
-	frame.reset();
-
-	for (auto image_view : swapchain_images.image_views)
-		device->getHandle().destroyImageView(image_view);
-
-	swapchain_images.image_views.clear();
-
-	device->getHandle().destroySwapchainKHR(swapchain);
+	presentation.reset();
 	device.reset();
 
 	instance.destroySurfaceKHR(surface);
+	if (debug_messenger) {
+		vkb::destroy_debug_utils_messenger(
+		    static_cast<VkInstance>(instance),
+		    static_cast<VkDebugUtilsMessengerEXT>(debug_messenger));
+		debug_messenger = vk::DebugUtilsMessengerEXT{};
+	}
+
 	instance.destroy();
+	LOG(Debug, "Vulkan context shut down");
 }
 
 RHIDevice& VulkanContext::getDevice() noexcept
@@ -213,80 +128,46 @@ RHIDevice& VulkanContext::getDevice() noexcept
 	return *device;
 }
 
-void VulkanContext::beginFrame()
+bool VulkanContext::beginFrame()
 {
-	auto fence = frame->in_flight_fences[frame->current_frame];
-	if (device->getHandle().waitForFences(fence, true, std::numeric_limits<uint64>::max()) != vk::Result::eSuccess)
-		throw std::runtime_error("Failed to wait for frame fence");
+	uint32 pixel_width{};
+	uint32 pixel_height{};
+	window->getPixelSize(pixel_width, pixel_height);
 
-	auto next_image = device->getHandle().acquireNextImageKHR(swapchain,
-	    std::numeric_limits<uint64>::max(),
-	    frame->image_available_semaphores[frame->current_frame]);
-	frame->image_index = next_image.value;
+	if (window->isMinimized() || pixel_width == 0 || pixel_height == 0)
+		return false;
 
-	device->getHandle().resetFences(fence);
-	frame->getCommand().open();
+	return presentation->beginFrame(RHIExtent{pixel_width, pixel_height});
 }
 
 void VulkanContext::endFrame()
 {
-	frame->blit();
-	frame->submit();
-	frame->present();
-	frame->advance();
+	presentation->endFrame();
 }
 
-void VulkanFrame::transitionSwapchainImage(vk::CommandBuffer command, vk::Image image, vk::ImageLayout old_layout, vk::ImageLayout new_layout)
+RHICommandList& VulkanContext::getCommand() noexcept
 {
-	vk::ImageSubresourceRange range{};
-	range.setAspectMask(vk::ImageAspectFlagBits::eColor)
-	    .setBaseMipLevel(0)
-	    .setLevelCount(1)
-	    .setBaseArrayLayer(0)
-	    .setLayerCount(1);
-
-	vk::ImageMemoryBarrier2 barrier{};
-	barrier.setOldLayout(old_layout)
-	    .setNewLayout(new_layout)
-	    .setSrcStageMask(old_layout == vk::ImageLayout::eUndefined ? vk::PipelineStageFlagBits2::eTopOfPipe : getVkPipelineStageFlags(old_layout))
-	    .setDstStageMask(getVkPipelineStageFlags(new_layout))
-	    .setSrcAccessMask({})
-	    .setDstAccessMask({})
-	    .setImage(image)
-	    .setSubresourceRange(range);
-
-	vk::DependencyInfo dependency{};
-	dependency.setImageMemoryBarriers(barrier);
-
-	command.pipelineBarrier2(dependency);
+	return presentation->getCommand();
 }
 
-
-void VulkanFrame::blitToSwapchain(vk::CommandBuffer command, vk::Image src, vk::Image dst, const RHIExtent& extent)
+RHITexture& VulkanContext::getBackbuffer() noexcept
 {
-	vk::ImageSubresourceLayers src_layers{}, dst_layers{};
-	src_layers = dst_layers =
-	    vk::ImageSubresourceLayers{}
-	        .setAspectMask(vk::ImageAspectFlagBits::eColor)
-	        .setMipLevel(0)
-	        .setBaseArrayLayer(0)
-	        .setLayerCount(1);
+	return presentation->getBackbuffer();
+}
 
-	vk::ImageBlit blit{};
-	blit.setSrcSubresource(src_layers)
-	    .setSrcOffsets({vk::Offset3D{0, 0, 0},
-	        vk::Offset3D{static_cast<int32>(extent.width), static_cast<int32>(extent.height), 1}})
-	    .setDstSubresource(dst_layers)
-	    .setDstOffsets({vk::Offset3D{0, 0, 0},
-	        vk::Offset3D{static_cast<int32>(extent.width), static_cast<int32>(extent.height), 1}});
+RHITextureView& VulkanContext::getBackbufferView() noexcept
+{
+	return presentation->getBackbufferView();
+}
 
-	command.blitImage(
-	    src,
-	    vk::ImageLayout::eTransferSrcOptimal,
-	    dst,
-	    vk::ImageLayout::eTransferDstOptimal,
-	    blit,
-	    vk::Filter::eNearest);
+RHIFormat VulkanContext::getFormat() const noexcept
+{
+	return presentation->getFormat();
+}
+
+RHIExtent VulkanContext::getExtent() const noexcept
+{
+	return presentation->getExtent();
 }
 
 }        // namespace Vortex

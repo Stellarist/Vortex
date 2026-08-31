@@ -69,12 +69,12 @@ private:
 	RHICommandListDesc desc{};
 
 	RHIGraphicsState graphics_state{};
+	RHIComputeState  compute_state{};
 
 	std::shared_ptr<VulkanCommandBuffer> current_command{};
 
 	vk::PipelineLayout current_layout{};
 	RHIShaderType      current_push_constant_visibility{};
-	uint32             current_push_constant_size{};
 
 	bool rendering{};
 
@@ -84,7 +84,8 @@ private:
 	void endRenderPass();
 
 public:
-	VulkanCommandList(VulkanDevice& device, RHICommandListDesc desc) : desc(std::move(desc)), device(device) {}
+	VulkanCommandList(VulkanDevice& device, RHICommandListDesc desc) :
+	    device(device), desc(std::move(desc)) {}
 	~VulkanCommandList() override = default;
 
 	const RHICommandListDesc& getDesc() const noexcept { return desc; }
@@ -101,18 +102,25 @@ public:
 	void copyTexture(RHIStagingTexture* dst_staging, const RHITextureSlice& dst_slice, RHITexture* src_texture, const RHITextureSlice& src_slice) override;
 	void copyTexture(RHITexture* dst_texture, const RHITextureSlice& dst_slice, RHIStagingTexture* src_staging, const RHITextureSlice& src_slice) override;
 	void writeTexture(RHITexture* texture, const RHITextureSlice& slice, const void* data, uint64 size) override;
-	void transitionTexture(RHITexture* texture, RHIResourceState new_state) override;
+	void transitionTexture(RHITexture* texture, RHIResourceState before, RHIResourceState after) override;
 
 	void clearBuffer(RHIBuffer* buffer, uint32 clear_value) override;
 	void copyBuffer(RHIBuffer* dst_buffer, uint64 dst_offset, RHIBuffer* src_buffer, uint64 src_offset, uint64 size) override;
 	void writeBuffer(RHIBuffer* buffer, uint64 offset, const void* data, uint64 size) override;
-	void transitionBuffer(RHIBuffer* buffer, RHIResourceState new_state) override;
+	void transitionBuffer(RHIBuffer* buffer, RHIResourceState before, RHIResourceState after) override;
 
 	void setPushConstants(const void* data, size_t size) override;
 	void draw(const RHIDrawArguments& args) override;
 	void drawIndexed(const RHIDrawArguments& args) override;
+	void dispatch(uint32 group_count_x, uint32 group_count_y, uint32 group_count_z) override;
 
+	void beginRendering(RHIFramebuffer* framebuffer) override;
+	void endRendering() override;
 	void setGraphicsState(const RHIGraphicsState& state) override;
+	void setComputeState(const RHIComputeState& state) override;
+
+	void beginDebugLabel(std::string_view name) override;
+	void endDebugLabel() override;
 };
 
 }        // namespace Vortex

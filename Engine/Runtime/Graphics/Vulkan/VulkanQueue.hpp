@@ -49,7 +49,7 @@ public:
 
 	uint32 getFamilyIndex() const noexcept { return family_index; }
 
-	vk::Queue     getHandle() const noexcept { return queue; }
+	vk::Queue getHandle() const noexcept { return queue; }
 	vk::Semaphore getSemaphore() const noexcept { return timeline_semaphore; }
 };
 
