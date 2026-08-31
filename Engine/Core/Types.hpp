@@ -1,4 +1,4 @@
-export module Core.Types;
+export module Core:Types;
 
 import std;
 

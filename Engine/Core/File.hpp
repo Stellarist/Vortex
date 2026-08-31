@@ -1,55 +1,109 @@
-module;
-
-#include <nlohmann/json.hpp>
-
-export module Core.File;
+export module Core:File;
 
 import std;
-import Core.Types;
+import :Error;
 
-export namespace Vortex {
+namespace Vortex::File {
 
-class FileSystem {
-public:
-	static bool    exists(const std::filesystem::path& path);
-	static bool    isFile(const std::filesystem::path& path);
-	static bool    isDirectory(const std::filesystem::path& path);
-	static uintmax getFileSize(const std::filesystem::path& path);
+static std::optional<std::filesystem::path> executable_directory;
 
-	static bool createDirectory(const std::filesystem::path& path);
-	static bool createDirectories(const std::filesystem::path& path);
-	static bool removeDirectory(const std::filesystem::path& path);
+static std::filesystem::path requireDirectory(std::string_view name);
 
-	static bool copyFile(const std::filesystem::path& src, const std::filesystem::path& dst, bool overwrite = false);
-	static bool moveFile(const std::filesystem::path& src, const std::filesystem::path& dst);
-	static bool deleteFile(const std::filesystem::path& path);
-
-	static std::string            readTextFile(const std::filesystem::path& path);
-	static std::vector<std::byte> readBinaryFile(const std::filesystem::path& path);
-
-	static bool writeTextFile(const std::filesystem::path& path, const std::string& content);
-	static bool writeBinaryFile(const std::filesystem::path& path, const std::vector<std::byte>& data);
-};
+}        // namespace Vortex::File
 
 
-class JsonParser {
-public:
-	static nlohmann::json readJson(const std::filesystem::path& path);
-	static bool           writeJson(const std::filesystem::path& path, const nlohmann::json& data, int indent);
-};
+export namespace Vortex::File {
 
+std::vector<std::byte> readTextFile(const std::filesystem::path& path)
+{
+	std::ifstream file(path);
+	CHECK(file, "Failed to open text file: {}", path.string());
 
-class PathResolver {
-public:
-	static std::filesystem::path getExecutableDir();
+	std::ostringstream stream;
+	stream << file.rdbuf();
+	CHECK(!file.bad(), "Failed to read complete text file: {}", path.string());
 
-	static std::filesystem::path getAssetsDir();
-	static std::filesystem::path getConfigsDir();
-	static std::filesystem::path getShadersDir();
-	static std::filesystem::path getScriptsDir();
-	static std::filesystem::path getLogsDir();
+	const auto text = std::move(stream).str();
+	const auto bytes = std::as_bytes(std::span{text});
+	return {bytes.begin(), bytes.end()};
+}
 
-	static std::filesystem::path resolveAssetPath(const std::string& relativePath);
-};
+std::vector<std::byte> readBinaryFile(const std::filesystem::path& path)
+{
+	std::ifstream file(path, std::ios::binary | std::ios::ate);
+	CHECK(file, "Failed to open binary file: {}", path.string());
 
-}        // namespace Vortex
+	const auto end_position = file.tellg();
+	CHECK(end_position >= 0, "Failed to determine binary file size: {}", path.string());
+
+	const auto size = static_cast<size_t>(end_position);
+	file.seekg(0, std::ios::beg);
+	CHECK(file, "Failed to seek binary file: {}", path.string());
+
+	std::vector<std::byte> data(size);
+	CHECK(size == 0 || file.read(reinterpret_cast<char*>(data.data()), static_cast<std::streamsize>(size)),
+	    "Failed to read complete binary file: {}", path.string());
+	return data;
+}
+
+void initialize(const std::filesystem::path& executable_path)
+{
+	std::error_code error;
+	CHECK(Argument, !executable_path.empty(), "File requires argv[0] or another executable path");
+
+	auto resolved_path = std::filesystem::absolute(executable_path, error);
+	CHECK(!static_cast<bool>(error), "Failed to resolve executable path: {}", error.message());
+
+	auto canonical_path = std::filesystem::weakly_canonical(resolved_path, error);
+	if (!error)
+		resolved_path = std::move(canonical_path);
+
+	executable_directory = std::filesystem::is_directory(resolved_path) ?
+	    resolved_path :
+	    resolved_path.parent_path();
+	CHECK(!executable_directory->empty(), "Executable directory is empty");
+}
+
+std::filesystem::path executableDir()
+{
+	CHECK(executable_directory, "File must be initialized by the program entry point");
+	return *executable_directory;
+}
+
+std::filesystem::path assetsDir()
+{
+	return requireDirectory("Assets");
+}
+
+std::filesystem::path configsDir()
+{
+	return requireDirectory("Configs");
+}
+
+std::filesystem::path shadersDir()
+{
+	return requireDirectory("Shaders");
+}
+
+std::filesystem::path logsDir()
+{
+	auto directory = executableDir() / "Logs";
+
+	std::error_code error;
+	std::filesystem::create_directories(directory, error);
+	CHECK(!static_cast<bool>(error), "Failed to create Logs directory: {}", error.message());
+	return directory;
+}
+
+}        // namespace Vortex::File
+
+namespace Vortex::File {
+
+std::filesystem::path requireDirectory(std::string_view name)
+{
+	auto directory = executableDir() / name;
+	CHECK(std::filesystem::is_directory(directory), "{} directory not found: {}", name, directory.string());
+	return directory;
+}
+
+}        // namespace Vortex::File

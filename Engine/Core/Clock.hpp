@@ -1,69 +1,45 @@
-export module Core.Clock;
+export module Core:Clock;
 
 import std;
-import Core.Types;
+import :Types;
 
 export namespace Vortex {
 
 class Clock {
 public:
-	using TimePoint = std::chrono::high_resolution_clock::time_point;
+	using TimePoint = std::chrono::steady_clock::time_point;
 	using Duration = std::chrono::duration<float>;
 
 private:
-	TimePoint start_time;
-	TimePoint last_frame_time;
+	TimePoint last_frame_time{std::chrono::steady_clock::now()};
 
-	float delta_time;
-	float total_time;
+	float delta_time{};
+	float total_time{};
 
-	uint64 frame_count;
-
-public:
-	Clock();
-
-	void tick();
-	void reset();
-
-	float  getDeltaTime() const;
-	float  getTotalTime() const;
-	uint64 getFrameCount() const;
-	float  getFPS() const;
-};
-
-
-class Time {
-private:
-	static Clock* main_clock;
+	uint64 frame_count{};
 
 public:
-	static void setMainClock(Clock* clock);
+	void tick()
+	{
+		const auto current_time = std::chrono::steady_clock::now();
+		delta_time = Duration(current_time - last_frame_time).count();
+		total_time += delta_time;
+		++frame_count;
+		last_frame_time = current_time;
+	}
 
-	static float  getDeltaTime();
-	static float  getTotalTime();
-	static uint64 getFrameCount();
-	static float  getFPS();
-};
+	void reset()
+	{
+		last_frame_time = std::chrono::steady_clock::now();
+		delta_time = 0.0f;
+		total_time = 0.0f;
+		frame_count = 0;
+	}
 
-
-class Timer {
-private:
-	using TimePoint = std::chrono::high_resolution_clock::time_point;
-
-	TimePoint start_time;
-	bool      running;
-
-public:
-	Timer();
-
-	void start();
-	void stop();
-	void reset();
-
-	float getElapsedSeconds() const;
-	float getElapsedMilliseconds() const;
-
-	bool isRunning() const;
+	float getDeltaTime() const { return delta_time; }
+	float getTotalTime() const { return total_time; }
+	uint64 getFrameCount() const { return frame_count; }
+	float getFPS() const { return delta_time > 0.0f ? 1.0f / delta_time : 0.0f; }
 };
 
 }        // namespace Vortex

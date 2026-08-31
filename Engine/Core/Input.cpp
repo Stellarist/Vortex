@@ -1,50 +1,6 @@
-module Core.Input;
+module Core;
 
 namespace Vortex {
-
-Input::Input(Input::Type type, Input::State state) :
-    type(type),
-    state(state)
-{}
-
-Input::Type Input::getType() const
-{
-	return type;
-}
-
-Input::State Input::getState() const
-{
-	return state;
-}
-
-
-KeyInput::KeyInput(Key key, Input::State state) :
-    Input(Input::Type::Keyboard, state),
-    key(key)
-{}
-
-Input::Key KeyInput::getKey() const
-{
-	return key;
-}
-
-
-MouseInput::MouseInput(Mouse mouse, const Vec2& pos, Input::State state) :
-    Input(Input::Type::Mouse, state),
-    mouse(mouse),
-    pos(pos)
-{}
-
-Input::Mouse MouseInput::getMouse() const
-{
-	return mouse;
-}
-
-Vec2 MouseInput::getPosition() const
-{
-	return pos;
-}
-
 
 InputHandler& InputHandler::instance()
 {
@@ -52,27 +8,87 @@ InputHandler& InputHandler::instance()
 	return handler;
 }
 
-void InputHandler::onKeyInput(const KeyInput& input)
+void InputHandler::beginFrame()
 {
-	key_states[static_cast<uint8>(input.getKey())] = input.getState();
+	key_pressed.fill(false);
+	key_released.fill(false);
+	mouse_pressed.fill(false);
+	mouse_released.fill(false);
+	mouse_scroll = Vec2{};
 }
 
-void InputHandler::onMouseInput(const MouseInput& input)
+void InputHandler::reset()
 {
-	mouse_states[static_cast<uint8>(input.getMouse())] = input.getState();
-	setMousePos(input.getPosition());
+	key_held.fill(false);
+	mouse_held.fill(false);
+	beginFrame();
+}
+
+void InputHandler::onKey(Input::Key key, Input::State state)
+{
+	const auto index = static_cast<size_t>(key);
+	if (index >= key_held.size())
+		return;
+
+	const bool was_held = key_held[index];
+	const bool is_held = state == Input::State::Pressed;
+	key_held[index] = is_held;
+	if (is_held && !was_held)
+		key_pressed[index] = true;
+	else if (!is_held && was_held)
+		key_released[index] = true;
+}
+
+void InputHandler::onMouse(Input::Mouse mouse, const Vec2& pos, Input::State state)
+{
+	const auto index = static_cast<size_t>(mouse);
+	if (index >= mouse_held.size())
+		return;
+
+	const bool was_held = mouse_held[index];
+	const bool is_held = state == Input::State::Pressed;
+	mouse_held[index] = is_held;
+	if (is_held && !was_held)
+		mouse_pressed[index] = true;
+	else if (!is_held && was_held)
+		mouse_released[index] = true;
+	setMousePos(pos);
 }
 
 bool InputHandler::isKeyHeld(Input::Key key) const
 {
-	auto it = key_states.find(static_cast<uint8>(key));
-	return it != key_states.end() && it->second == Input::State::Pressed;
+	const auto index = static_cast<size_t>(key);
+	return index < key_held.size() && key_held[index];
+}
+
+bool InputHandler::wasKeyPressed(Input::Key key) const
+{
+	const auto index = static_cast<size_t>(key);
+	return index < key_pressed.size() && key_pressed[index];
+}
+
+bool InputHandler::wasKeyReleased(Input::Key key) const
+{
+	const auto index = static_cast<size_t>(key);
+	return index < key_released.size() && key_released[index];
 }
 
 bool InputHandler::isMouseHeld(Input::Mouse mouse) const
 {
-	auto it = mouse_states.find(static_cast<uint8>(mouse));
-	return it != mouse_states.end() && it->second == Input::State::Pressed;
+	const auto index = static_cast<size_t>(mouse);
+	return index < mouse_held.size() && mouse_held[index];
+}
+
+bool InputHandler::wasMousePressed(Input::Mouse mouse) const
+{
+	const auto index = static_cast<size_t>(mouse);
+	return index < mouse_pressed.size() && mouse_pressed[index];
+}
+
+bool InputHandler::wasMouseReleased(Input::Mouse mouse) const
+{
+	const auto index = static_cast<size_t>(mouse);
+	return index < mouse_released.size() && mouse_released[index];
 }
 
 Vec2 InputHandler::getMousePos() const

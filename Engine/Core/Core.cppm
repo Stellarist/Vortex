@@ -1,10 +1,11 @@
 export module Core;
 
 export import std;
-export import Core.Types;
-export import Core.Math;
-export import Core.Clock;
-export import Core.Input;
-export import Core.Event;
-export import Core.File;
-export import Core.Log;
+export import :Types;
+export import :Math;
+export import :Geometry;
+export import :Clock;
+export import :Input;
+export import :Error;
+export import :File;
+export import :Log;

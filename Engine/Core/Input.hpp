@@ -1,84 +1,50 @@
-export module Core.Input;
+export module Core:Input;
 
 import std;
-import Core.Types;
-import Core.Math;
+import :Types;
+import :Math;
 
 export namespace Vortex {
 
-class Input {
-public:
-	enum class Key : uint8 {
-		W,
-		A,
-		S,
-		D,
-		Escape,
-		Space,
-		Enter,
-	};
-
-	enum class Mouse : uint8 {
-		Left,
-		Right,
-		Middle,
-	};
-
-	enum class Type : uint8 {
-		Keyboard,
-		Mouse,
-	};
-
-	enum class State : uint8 {
-		Undefined,
-		Pressed,
-		Released,
-	};
-
-protected:
-	Type  type;
-	State state;
-
-public:
-	Input(Type type, State state);
-	virtual ~Input() = default;
-
-	Type  getType() const;
-	State getState() const;
+export namespace Input {
+enum class Key : uint8 {
+	W,
+	A,
+	S,
+	D,
+	Escape,
+	Space,
+	Enter,
+	Count,
 };
 
-
-class KeyInput : public Input {
-private:
-	Key key;
-
-public:
-	KeyInput(Key key, State state);
-
-	Key getKey() const;
+enum class Mouse : uint8 {
+	Left,
+	Right,
+	Middle,
+	Count,
 };
 
-
-class MouseInput : public Input {
-private:
-	Mouse mouse;
-
-	Vec2 pos;
-
-public:
-	MouseInput(Mouse mouse, const Vec2& pos, State state);
-
-	Mouse getMouse() const;
-	Vec2  getPosition() const;
+enum class State : uint8 {
+	Pressed,
+	Released,
 };
 
+}        // namespace Input
 
 class InputHandler {
 private:
 	InputHandler() = default;
 
-	std::unordered_map<uint8, Input::State> key_states;
-	std::unordered_map<uint8, Input::State> mouse_states;
+	static constexpr size_t key_count{static_cast<size_t>(Input::Key::Count)};
+	static constexpr size_t mouse_count{static_cast<size_t>(Input::Mouse::Count)};
+
+	std::array<bool, key_count>   key_held{};
+	std::array<bool, key_count>   key_pressed{};
+	std::array<bool, key_count>   key_released{};
+	std::array<bool, mouse_count> mouse_held{};
+	std::array<bool, mouse_count> mouse_pressed{};
+	std::array<bool, mouse_count> mouse_released{};
 
 	Vec2 mouse_pos{};
 	Vec2 mouse_scroll{};
@@ -86,11 +52,18 @@ private:
 public:
 	static InputHandler& instance();
 
-	void onKeyInput(const KeyInput& input);
-	void onMouseInput(const MouseInput& input);
+	void beginFrame();
+	void reset();
+
+	void onKey(Input::Key key, Input::State state);
+	void onMouse(Input::Mouse mouse, const Vec2& pos, Input::State state);
 
 	bool isKeyHeld(Input::Key key) const;
+	bool wasKeyPressed(Input::Key key) const;
+	bool wasKeyReleased(Input::Key key) const;
 	bool isMouseHeld(Input::Mouse mouse) const;
+	bool wasMousePressed(Input::Mouse mouse) const;
+	bool wasMouseReleased(Input::Mouse mouse) const;
 
 	Vec2 getMousePos() const;
 	void setMousePos(const Vec2& pos);
