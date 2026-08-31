@@ -2,6 +2,7 @@ export module Runtime.Graphics:RHI.Pipeline;
 
 import Core;
 import :RHI.Binding;
+import :RHI.Framebuffer;
 import :RHI.Shader;
 
 export namespace Vortex {
@@ -99,8 +100,8 @@ struct RHIInputLayoutDesc {
 
 class RHIInputLayout : public RHIResource {
 public:
-	virtual uint32                        getAttributeCount() const noexcept = 0;
-	virtual const RHIVertexAttributeDesc& getAttributeDesc(uint32 index) const noexcept = 0;
+	virtual uint32 getAttributeCount() const noexcept = 0;
+	virtual const RHIVertexAttributeDesc& getAttributeDesc(uint32 index) const = 0;
 };
 
 
@@ -348,13 +349,13 @@ struct RHIGraphicsPipelineDesc {
 	RHIPrimitiveType primitive_type{RHIPrimitiveType::TriangleList};
 
 	RHIRef<RHIInputLayout> input_layout{};
-
-	RHIRef<RHIShader> vertex_shader{};
-	RHIRef<RHIShader> pixel_shader{};
+	RHIRef<RHIShader>      vertex_shader{};
+	RHIRef<RHIShader>      pixel_shader{};
 
 	RHIColorBlendState   blend_state{};
 	RHIDepthStencilState depth_state{};
 	RHIRasterState       raster_state{};
+	RHIFramebufferInfo   framebuffer_info{};
 
 	std::vector<RHIRef<RHIBindingLayout>> binding_layouts{};
 
@@ -400,6 +401,12 @@ struct RHIGraphicsPipelineDesc {
 		return *this;
 	}
 
+	RHIGraphicsPipelineDesc& setFramebufferInfo(const RHIFramebufferInfo& new_info)
+	{
+		framebuffer_info = new_info;
+		return *this;
+	}
+
 	RHIGraphicsPipelineDesc& addBindingLayout(RHIBindingLayout& new_binding_layout)
 	{
 		binding_layouts.emplace_back(&new_binding_layout);
@@ -410,6 +417,29 @@ struct RHIGraphicsPipelineDesc {
 class RHIGraphicsPipeline : public RHIResource {
 public:
 	virtual const RHIGraphicsPipelineDesc& getDesc() const noexcept = 0;
+};
+
+struct RHIComputePipelineDesc {
+	RHIRef<RHIShader> compute_shader{};
+
+	std::vector<RHIRef<RHIBindingLayout>> binding_layouts{};
+
+	RHIComputePipelineDesc& setComputeShader(RHIShader& shader) noexcept
+	{
+		compute_shader = &shader;
+		return *this;
+	}
+
+	RHIComputePipelineDesc& addBindingLayout(RHIBindingLayout& layout)
+	{
+		binding_layouts.emplace_back(&layout);
+		return *this;
+	}
+};
+
+class RHIComputePipeline : public RHIResource {
+public:
+	virtual const RHIComputePipelineDesc& getDesc() const noexcept = 0;
 };
 
 }        // namespace Vortex

@@ -10,9 +10,10 @@ struct RHIBufferDesc {
 	uint64 size{};
 	uint32 stride{};
 
-	RHIFormat      format{RHIFormat::Unknown};
 	RHIBufferUsage usage{RHIBufferUsage::None};
 	RHIAccessMode  access{RHIAccessMode::None};
+
+	bool operator==(const RHIBufferDesc&) const = default;
 
 	RHIBufferDesc& setSize(uint64 new_size) noexcept
 	{
@@ -42,6 +43,7 @@ struct RHIBufferDesc {
 class RHIBuffer : public RHIResource {
 public:
 	virtual const RHIBufferDesc& getDesc() const noexcept = 0;
+	virtual RHIResourceState getState() const noexcept = 0;
 };
 
 
@@ -49,9 +51,10 @@ struct RHIBufferViewDesc {
 	RHIRef<RHIBuffer> buffer{};
 	RHIBufferViewType type{RHIBufferViewType::Constant};
 	RHIFormat         format{RHIFormat::Unknown};
-	uint64            offset{};
-	uint64            size{};
-	uint32            stride{};
+
+	uint64 offset{};
+	uint64 size{};
+	uint32 stride{};
 
 	RHIBufferViewDesc& setBuffer(RHIBuffer* new_buffer) noexcept
 	{
@@ -88,7 +91,7 @@ struct RHIBufferViewDesc {
 class RHIBufferView : public RHIResource {
 public:
 	virtual const RHIBufferViewDesc& getDesc() const noexcept = 0;
-	virtual RHIBuffer&               getBuffer() const noexcept = 0;
+	virtual RHIBuffer& getBuffer() const noexcept = 0;
 };
 
 }        // namespace Vortex

@@ -28,15 +28,15 @@ public:
 	RHIContext(RHIContext&&) = delete;
 	RHIContext& operator=(RHIContext&&) = delete;
 
-	virtual RHIDevice& getDevice() noexcept = 0;
-	virtual RHIExtent  getExtent() const noexcept = 0;
-	virtual RHIFormat  getFormat() const noexcept = 0;
+	virtual RHIExtent getExtent() const noexcept = 0;
+	virtual RHIFormat getFormat() const noexcept = 0;
 
-	virtual void beginFrame() = 0;
+	virtual bool beginFrame() = 0;
 	virtual void endFrame() = 0;
 
+	virtual RHIDevice& getDevice() noexcept = 0;
 	virtual RHICommandList& getCommand() noexcept = 0;
-	virtual RHITexture&     getBackbuffer() noexcept = 0;
+	virtual RHITexture& getBackbuffer() noexcept = 0;
 	virtual RHITextureView& getBackbufferView() noexcept = 0;
 };
 

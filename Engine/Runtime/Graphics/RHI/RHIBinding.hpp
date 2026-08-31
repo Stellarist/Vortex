@@ -1,7 +1,6 @@
 export module Runtime.Graphics:RHI.Binding;
 
 import Core;
-import :RHI.Sampler;
 import :RHI.Buffer;
 import :RHI.Texture;
 
@@ -11,34 +10,53 @@ struct RHIBindingLayoutItem {
 	RHIBindingType type{RHIBindingType::None};
 
 	uint32 slot{};
-	uint32 count{1};
 	uint32 size{};
 
-	RHIBindingLayoutItem& setSlot(uint32 new_slot) noexcept
+private:
+	static RHIBindingLayoutItem make(RHIBindingType type, uint32 slot) noexcept
 	{
-		slot = new_slot;
-		return *this;
+		RHIBindingLayoutItem item{};
+		item.type = type;
+		item.slot = slot;
+		return item;
 	}
 
-	RHIBindingLayoutItem& setCount(uint32 new_count) noexcept
-	{
-		count = new_count;
-		return *this;
-	}
+public:
+	static RHIBindingLayoutItem textureSRV(uint32 slot) noexcept
+	{ return make(RHIBindingType::TextureSRV, slot); }
 
-	RHIBindingLayoutItem& setType(RHIBindingType new_type) noexcept
-	{
-		type = new_type;
-		return *this;
-	}
+	static RHIBindingLayoutItem textureUAV(uint32 slot) noexcept
+	{ return make(RHIBindingType::TextureUAV, slot); }
 
-	RHIBindingLayoutItem& setPushConstants(uint32 new_size, uint32 new_slot = 0) noexcept
+	static RHIBindingLayoutItem typedBufferSRV(uint32 slot) noexcept
+	{ return make(RHIBindingType::TypedBufferSRV, slot); }
+
+	static RHIBindingLayoutItem typedBufferUAV(uint32 slot) noexcept
+	{ return make(RHIBindingType::TypedBufferUAV, slot); }
+
+	static RHIBindingLayoutItem structuredBufferSRV(uint32 slot) noexcept
+	{ return make(RHIBindingType::StructuredBufferSRV, slot); }
+
+	static RHIBindingLayoutItem structuredBufferUAV(uint32 slot) noexcept
+	{ return make(RHIBindingType::StructuredBufferUAV, slot); }
+
+	static RHIBindingLayoutItem rawBufferSRV(uint32 slot) noexcept
+	{ return make(RHIBindingType::RawBufferSRV, slot); }
+
+	static RHIBindingLayoutItem rawBufferUAV(uint32 slot) noexcept
+	{ return make(RHIBindingType::RawBufferUAV, slot); }
+
+	static RHIBindingLayoutItem constantBuffer(uint32 slot) noexcept
+	{ return make(RHIBindingType::ConstantBuffer, slot); }
+
+	static RHIBindingLayoutItem sampler(uint32 slot) noexcept
+	{ return make(RHIBindingType::Sampler, slot); }
+
+	static RHIBindingLayoutItem pushConstants(uint32 size) noexcept
 	{
-		type = RHIBindingType::PushConstants;
-		slot = new_slot;
-		count = 1;
-		size = new_size;
-		return *this;
+		auto item = make(RHIBindingType::PushConstants, 0);
+		item.size = size;
+		return item;
 	}
 };
 
@@ -58,12 +76,6 @@ struct RHIBindingLayoutDesc {
 		bindings.push_back(new_item);
 		return *this;
 	}
-
-	RHIBindingLayoutDesc& setItems(const std::vector<RHIBindingLayoutItem>& new_bindings)
-	{
-		bindings = new_bindings;
-		return *this;
-	}
 };
 
 class RHIBindingLayout : public RHIResource {
@@ -76,51 +88,49 @@ struct RHIBindingSetItem {
 	RHIRef<RHIResource> resource{};
 
 	RHIBindingType type{RHIBindingType::None};
-	uint32         slot{};
 
-	RHIBindingSetItem& setType(RHIBindingType new_type) noexcept
+	uint32 slot{};
+
+private:
+	static RHIBindingSetItem make(RHIBindingType type, uint32 slot, RHIResource* resource) noexcept
 	{
-		type = new_type;
-		return *this;
+		RHIBindingSetItem item{};
+		item.resource = resource;
+		item.type = type;
+		item.slot = slot;
+		return item;
 	}
 
-	RHIBindingSetItem& setSlot(uint32 new_slot) noexcept
-	{
-		slot = new_slot;
-		return *this;
-	}
+public:
+	static RHIBindingSetItem textureSRV(uint32 slot, RHITextureView* view) noexcept
+	{ return make(RHIBindingType::TextureSRV, slot, view); }
 
-	RHIBindingSetItem& setTextureView(uint32 new_slot, RHITextureView* new_texture_view, RHIBindingType new_type = RHIBindingType::TextureSRV) noexcept
-	{
-		slot = new_slot;
-		type = new_type;
-		resource = new_texture_view;
-		return *this;
-	}
+	static RHIBindingSetItem textureUAV(uint32 slot, RHITextureView* view) noexcept
+	{ return make(RHIBindingType::TextureUAV, slot, view); }
 
-	RHIBindingSetItem& setSampler(uint32 new_slot, RHISampler* new_sampler) noexcept
-	{
-		slot = new_slot;
-		type = RHIBindingType::Sampler;
-		resource = new_sampler;
-		return *this;
-	}
+	static RHIBindingSetItem typedBufferSRV(uint32 slot, RHIBufferView* view) noexcept
+	{ return make(RHIBindingType::TypedBufferSRV, slot, view); }
 
-	RHIBindingSetItem& setBufferView(uint32 new_slot, RHIBufferView* new_buffer_view, RHIBindingType new_type = RHIBindingType::ConstantBuffer) noexcept
-	{
-		slot = new_slot;
-		type = new_type;
-		resource = new_buffer_view;
-		return *this;
-	}
+	static RHIBindingSetItem typedBufferUAV(uint32 slot, RHIBufferView* view) noexcept
+	{ return make(RHIBindingType::TypedBufferUAV, slot, view); }
 
-	RHIBindingSetItem& setPushConstants(uint32 new_slot = 0) noexcept
-	{
-		slot = new_slot;
-		type = RHIBindingType::PushConstants;
-		resource = nullptr;
-		return *this;
-	}
+	static RHIBindingSetItem structuredBufferSRV(uint32 slot, RHIBufferView* view) noexcept
+	{ return make(RHIBindingType::StructuredBufferSRV, slot, view); }
+
+	static RHIBindingSetItem structuredBufferUAV(uint32 slot, RHIBufferView* view) noexcept
+	{ return make(RHIBindingType::StructuredBufferUAV, slot, view); }
+
+	static RHIBindingSetItem rawBufferSRV(uint32 slot, RHIBufferView* view) noexcept
+	{ return make(RHIBindingType::RawBufferSRV, slot, view); }
+
+	static RHIBindingSetItem rawBufferUAV(uint32 slot, RHIBufferView* view) noexcept
+	{ return make(RHIBindingType::RawBufferUAV, slot, view); }
+
+	static RHIBindingSetItem constantBuffer(uint32 slot, RHIBufferView* view) noexcept
+	{ return make(RHIBindingType::ConstantBuffer, slot, view); }
+
+	static RHIBindingSetItem sampler(uint32 slot, RHISampler* sampler) noexcept
+	{ return make(RHIBindingType::Sampler, slot, sampler); }
 };
 
 struct RHIBindingSetDesc {
@@ -131,18 +141,12 @@ struct RHIBindingSetDesc {
 		bindings.push_back(new_item);
 		return *this;
 	}
-
-	RHIBindingSetDesc& setItems(const std::vector<RHIBindingSetItem>& new_bindings)
-	{
-		bindings = new_bindings;
-		return *this;
-	}
 };
 
 class RHIBindingSet : public RHIResource {
 public:
 	virtual const RHIBindingSetDesc& getDesc() const noexcept = 0;
-	virtual const RHIBindingLayout*  getLayout() const noexcept = 0;
+	virtual const RHIBindingLayout* getLayout() const noexcept = 0;
 };
 
 }        // namespace Vortex

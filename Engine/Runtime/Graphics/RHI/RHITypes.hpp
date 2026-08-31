@@ -112,6 +112,7 @@ enum class RHIFormat : uint16 {
 	D16_UNORM,
 	D24_UNORM_S8_UINT,
 	D32_FLOAT,
+	Count,
 };
 
 enum RHIResourceState : uint16 {
@@ -178,12 +179,6 @@ enum class RHIColorMask : uint8 {
 	B = 1 << 2,
 	A = 1 << 3,
 	All = R | G | B | A,
-};
-
-enum class RHIIndexType : uint8 {
-	Uint8,
-	Uint16,
-	Uint32,
 };
 
 enum class RHIPrimitiveType : uint8 {
@@ -317,6 +312,16 @@ enum class RHICommandQueue : uint8 {
 	Present,
 };
 
+enum class RHILoadOp : uint8 {
+	Load,
+	Clear,
+	Discard,
+};
+
+enum class RHIStoreOp : uint8 {
+	Store,
+	Discard,
+};
 
 template <>
 struct EnableEnumFlags<RHIResourceState> : std::true_type {};
@@ -332,6 +337,99 @@ struct EnableEnumFlags<RHITextureUsage> : std::true_type {};
 
 template <>
 struct EnableEnumFlags<RHIShaderType> : std::true_type {};
+
+inline constexpr bool isRHIDepthFormat(RHIFormat format) noexcept
+{
+	return format == RHIFormat::D16_UNORM ||
+	    format == RHIFormat::D24_UNORM_S8_UINT ||
+	    format == RHIFormat::D32_FLOAT;
+}
+
+inline constexpr bool isRHISRGBFormat(RHIFormat format) noexcept
+{
+	return format == RHIFormat::RGBA8_SRGB || format == RHIFormat::BGRA8_SRGB;
+}
+
+inline constexpr bool hasRHIStencil(RHIFormat format) noexcept
+{
+	return format == RHIFormat::D24_UNORM_S8_UINT;
+}
+
+inline constexpr uint32 getRHIFormatByteSize(RHIFormat format) noexcept
+{
+	switch (format) {
+	case RHIFormat::R8_UINT:
+	case RHIFormat::R8_SINT:
+	case RHIFormat::R8_UNORM:
+	case RHIFormat::R8_SNORM:
+		return 1;
+
+	case RHIFormat::RG8_UINT:
+	case RHIFormat::RG8_SINT:
+	case RHIFormat::RG8_UNORM:
+	case RHIFormat::RG8_SNORM:
+	case RHIFormat::R16_UINT:
+	case RHIFormat::R16_SINT:
+	case RHIFormat::R16_UNORM:
+	case RHIFormat::R16_SNORM:
+	case RHIFormat::R16_FLOAT:
+	case RHIFormat::D16_UNORM:
+		return 2;
+
+	case RHIFormat::RGBA8_UINT:
+	case RHIFormat::RGBA8_SINT:
+	case RHIFormat::RGBA8_UNORM:
+	case RHIFormat::RGBA8_SRGB:
+	case RHIFormat::RGBA8_SNORM:
+	case RHIFormat::BGRA8_UNORM:
+	case RHIFormat::BGRA8_SRGB:
+	case RHIFormat::RG16_UINT:
+	case RHIFormat::RG16_SINT:
+	case RHIFormat::RG16_UNORM:
+	case RHIFormat::RG16_SNORM:
+	case RHIFormat::RG16_FLOAT:
+	case RHIFormat::R32_UINT:
+	case RHIFormat::R32_SINT:
+	case RHIFormat::R32_FLOAT:
+	case RHIFormat::D24_UNORM_S8_UINT:
+	case RHIFormat::D32_FLOAT:
+		return 4;
+
+	case RHIFormat::RGBA16_UINT:
+	case RHIFormat::RGBA16_SINT:
+	case RHIFormat::RGBA16_FLOAT:
+	case RHIFormat::RGBA16_UNORM:
+	case RHIFormat::RGBA16_SNORM:
+	case RHIFormat::RG32_UINT:
+	case RHIFormat::RG32_SINT:
+	case RHIFormat::RG32_FLOAT:
+		return 8;
+
+	case RHIFormat::RGB32_UINT:
+	case RHIFormat::RGB32_SINT:
+	case RHIFormat::RGB32_FLOAT:
+		return 12;
+
+	case RHIFormat::RGBA32_UINT:
+	case RHIFormat::RGBA32_SINT:
+	case RHIFormat::RGBA32_FLOAT:
+		return 16;
+
+	default:
+		return 0;
+	}
+}
+
+inline constexpr bool isRHISampleCountValid(uint32 sample_count) noexcept
+{
+	return sample_count == 1 ||
+	    sample_count == 2 ||
+	    sample_count == 4 ||
+	    sample_count == 8 ||
+	    sample_count == 16 ||
+	    sample_count == 32 ||
+	    sample_count == 64;
+}
 
 
 struct RHIColor {

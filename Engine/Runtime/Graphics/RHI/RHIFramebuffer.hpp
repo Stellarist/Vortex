@@ -5,11 +5,46 @@ import :RHI.Texture;
 
 export namespace Vortex {
 
+struct RHIFramebufferDesc;
+
+struct RHIFramebufferInfo {
+	std::vector<RHIFormat> color_formats{};
+
+	RHIFormat depth_format{RHIFormat::Unknown};
+	uint32    sample_count{1};
+
+	RHIFramebufferInfo() = default;
+	RHIFramebufferInfo(const RHIFramebufferDesc& desc);
+
+	bool operator==(const RHIFramebufferInfo&) const = default;
+
+	RHIFramebufferInfo& addColorFormat(RHIFormat format)
+	{
+		color_formats.push_back(format);
+		return *this;
+	}
+
+	RHIFramebufferInfo& setDepthFormat(RHIFormat format) noexcept
+	{
+		depth_format = format;
+		return *this;
+	}
+
+	RHIFramebufferInfo& setSampleCount(uint32 new_sample_count) noexcept
+	{
+		sample_count = new_sample_count;
+		return *this;
+	}
+};
+
 struct RHIFramebufferAttachment {
 	RHIRef<RHITextureView> texture_view{};
 
-	RHIFormat format{RHIFormat::Unknown};
-	bool      read_only{false};
+	RHILoadOp     load_op{RHILoadOp::Load};
+	RHIStoreOp    store_op{RHIStoreOp::Store};
+	RHIClearValue clear_value{};
+
+	bool read_only{false};
 
 	bool valid() const noexcept
 	{
@@ -22,9 +57,21 @@ struct RHIFramebufferAttachment {
 		return *this;
 	}
 
-	RHIFramebufferAttachment& setFormat(RHIFormat new_format) noexcept
+	RHIFramebufferAttachment& setLoadOp(RHILoadOp new_load_op) noexcept
 	{
-		format = new_format;
+		load_op = new_load_op;
+		return *this;
+	}
+
+	RHIFramebufferAttachment& setStoreOp(RHIStoreOp new_store_op) noexcept
+	{
+		store_op = new_store_op;
+		return *this;
+	}
+
+	RHIFramebufferAttachment& setClearValue(const RHIClearValue& new_clear_value) noexcept
+	{
+		clear_value = new_clear_value;
 		return *this;
 	}
 
@@ -40,13 +87,9 @@ struct RHIFramebufferDesc {
 	uint32 height{};
 	uint32 array_size{1};
 	uint32 sample_count{1};
-	uint32 sample_quality{};
 
 	std::vector<RHIFramebufferAttachment> color_attachments{};
 	RHIFramebufferAttachment              depth_attachment{};
-
-	std::vector<RHIFormat> color_formats{};
-	RHIFormat              depth_format{RHIFormat::Unknown};
 
 	RHIFramebufferDesc& setWidth(uint32 new_width) noexcept
 	{
@@ -69,12 +112,6 @@ struct RHIFramebufferDesc {
 	RHIFramebufferDesc& setSampleCount(uint32 new_sample_count) noexcept
 	{
 		sample_count = new_sample_count;
-		return *this;
-	}
-
-	RHIFramebufferDesc& setSampleQuality(uint32 new_sample_quality) noexcept
-	{
-		sample_quality = new_sample_quality;
 		return *this;
 	}
 
@@ -103,9 +140,21 @@ struct RHIFramebufferDesc {
 	}
 };
 
+inline RHIFramebufferInfo::RHIFramebufferInfo(const RHIFramebufferDesc& desc) :
+    sample_count(desc.sample_count)
+{
+	color_formats.reserve(desc.color_attachments.size());
+	for (const auto& attachment : desc.color_attachments)
+		color_formats.push_back(attachment.texture_view->getDesc().format);
+
+	if (desc.depth_attachment.texture_view)
+		depth_format = desc.depth_attachment.texture_view->getDesc().format;
+}
+
 class RHIFramebuffer : public RHIResource {
 public:
 	virtual const RHIFramebufferDesc& getDesc() const noexcept = 0;
+	virtual const RHIFramebufferInfo& getFramebufferInfo() const noexcept = 0;
 };
 
 }        // namespace Vortex
