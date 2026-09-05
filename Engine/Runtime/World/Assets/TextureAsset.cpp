@@ -84,7 +84,7 @@ bool TextureAsset::valid() const noexcept
 		return false;
 
 	const uint64 face_count = dimension == Dimension::TexCube ? 6 : 1;
-	uint64       expected_size = width;
+	uint64 expected_size = width;
 	for (const uint64 factor : {static_cast<uint64>(height), face_count, byte_size}) {
 		if (expected_size > std::numeric_limits<uint64>::max() / factor)
 			return false;

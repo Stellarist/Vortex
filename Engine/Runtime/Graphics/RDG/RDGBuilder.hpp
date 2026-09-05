@@ -8,11 +8,11 @@ import :RHI.Device;
 export namespace Vortex {
 
 struct RDGGraph {
-	std::vector<RDGPassNode>                     passes{};
-	std::vector<std::unique_ptr<RDGTexture>>     textures{};
-	std::vector<std::unique_ptr<RDGBuffer>>      buffers{};
+	std::vector<RDGPassNode> passes{};
+	std::vector<std::unique_ptr<RDGTexture>> textures{};
+	std::vector<std::unique_ptr<RDGBuffer>> buffers{};
 	std::vector<std::unique_ptr<RDGTextureView>> texture_views{};
-	std::vector<std::unique_ptr<RDGBufferView>>  buffer_views{};
+	std::vector<std::unique_ptr<RDGBufferView>> buffer_views{};
 };
 
 
@@ -21,8 +21,8 @@ private:
 	RDGGraph graph{};
 
 	std::vector<std::shared_ptr<void>> pass_parameters{};
-	std::vector<RDGPassHandle>         execution_order{};
-	std::vector<RDGBarrier>            epilogue_barriers{};
+	std::vector<RDGPassHandle> execution_order{};
+	std::vector<RDGBarrier> epilogue_barriers{};
 
 	bool compiled{};
 	bool executed{};
@@ -88,7 +88,7 @@ T* RDGBuilder::allocParameters(Args&&... args)
 {
 	CHECK(!executed, "Cannot allocate RDG pass parameters after execution");
 
-	auto  parameters = std::make_shared<T>(std::forward<Args>(args)...);
+	auto parameters = std::make_shared<T>(std::forward<Args>(args)...);
 	auto* result = parameters.get();
 	pass_parameters.emplace_back(std::move(parameters));
 	return result;

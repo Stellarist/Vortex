@@ -17,12 +17,12 @@ struct VulkanQueueIndices {
 
 class VulkanContext : public RHIContext {
 private:
-	vk::Instance               instance{};
+	vk::Instance instance{};
 	vk::DebugUtilsMessengerEXT debug_messenger{};
-	vk::SurfaceKHR             surface{};
-	vk::PhysicalDevice         physical_device{};
+	vk::SurfaceKHR surface{};
+	vk::PhysicalDevice physical_device{};
 
-	std::unique_ptr<VulkanDevice>       device{};
+	std::unique_ptr<VulkanDevice> device{};
 	std::unique_ptr<VulkanPresentation> presentation{};
 
 	VulkanQueueIndices queue_indices{};

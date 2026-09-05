@@ -9,9 +9,9 @@ export namespace Vortex {
 
 struct RDGResource {
 	std::string name{};
-	uint32      index{};
+	uint32 index{};
 
-	RDGGraph*       owner{};
+	RDGGraph* owner{};
 	RDGResourceType type{RDGResourceType::Texture};
 
 	bool external{};
@@ -25,30 +25,30 @@ struct RDGResource {
 };
 
 struct RDGTexture final : RDGResource {
-	RHITextureDesc     desc{};
+	RHITextureDesc desc{};
 	RHIRef<RHITexture> texture{};
 };
 
 struct RDGBuffer final : RDGResource {
-	RHIBufferDesc     desc{};
+	RHIBufferDesc desc{};
 	RHIRef<RHIBuffer> buffer{};
 };
 
 struct RDGTextureView final {
 	std::string name{};
-	uint32      index{};
+	uint32 index{};
 
-	RDGTexture*            texture{};
-	RHITextureViewDesc     desc{};
+	RDGTexture* texture{};
+	RHITextureViewDesc desc{};
 	RHIRef<RHITextureView> view{};
 };
 
 struct RDGBufferView final {
 	std::string name{};
-	uint32      index{};
+	uint32 index{};
 
-	RDGBuffer*            buffer{};
-	RHIBufferViewDesc     desc{};
+	RDGBuffer* buffer{};
+	RHIBufferViewDesc desc{};
 	RHIRef<RHIBufferView> view{};
 };
 

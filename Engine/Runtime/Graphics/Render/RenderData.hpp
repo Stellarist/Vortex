@@ -18,7 +18,7 @@ public:
 	virtual ~RenderResource() = default;
 
 	RHIContext& getContext() const { return *context; }
-	RHIDevice&  getDevice() const { return context->getDevice(); }
+	RHIDevice& getDevice() const { return context->getDevice(); }
 };
 
 struct RenderVertex {
@@ -56,7 +56,7 @@ struct RenderObjectData {
 };
 
 struct RenderMaterialData {
-	Vec4  albedo{1.0f};
+	Vec4 albedo{1.0f};
 	float metallic{0.0f};
 	float roughness{1.0f};
 
@@ -65,9 +65,9 @@ struct RenderMaterialData {
 
 struct RenderSceneData {
 	RenderCameraData camera;
-	RenderLightData  lights[MAX_LIGHTS_COUNT];
-	Vec4             ambient_color{0.1f, 0.1f, 0.1f, 1.0f};
-	uint32           light_count{0};
+	RenderLightData lights[MAX_LIGHTS_COUNT];
+	Vec4 ambient_color{0.1f, 0.1f, 0.1f, 1.0f};
+	uint32 light_count{0};
 
 	static RHIBindingLayoutDesc layout(uint32 binding = 0);
 };

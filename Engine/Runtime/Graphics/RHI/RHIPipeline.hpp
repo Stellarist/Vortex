@@ -10,7 +10,7 @@ export namespace Vortex {
 struct RHIVertexBindingDesc {
 	uint32 binding{};
 	uint32 stride{};
-	bool   instance{};
+	bool instance{};
 
 	RHIVertexBindingDesc& setBinding(uint32 new_binding) noexcept
 	{
@@ -33,10 +33,10 @@ struct RHIVertexBindingDesc {
 
 struct RHIVertexAttributeDesc {
 	std::string name{};
-	RHIFormat   format{};
-	uint32      location{};
-	uint32      binding{};
-	uint32      offset{};
+	RHIFormat format{};
+	uint32 location{};
+	uint32 binding{};
+	uint32 offset{};
 
 	RHIVertexAttributeDesc& setName(const std::string& new_name)
 	{
@@ -70,7 +70,7 @@ struct RHIVertexAttributeDesc {
 };
 
 struct RHIInputLayoutDesc {
-	std::vector<RHIVertexBindingDesc>   binding_descs{};
+	std::vector<RHIVertexBindingDesc> binding_descs{};
 	std::vector<RHIVertexAttributeDesc> attribute_descs{};
 
 	RHIInputLayoutDesc& addBindingDesc(const RHIVertexBindingDesc& new_binding_desc)
@@ -107,7 +107,7 @@ public:
 
 struct RHIViewportState {
 	std::vector<RHIViewport> viewports{};
-	std::vector<RHIRect>     scissors{};
+	std::vector<RHIRect> scissors{};
 
 	RHIViewportState& addViewport(const RHIViewport& viewport)
 	{
@@ -125,14 +125,14 @@ struct RHIViewportState {
 
 struct RHIColorBlendState {
 	struct BlendDesc {
-		bool           blend_enable{false};
+		bool blend_enable{false};
 		RHIBlendFactor src_blend{RHIBlendFactor::One};
 		RHIBlendFactor dst_blend{RHIBlendFactor::Zero};
-		RHIBlendOp     color_blend_op{RHIBlendOp::Add};
+		RHIBlendOp color_blend_op{RHIBlendOp::Add};
 		RHIBlendFactor src_blend_alpha{RHIBlendFactor::One};
 		RHIBlendFactor dst_blend_alpha{RHIBlendFactor::Zero};
-		RHIBlendOp     alpha_blend_op{RHIBlendOp::Add};
-		RHIColorMask   color_write_mask{RHIColorMask::All};
+		RHIBlendOp alpha_blend_op{RHIBlendOp::Add};
+		RHIColorMask color_write_mask{RHIColorMask::All};
 
 		BlendDesc& setBlendEnable(bool enabled) noexcept
 		{
@@ -233,13 +233,13 @@ struct RHIDepthStencilState {
 		}
 	};
 
-	bool         depth_test_enable{false};
-	bool         depth_write_enable{false};
+	bool depth_test_enable{false};
+	bool depth_write_enable{false};
 	RHICompareOp depth_compare_op{RHICompareOp::Never};
-	bool         depth_bounds_test_enable{false};
-	bool         stencil_test_enable{false};
-	StencilOp    front_face_stencil{};
-	StencilOp    back_face_stencil{};
+	bool depth_bounds_test_enable{false};
+	bool stencil_test_enable{false};
+	StencilOp front_face_stencil{};
+	StencilOp back_face_stencil{};
 
 	RHIDepthStencilState& setDepthTestEnable(bool enabled) noexcept
 	{
@@ -287,13 +287,13 @@ struct RHIDepthStencilState {
 
 struct RHIRasterState {
 	RHIPolygonMode polygon_mode{RHIPolygonMode::Fill};
-	RHICullMode    cull_mode{RHICullMode::Back};
-	RHIFrontFace   front_face{RHIFrontFace::CounterClockwise};
-	bool           depth_clamp_enable{false};
-	bool           rasterizer_discard_enable{false};
-	int            depth_bias{};
-	float          depth_bias_clamp{};
-	float          depth_bias_slope_factor{};
+	RHICullMode cull_mode{RHICullMode::Back};
+	RHIFrontFace front_face{RHIFrontFace::CounterClockwise};
+	bool depth_clamp_enable{false};
+	bool rasterizer_discard_enable{false};
+	int depth_bias{};
+	float depth_bias_clamp{};
+	float depth_bias_slope_factor{};
 
 	RHIRasterState& setPolygonMode(RHIPolygonMode new_polygon_mode) noexcept
 	{
@@ -349,13 +349,13 @@ struct RHIGraphicsPipelineDesc {
 	RHIPrimitiveType primitive_type{RHIPrimitiveType::TriangleList};
 
 	RHIRef<RHIInputLayout> input_layout{};
-	RHIRef<RHIShader>      vertex_shader{};
-	RHIRef<RHIShader>      pixel_shader{};
+	RHIRef<RHIShader> vertex_shader{};
+	RHIRef<RHIShader> pixel_shader{};
 
-	RHIColorBlendState   blend_state{};
+	RHIColorBlendState blend_state{};
 	RHIDepthStencilState depth_state{};
-	RHIRasterState       raster_state{};
-	RHIFramebufferInfo   framebuffer_info{};
+	RHIRasterState raster_state{};
+	RHIFramebufferInfo framebuffer_info{};
 
 	std::vector<RHIRef<RHIBindingLayout>> binding_layouts{};
 

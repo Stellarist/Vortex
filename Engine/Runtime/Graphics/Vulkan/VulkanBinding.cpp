@@ -7,7 +7,7 @@ namespace Vortex {
 RHIRef<RHIBindingLayout> VulkanDevice::createBindingLayout(const RHIBindingLayoutDesc& desc)
 {
 	validateRHIBindingLayoutDesc(desc);
-	auto       layout = makeRHIRef<VulkanBindingLayout>(*this, desc);
+	auto layout = makeRHIRef<VulkanBindingLayout>(*this, desc);
 	const auto shader_stages = toVkShaderStageFlags(desc.visibility);
 
 	for (const auto& item : desc.bindings) {
@@ -41,9 +41,9 @@ static void writeDescriptors(vk::Device device, const VulkanBindingSet& binding_
 	const auto& desc = binding_set.getDesc();
 
 	std::vector<vk::DescriptorBufferInfo> buffer_infos;
-	std::vector<vk::DescriptorImageInfo>  image_infos;
-	std::vector<vk::BufferView>           texel_buffer_views;
-	std::vector<vk::WriteDescriptorSet>   writes;
+	std::vector<vk::DescriptorImageInfo> image_infos;
+	std::vector<vk::BufferView> texel_buffer_views;
+	std::vector<vk::WriteDescriptorSet> writes;
 
 	buffer_infos.reserve(desc.bindings.size());
 	image_infos.reserve(desc.bindings.size());
@@ -62,7 +62,7 @@ static void writeDescriptors(vk::Device device, const VulkanBindingSet& binding_
 			CHECK(buffer_view, "A Vulkan buffer binding requires a Vulkan buffer view");
 
 			const auto& view_desc = buffer_view->getDesc();
-			auto*       buffer = static_cast<VulkanBuffer*>(&buffer_view->getBuffer());
+			auto* buffer = static_cast<VulkanBuffer*>(&buffer_view->getBuffer());
 			buffer_infos.emplace_back()
 			    .setBuffer(buffer->getHandle())
 			    .setOffset(view_desc.offset)
@@ -146,13 +146,13 @@ RHIRef<RHIBindingSet> VulkanDevice::createBindingSet(const RHIBindingSetDesc& de
 	auto* vk_layout = dynamic_cast<const VulkanBindingLayout*>(&layout);
 	CHECK(vk_layout, "A Vulkan binding set requires a Vulkan binding layout");
 
-	auto                         set = makeRHIRef<VulkanBindingSet>(*this, desc, layout);
+	auto set = makeRHIRef<VulkanBindingSet>(*this, desc, layout);
 	vk::DescriptorPoolCreateInfo pool_info{};
 	pool_info.setMaxSets(1)
 	    .setPoolSizes(vk_layout->getPoolSizes());
 	set->pool = device.createDescriptorPool(pool_info);
 
-	const auto                    descriptor_layout = vk_layout->getHandle();
+	const auto descriptor_layout = vk_layout->getHandle();
 	vk::DescriptorSetAllocateInfo alloc_info{};
 	alloc_info.setDescriptorPool(set->pool)
 	    .setSetLayouts(descriptor_layout);

@@ -8,7 +8,7 @@ export namespace Vortex {
 
 class MeshComponent : public SceneComponent {
 private:
-	AssetHandle<MeshAsset>                  mesh;
+	AssetHandle<MeshAsset> mesh;
 	std::vector<AssetHandle<MaterialAsset>> materials;
 
 	bool visible{true};

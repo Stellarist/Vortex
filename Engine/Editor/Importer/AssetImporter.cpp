@@ -53,9 +53,9 @@ static void applyNodeTransform(Transform& transform, const tinygltf::Node& tfnod
 std::unique_ptr<Scene> AssetImporter::loadScene(AssetManager& assets, std::string_view scene_path)
 {
 	// Load Scene
-	tinygltf::Model    model;
+	tinygltf::Model model;
 	tinygltf::TinyGLTF loader;
-	std::string        error, warn;
+	std::string error, warn;
 	if (!loader.LoadASCIIFromFile(&model, &error, &warn, scene_path.data())) {
 		if (!error.empty())
 			throw std::runtime_error("Error: " + error);
@@ -119,7 +119,7 @@ std::unique_ptr<Scene> AssetImporter::loadScene(AssetManager& assets, std::strin
 	std::vector<std::unique_ptr<Actor>> actors;
 	for (size_t index = 0; index < model.nodes.size(); index++) {
 		const auto& tfnode = model.nodes[index];
-		auto        actor = parseActor(tfnode);
+		auto actor = parseActor(tfnode);
 
 		if (tfnode.mesh >= 0) {
 			assert(tfnode.mesh < model.meshes.size());
@@ -152,7 +152,7 @@ std::unique_ptr<Scene> AssetImporter::loadScene(AssetManager& assets, std::strin
 	if (model.scenes.empty())
 		throw std::runtime_error("No default scene found in glTF file");
 	const size_t scene_index = model.defaultScene >= 0 && model.defaultScene < model.scenes.size() ? static_cast<size_t>(model.defaultScene) : 0;
-	const auto&  tfscene = model.scenes[scene_index];
+	const auto& tfscene = model.scenes[scene_index];
 
 	auto root_actor = std::make_unique<Actor>(tfscene.name);
 	root_actor->addComponent<SceneComponent>("RootSceneComponent");
@@ -242,16 +242,16 @@ std::unique_ptr<LightComponent> AssetImporter::parseLightComponent(const tinyglt
 }
 
 std::shared_ptr<MeshAsset> AssetImporter::parseMeshAsset(const tinygltf::Mesh& tfmesh,
-    const tinygltf::Model&                                                     tfmodel,
-    const std::vector<AssetHandle<MaterialAsset>>&                             materials,
-    AssetHandle<MaterialAsset>                                                 default_material,
-    std::string                                                                virtual_path)
+    const tinygltf::Model& tfmodel,
+    const std::vector<AssetHandle<MaterialAsset>>& materials,
+    AssetHandle<MaterialAsset> default_material,
+    std::string virtual_path)
 {
 	auto mesh = std::make_shared<MeshAsset>(makeAssetName(tfmesh.name, "Mesh", virtual_path), std::move(virtual_path));
 
-	std::vector<Vertex>                     vertices;
-	std::vector<uint32>                     indices;
-	std::vector<MeshSection>                sections;
+	std::vector<Vertex> vertices;
+	std::vector<uint32> indices;
+	std::vector<MeshSection> sections;
 	std::vector<AssetHandle<MaterialAsset>> mesh_materials;
 
 	for (const auto& tfprimitive : tfmesh.primitives) {
@@ -264,8 +264,8 @@ std::shared_ptr<MeshAsset> AssetImporter::parseMeshAsset(const tinygltf::Mesh& t
 		section.vertex_count = getAttributeCount(&tfmodel, position_it->second);
 
 		std::vector<Vertex> section_vertices(section.vertex_count);
-		const auto&         position_data = getAttributeDataView(tfmodel, position_it->second);
-		const auto*         position_ptr = reinterpret_cast<const float*>(position_data.data());
+		const auto& position_data = getAttributeDataView(tfmodel, position_it->second);
+		const auto* position_ptr = reinterpret_cast<const float*>(position_data.data());
 		for (uint32 index = 0; index < section.vertex_count; ++index)
 			section_vertices[index].pos = Vec3(position_ptr[index * 3 + 0], position_ptr[index * 3 + 1], position_ptr[index * 3 + 2]);
 
@@ -335,8 +335,8 @@ std::shared_ptr<MeshAsset> AssetImporter::parseMeshAsset(const tinygltf::Mesh& t
 }
 
 std::shared_ptr<TextureAsset> AssetImporter::parseTextureAsset(const tinygltf::Texture& tftexture,
-    const tinygltf::Model&                                                              tfmodel,
-    std::string                                                                         virtual_path)
+    const tinygltf::Model& tfmodel,
+    std::string virtual_path)
 {
 	auto texture = std::make_shared<TextureAsset>(
 	    makeAssetName(tftexture.name, "Texture", virtual_path), TextureAsset::Dimension::Tex2D, std::move(virtual_path));
@@ -373,11 +373,11 @@ std::shared_ptr<TextureAsset> AssetImporter::parseTextureAsset(const tinygltf::T
 }
 
 std::shared_ptr<MaterialAsset> AssetImporter::parseMaterialAsset(const tinygltf::Material& tfmaterial,
-    const tinygltf::Model&                                                                 tfmodel,
-    const std::vector<AssetHandle<TextureAsset>>&                                          textures,
-    AssetHandle<TextureAsset>                                                              default_base_color,
-    AssetHandle<TextureAsset>                                                              default_metallic_roughness,
-    std::string                                                                            virtual_path)
+    const tinygltf::Model& tfmodel,
+    const std::vector<AssetHandle<TextureAsset>>& textures,
+    AssetHandle<TextureAsset> default_base_color,
+    AssetHandle<TextureAsset> default_metallic_roughness,
+    std::string virtual_path)
 {
 	auto material = std::make_shared<MaterialAsset>(
 	    makeAssetName(tfmaterial.name, "Material", virtual_path), MaterialAsset::ShadingModel::Lit, std::move(virtual_path));

@@ -18,16 +18,16 @@ enum class RenderPathType : uint8 {
 class Renderer {
 	RHIExtent extent{};
 
-	std::unique_ptr<RHIContext>  context;
+	std::unique_ptr<RHIContext> context;
 	std::unique_ptr<RenderScene> render_scene;
 
-	RHIRef<RHIInputLayout>      scene_input_layout;
-	RHIRef<RHIShader>           scene_vertex_shader;
-	RHIRef<RHIShader>           scene_pixel_shader;
+	RHIRef<RHIInputLayout> scene_input_layout;
+	RHIRef<RHIShader> scene_vertex_shader;
+	RHIRef<RHIShader> scene_pixel_shader;
 	RHIRef<RHIGraphicsPipeline> scene_pipeline;
-	RHIRef<RHIFramebuffer>      framebuffer;
-	RHIRef<RHITexture>          depth_buffer;
-	RHIRef<RHITextureView>      depth_view;
+	RHIRef<RHIFramebuffer> framebuffer;
+	RHIRef<RHITexture> depth_buffer;
+	RHIRef<RHITextureView> depth_view;
 
 	World* active_world{};
 

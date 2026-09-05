@@ -10,8 +10,8 @@ export namespace Vortex {
 
 struct RHIVertexBufferBinding {
 	RHIRef<RHIBuffer> buffer{};
-	uint32            slot{};
-	uint32            offset{};
+	uint32 slot{};
+	uint32 offset{};
 
 	RHIVertexBufferBinding& setBuffer(RHIBuffer* new_buffer) noexcept
 	{
@@ -37,7 +37,7 @@ struct RHIIndexBufferBinding {
 	RHIRef<RHIBuffer> buffer{};
 
 	RHIFormat format{RHIFormat::R32_UINT};
-	uint32    offset{};
+	uint32 offset{};
 
 	RHIIndexBufferBinding& setBuffer(RHIBuffer* new_buffer) noexcept
 	{
@@ -61,12 +61,12 @@ struct RHIIndexBufferBinding {
 
 struct RHIGraphicsState {
 	RHIRef<RHIGraphicsPipeline> pipeline{};
-	RHIRef<RHIFramebuffer>      framebuffer{};
-	RHIViewportState            viewport_state{};
+	RHIRef<RHIFramebuffer> framebuffer{};
+	RHIViewportState viewport_state{};
 
-	std::vector<RHIRef<RHIBindingSet>>  binding_sets{};
+	std::vector<RHIRef<RHIBindingSet>> binding_sets{};
 	std::vector<RHIVertexBufferBinding> vertex_buffers{};
-	RHIIndexBufferBinding               index_buffer{};
+	RHIIndexBufferBinding index_buffer{};
 
 	RHIGraphicsState& setPipeline(RHIGraphicsPipeline* new_pipeline) noexcept
 	{
@@ -107,7 +107,7 @@ struct RHIGraphicsState {
 
 
 struct RHIComputeState {
-	RHIRef<RHIComputePipeline>         pipeline{};
+	RHIRef<RHIComputePipeline> pipeline{};
 	std::vector<RHIRef<RHIBindingSet>> binding_sets{};
 
 	RHIComputeState& setPipeline(RHIComputePipeline* new_pipeline) noexcept

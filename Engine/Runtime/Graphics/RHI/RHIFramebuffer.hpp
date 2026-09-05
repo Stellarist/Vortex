@@ -11,7 +11,7 @@ struct RHIFramebufferInfo {
 	std::vector<RHIFormat> color_formats{};
 
 	RHIFormat depth_format{RHIFormat::Unknown};
-	uint32    sample_count{1};
+	uint32 sample_count{1};
 
 	RHIFramebufferInfo() = default;
 	RHIFramebufferInfo(const RHIFramebufferDesc& desc);
@@ -40,8 +40,8 @@ struct RHIFramebufferInfo {
 struct RHIFramebufferAttachment {
 	RHIRef<RHITextureView> texture_view{};
 
-	RHILoadOp     load_op{RHILoadOp::Load};
-	RHIStoreOp    store_op{RHIStoreOp::Store};
+	RHILoadOp load_op{RHILoadOp::Load};
+	RHIStoreOp store_op{RHIStoreOp::Store};
 	RHIClearValue clear_value{};
 
 	bool read_only{false};
@@ -89,7 +89,7 @@ struct RHIFramebufferDesc {
 	uint32 sample_count{1};
 
 	std::vector<RHIFramebufferAttachment> color_attachments{};
-	RHIFramebufferAttachment              depth_attachment{};
+	RHIFramebufferAttachment depth_attachment{};
 
 	RHIFramebufferDesc& setWidth(uint32 new_width) noexcept
 	{

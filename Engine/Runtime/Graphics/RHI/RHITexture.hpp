@@ -15,10 +15,10 @@ struct RHITextureDesc {
 	uint32 mip_levels{1};
 	uint32 sample_count{1};
 
-	RHIFormat           format{RHIFormat::RGBA8_SRGB};
+	RHIFormat format{RHIFormat::RGBA8_SRGB};
 	RHITextureDimension dimension{RHITextureDimension::Texture2D};
-	RHIColor            clear_color{};
-	RHITextureUsage     usage{RHITextureUsage::None};
+	RHIColor clear_color{};
+	RHITextureUsage usage{RHITextureUsage::None};
 
 	bool operator==(const RHITextureDesc&) const noexcept = default;
 
@@ -96,11 +96,11 @@ public:
 
 
 struct RHITextureViewDesc {
-	RHIRef<RHITexture>      texture{};
-	RHITextureViewType      type{RHITextureViewType::ShaderResource};
+	RHIRef<RHITexture> texture{};
+	RHITextureViewType type{RHITextureViewType::ShaderResource};
 	RHITextureViewDimension dimension{RHITextureViewDimension::Automatic};
-	RHIFormat               format{RHIFormat::Unknown};
-	RHITextureSubresource   subresource{};
+	RHIFormat format{RHIFormat::Unknown};
+	RHITextureSubresource subresource{};
 
 	RHITextureViewDesc& setTexture(RHITexture* new_texture) noexcept
 	{
@@ -141,9 +141,9 @@ public:
 
 
 struct RHISamplerDesc {
-	bool  mag_filter{true};
-	bool  min_filter{true};
-	bool  mip_filter{true};
+	bool mag_filter{true};
+	bool min_filter{true};
+	bool mip_filter{true};
 	float mip_bias{};
 
 	RHISamplerAddress address_u{RHISamplerAddress::Repeat};

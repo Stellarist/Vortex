@@ -7,7 +7,7 @@ export namespace Vortex {
 class Object {
 private:
 	std::string name;
-	uint64      uid;
+	uint64 uid;
 
 	static std::atomic<uint64> id_counter;
 

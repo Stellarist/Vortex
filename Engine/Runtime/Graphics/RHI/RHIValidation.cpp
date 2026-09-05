@@ -404,7 +404,7 @@ void validateRHIBindingSetDesc(const RHIBindingSetDesc& desc, const RHIBindingLa
 		case RHIBindingType::TextureSRV:
 		case RHIBindingType::TextureUAV:
 		{
-			auto*      view = dynamic_cast<RHITextureView*>(binding.resource.get());
+			auto* view = dynamic_cast<RHITextureView*>(binding.resource.get());
 			const auto expected = binding.type == RHIBindingType::TextureSRV ? RHITextureViewType::ShaderResource : RHITextureViewType::UnorderedAccess;
 			if (!view || view->getDesc().type != expected)
 				ERROR(Argument, "Invalid RHI descriptor: texture binding requires a compatible texture view");

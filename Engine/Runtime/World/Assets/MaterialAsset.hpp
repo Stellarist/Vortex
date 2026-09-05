@@ -33,13 +33,13 @@ public:
 private:
 	ShadingModel shading_model{ShadingModel::Lit};
 
-	Vec4  albedo{1.0f};
+	Vec4 albedo{1.0f};
 	float metallic{0.0f};
 	float roughness{0.0f};
 
-	Vec3      emissive{0.0f, 0.0f, 0.0f};
-	bool      double_sided{false};
-	float     alpha_cutoff{0.5f};
+	Vec3 emissive{0.0f, 0.0f, 0.0f};
+	bool double_sided{false};
+	float alpha_cutoff{0.5f};
 	AlphaMode alpha_mode{AlphaMode::Opaque};
 
 	std::array<AssetHandle<TextureAsset>, static_cast<size_t>(MaterialTextureSlot::Count)> textures;

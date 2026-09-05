@@ -81,8 +81,8 @@ void RenderScene::updateMeshes()
 }
 
 void RenderScene::collectAssets(std::vector<MeshComponent*>& meshes,
-    std::vector<AssetHandle<MaterialAsset>>&                 materials,
-    std::vector<AssetHandle<TextureAsset>>&                  textures) const
+    std::vector<AssetHandle<MaterialAsset>>& materials,
+    std::vector<AssetHandle<TextureAsset>>& textures) const
 {
 	if (!world || !world->getActiveScene())
 		return;
@@ -131,7 +131,7 @@ void RenderScene::loadMaterials(const std::vector<AssetHandle<MaterialAsset>>& m
 
 		RHITextureView* base_color_texture = nullptr;
 		RHITextureView* metallic_roughness_texture = nullptr;
-		RHISampler*     sampler = material_sampler.get();
+		RHISampler* sampler = material_sampler.get();
 
 		if (auto texture = material->getTexture("baseColor"); texture) {
 			auto texture_it = render_texture_map.find(texture->getUid());
@@ -253,9 +253,9 @@ void RenderScene::rebuild()
 {
 	clear();
 
-	std::vector<MeshComponent*>             meshes;
+	std::vector<MeshComponent*> meshes;
 	std::vector<AssetHandle<MaterialAsset>> materials;
-	std::vector<AssetHandle<TextureAsset>>  textures;
+	std::vector<AssetHandle<TextureAsset>> textures;
 	collectAssets(meshes, materials, textures);
 	loadTextures(textures);
 	loadMaterials(materials);

@@ -122,11 +122,11 @@ RenderTexture::RenderTexture(RHIContext& context, AssetHandle<TextureAsset> text
 
 
 RenderMaterial::RenderMaterial(RHIContext& ctx,
-    AssetHandle<MaterialAsset>             material,
-    RHIBindingLayout&                      layout,
-    RHITextureView*                        albedo,
-    RHITextureView*                        metallic_roughness,
-    RHISampler*                            sampler) :
+    AssetHandle<MaterialAsset> material,
+    RHIBindingLayout& layout,
+    RHITextureView* albedo,
+    RHITextureView* metallic_roughness,
+    RHISampler* sampler) :
     RenderResource(ctx),
     source_material(std::move(material))
 {

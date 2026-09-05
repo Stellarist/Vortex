@@ -31,7 +31,7 @@ static RHIRef<RHIFramebuffer> createFramebuffer(RHIDevice& device, const RDGPass
 
 	for (const auto& attachment : pass.pass->getDesc().render_targets->colors) {
 		auto& texture = requireTexture(attachment.texture);
-		auto  view = device.createTextureView(RHITextureViewDesc{}
+		auto view = device.createTextureView(RHITextureViewDesc{}
 		        .setTexture(texture.texture.get())
 		        .setType(RHITextureViewType::RenderTarget));
 
@@ -47,7 +47,7 @@ static RHIRef<RHIFramebuffer> createFramebuffer(RHIDevice& device, const RDGPass
 		const auto& attachment = *pass.pass->getDesc().render_targets->depth;
 
 		auto& texture = requireTexture(attachment.texture);
-		auto  view = device.createTextureView(RHITextureViewDesc{}
+		auto view = device.createTextureView(RHITextureViewDesc{}
 		        .setTexture(texture.texture.get())
 		        .setType(RHITextureViewType::DepthStencil));
 
@@ -192,9 +192,9 @@ void RDGBuilder::addOutput(RDGBufferRef buffer)
 void RDGBuilder::buildDependencies()
 {
 	struct ResourceTracker {
-		RDGPassHandle              last_writer{};
+		RDGPassHandle last_writer{};
 		std::vector<RDGPassHandle> active_readers{};
-		bool                       content_valid{};
+		bool content_valid{};
 	};
 
 	std::vector<ResourceTracker> texture_trackers(graph.textures.size());
@@ -206,14 +206,14 @@ void RDGBuilder::buildDependencies()
 		buffer_trackers[buffer->index].content_valid = buffer->external;
 
 	for (uint32 pass_index = 0; pass_index < graph.passes.size(); ++pass_index) {
-		auto&       pass = graph.passes[pass_index];
+		auto& pass = graph.passes[pass_index];
 		const auto& desc = pass.pass->getDesc();
 		pass.state.dependencies.clear();
 
 		const RDGPassHandle current_pass{pass_index};
 		for (const auto& access : desc.access.accesses) {
 			const auto& resource = *access.resource;
-			auto&       tracker = resource.type == RDGResourceType::Texture ?
+			auto& tracker = resource.type == RDGResourceType::Texture ?
 			    texture_trackers[resource.index] :
 			    buffer_trackers[resource.index];
 
@@ -265,7 +265,7 @@ void RDGBuilder::calculateCulling()
 		pass.state.culled = true;
 
 	for (uint32 pass_index = 0; pass_index < graph.passes.size(); ++pass_index) {
-		const auto&         pass = graph.passes[pass_index];
+		const auto& pass = graph.passes[pass_index];
 		const RDGPassHandle handle{pass_index};
 		if (hasAnyFlags(pass.pass->getFlags(), RDGPassFlags::NeverCull))
 			roots.push_back(handle);
@@ -350,7 +350,7 @@ void RDGBuilder::calculateLifetimes()
 void RDGBuilder::buildBarrierPlan()
 {
 	struct ResourceBarrierState {
-		RHIResourceState         state{Unknown};
+		RHIResourceState state{Unknown};
 		std::optional<RDGAccess> last_access;
 	};
 

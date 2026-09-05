@@ -59,7 +59,7 @@ std::string_view name(LogLevel level)
 
 void write(LogLevel level, std::string_view message)
 {
-	const bool             flush = level == LogLevel::Error;
+	const bool flush = level == LogLevel::Error;
 	const std::scoped_lock lock(mutex());
 
 #if VDEBUG

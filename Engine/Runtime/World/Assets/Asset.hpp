@@ -8,7 +8,7 @@ export namespace Vortex {
 class Asset : public Object {
 private:
 	std::string virtual_path;
-	uint64      revision{};
+	uint64 revision{};
 
 protected:
 	void touch() noexcept;

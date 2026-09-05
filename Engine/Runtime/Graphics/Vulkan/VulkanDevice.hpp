@@ -35,7 +35,7 @@ private:
 
 	PFN_vkSetDebugUtilsObjectNameEXT set_debug_name{};
 	PFN_vkCmdBeginDebugUtilsLabelEXT begin_debug_label{};
-	PFN_vkCmdEndDebugUtilsLabelEXT   end_debug_label{};
+	PFN_vkCmdEndDebugUtilsLabelEXT end_debug_label{};
 
 	VulkanContext* context{};
 

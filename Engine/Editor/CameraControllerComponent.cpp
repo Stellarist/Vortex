@@ -60,7 +60,7 @@ void CameraControllerComponent::translate(CameraMovement movement, float dt)
 	if (!camera || !root_component)
 		return;
 
-	auto&      transform = root_component->getTransform();
+	auto& transform = root_component->getTransform();
 	const Vec3 front = camera->getFront();
 	const Vec3 right = camera->getRight();
 	switch (movement) {
@@ -90,7 +90,7 @@ void CameraControllerComponent::rotate(const Vec2& mouse_pos)
 	const float yaw = Math::radians(-delta.x * mouse_sensitivity);
 	const float pitch = Math::radians(-delta.y * mouse_sensitivity);
 
-	auto&      transform = root_component->getTransform();
+	auto& transform = root_component->getTransform();
 	const auto rotation = transform.getRotation();
 	const Quat yaw_quat = Math::angleAxis(yaw, Vec3(0.0f, 1.0f, 0.0f));
 	const Quat pitch_quat = Math::angleAxis(pitch, Vec3(1.0f, 0.0f, 0.0f));

@@ -7,7 +7,7 @@ export namespace Vortex {
 
 class LightComponent : public SceneComponent {
 protected:
-	Vec3  color{1.0f, 1.0f, 1.0f};
+	Vec3 color{1.0f, 1.0f, 1.0f};
 	float intensity{1.0f};
 
 public:

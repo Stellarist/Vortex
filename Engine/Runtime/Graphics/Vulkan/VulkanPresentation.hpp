@@ -13,27 +13,27 @@ class VulkanPresentation {
 private:
 	struct SubmissionSlot {
 		RHIRef<RHICommandList> command{};
-		vk::Semaphore          image_available{};
-		vk::Fence              in_flight{};
+		vk::Semaphore image_available{};
+		vk::Fence in_flight{};
 	};
 
 	struct PresentImage {
-		vk::Image              image{};
-		vk::Semaphore          render_finished{};
-		RHIRef<RHITexture>     backbuffer{};
+		vk::Image image{};
+		vk::Semaphore render_finished{};
+		RHIRef<RHITexture> backbuffer{};
 		RHIRef<RHITextureView> backbuffer_view{};
 	};
 
 	static constexpr uint32 MAX_FRAMES_IN_FLIGHT = 2;
 
 	vk::PhysicalDevice physical_device{};
-	vk::SurfaceKHR     surface{};
-	vk::SwapchainKHR   swapchain{};
+	vk::SurfaceKHR surface{};
+	vk::SwapchainKHR swapchain{};
 
 	RHIContextDesc desc{};
 
 	std::array<SubmissionSlot, MAX_FRAMES_IN_FLIGHT> submission_slots{};
-	std::vector<PresentImage>                        present_images{};
+	std::vector<PresentImage> present_images{};
 
 	uint32 submission_slot_index{};
 	uint32 acquired_image_index{};
@@ -53,11 +53,11 @@ private:
 
 public:
 	VulkanPresentation(
-	    VulkanDevice&      device,
+	    VulkanDevice& device,
 	    vk::PhysicalDevice physical_device,
-	    vk::SurfaceKHR     surface,
-	    uint32             queue_family,
-	    const RHIExtent&   initial_extent);
+	    vk::SurfaceKHR surface,
+	    uint32 queue_family,
+	    const RHIExtent& initial_extent);
 	~VulkanPresentation() noexcept;
 
 	bool beginFrame(const RHIExtent& surface_extent);

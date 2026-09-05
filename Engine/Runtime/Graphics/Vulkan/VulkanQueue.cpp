@@ -43,10 +43,10 @@ std::shared_ptr<VulkanCommandBuffer> VulkanQueue::acquireCommand()
 }
 
 void VulkanQueue::submit(VulkanCommandList* command_list,
-    std::span<const vk::Semaphore>          wait_semaphores,
+    std::span<const vk::Semaphore> wait_semaphores,
     std::span<const vk::PipelineStageFlags> wait_stages,
-    std::span<const vk::Semaphore>          signal_semaphores,
-    vk::Fence                               fence)
+    std::span<const vk::Semaphore> signal_semaphores,
+    vk::Fence fence)
 {
 	retireCompletedCommands();
 
@@ -57,7 +57,7 @@ void VulkanQueue::submit(VulkanCommandList* command_list,
 	CHECK(command, "Cannot submit a command list without a recorded command buffer");
 
 	std::array command_buffers{command->getHandle()};
-	uint64     signal_value = ++next_timeline_value;
+	uint64 signal_value = ++next_timeline_value;
 
 	std::vector<vk::Semaphore> submit_signal_semaphores(signal_semaphores.begin(), signal_semaphores.end());
 	submit_signal_semaphores.push_back(timeline_semaphore);
@@ -65,7 +65,7 @@ void VulkanQueue::submit(VulkanCommandList* command_list,
 	std::vector<uint64> signal_values(submit_signal_semaphores.size(), 0);
 	signal_values.back() = signal_value;
 
-	std::vector<uint64>                 wait_values(wait_semaphores.size(), 0);
+	std::vector<uint64> wait_values(wait_semaphores.size(), 0);
 	std::vector<vk::PipelineStageFlags> submit_wait_stages(wait_stages.begin(), wait_stages.end());
 	if (!wait_semaphores.empty() && submit_wait_stages.empty())
 		submit_wait_stages.assign(wait_semaphores.size(), vk::PipelineStageFlagBits::eAllCommands);

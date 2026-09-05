@@ -39,9 +39,9 @@ private:
 	static constexpr size_t key_count{static_cast<size_t>(Input::Key::Count)};
 	static constexpr size_t mouse_count{static_cast<size_t>(Input::Mouse::Count)};
 
-	std::array<bool, key_count>   key_held{};
-	std::array<bool, key_count>   key_pressed{};
-	std::array<bool, key_count>   key_released{};
+	std::array<bool, key_count> key_held{};
+	std::array<bool, key_count> key_pressed{};
+	std::array<bool, key_count> key_released{};
 	std::array<bool, mouse_count> mouse_held{};
 	std::array<bool, mouse_count> mouse_pressed{};
 	std::array<bool, mouse_count> mouse_released{};

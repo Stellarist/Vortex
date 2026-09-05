@@ -7,9 +7,9 @@ export namespace Vortex {
 
 class AssetManager {
 private:
-	std::unordered_map<uint64, std::weak_ptr<Asset>>   loaded_assets;
+	std::unordered_map<uint64, std::weak_ptr<Asset>> loaded_assets;
 	std::unordered_map<uint64, std::shared_ptr<Asset>> pinned_assets;
-	std::unordered_map<std::string, uint64>            assets_by_path;
+	std::unordered_map<std::string, uint64> assets_by_path;
 
 	AssetManager() = default;
 	~AssetManager() = default;

@@ -15,12 +15,12 @@ export namespace Vortex {
 class Widget {
 private:
 	vk::DescriptorPool descriptor_pool{};
-	vk::Device         device{};
+	vk::Device device{};
 
 	std::vector<std::function<void()>> draw_callbacks{};
 
 	Renderer* renderer{};
-	Window*   window{};
+	Window* window{};
 
 public:
 	Widget(Window& window, Renderer& renderer);

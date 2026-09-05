@@ -16,7 +16,7 @@ private:
 
 	std::vector<RHIRef<RHIResource>> tracked_resources{};
 
-	VulkanDevice&      device;
+	VulkanDevice& device;
 	VulkanCommandPool& pool;
 
 public:
@@ -47,7 +47,7 @@ private:
 	std::deque<VulkanCommandBuffer*> free_cmd_buffers{};
 
 	VulkanDevice& device;
-	VulkanQueue&  queue;
+	VulkanQueue& queue;
 
 public:
 	VulkanCommandPool(VulkanDevice& device, VulkanQueue& queue);
@@ -69,12 +69,12 @@ private:
 	RHICommandListDesc desc{};
 
 	RHIGraphicsState graphics_state{};
-	RHIComputeState  compute_state{};
+	RHIComputeState compute_state{};
 
 	std::shared_ptr<VulkanCommandBuffer> current_command{};
 
 	vk::PipelineLayout current_layout{};
-	RHIShaderType      current_push_constant_visibility{};
+	RHIShaderType current_push_constant_visibility{};
 
 	bool rendering{};
 

@@ -31,7 +31,7 @@ RHIRef<RHIBuffer> VulkanDevice::createBuffer(const RHIBufferDesc& desc)
 	else if (desc.access == RHIAccessMode::Read)
 		alloc_info.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
 
-	VkBuffer       vk_buffer{};
+	VkBuffer vk_buffer{};
 	const VkResult result = vmaCreateBuffer(allocator, &buffer_info, &alloc_info, &vk_buffer, &buffer->allocation, &buffer->allocation_info);
 	CHECK(result == VK_SUCCESS, "Failed to allocate Vulkan buffer ({} bytes, result {})",
 	    desc.size, static_cast<int32>(result));
@@ -46,7 +46,7 @@ RHIRef<RHIBufferView> VulkanDevice::createBufferView(const RHIBufferViewDesc& de
 	auto view = makeRHIRef<VulkanBufferView>(*this, normalized_desc);
 
 	if (normalized_desc.type == RHIBufferViewType::Typed) {
-		auto*                    buffer = static_cast<VulkanBuffer*>(normalized_desc.buffer.get());
+		auto* buffer = static_cast<VulkanBuffer*>(normalized_desc.buffer.get());
 		vk::BufferViewCreateInfo view_info{};
 		view_info.setBuffer(buffer->getHandle())
 		    .setFormat(toVkFormat(normalized_desc.format))
@@ -64,7 +64,7 @@ void* VulkanDevice::mapBuffer(RHIBuffer* buffer, RHIAccessMode mode) const
 	if (!vk_buffer)
 		return nullptr;
 
-	void*      mapped_data{};
+	void* mapped_data{};
 	const auto result = vmaMapMemory(allocator, vk_buffer->allocation, &mapped_data);
 	CHECK(result == VK_SUCCESS, "Failed to map Vulkan buffer '{}' (result {})",
 	    vk_buffer->getName(), static_cast<int32>(result));

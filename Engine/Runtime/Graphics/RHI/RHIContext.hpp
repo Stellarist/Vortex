@@ -12,7 +12,7 @@ class RHITexture;
 class RHITextureView;
 
 struct RHIContextDesc {
-	RHIAPI    api{RHIAPI::Vulkan};
+	RHIAPI api{RHIAPI::Vulkan};
 	RHIExtent extent{2560, 1440};
 	RHIFormat format{RHIFormat::RGBA8_SRGB};
 };

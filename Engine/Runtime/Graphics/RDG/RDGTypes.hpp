@@ -42,27 +42,27 @@ enum class RDGPassFlags : uint8 {
 };
 
 struct RDGBarrier {
-	RDGResource*     resource{};
+	RDGResource* resource{};
 	RHIResourceState before{Unknown};
 	RHIResourceState after{Unknown};
 };
 
 struct RDGResourceAccess {
-	RDGResource*     resource{};
-	RDGAccess        access{RDGAccess::Read};
+	RDGResource* resource{};
+	RDGAccess access{RDGAccess::Read};
 	RHIResourceState state{Unknown};
 };
 
 struct RDGAttachment {
 	RDGTextureRef texture{};
-	RHILoadOp     load_op{RHILoadOp::Load};
-	RHIStoreOp    store_op{RHIStoreOp::Store};
+	RHILoadOp load_op{RHILoadOp::Load};
+	RHIStoreOp store_op{RHIStoreOp::Store};
 	RHIClearValue clear_value{};
-	bool          read_only{};
+	bool read_only{};
 };
 
 struct RDGRenderTargets {
-	std::vector<RDGAttachment>   colors{};
+	std::vector<RDGAttachment> colors{};
 	std::optional<RDGAttachment> depth{};
 };
 
@@ -76,13 +76,13 @@ struct RDGPassHandle {
 struct RDGPassAccess {
 	std::vector<RDGResourceAccess> accesses{};
 	std::vector<RDGTextureViewRef> texture_views{};
-	std::vector<RDGBufferViewRef>  buffer_views{};
+	std::vector<RDGBufferViewRef> buffer_views{};
 };
 
 struct RDGPassState {
 	std::vector<RDGPassHandle> dependencies{};
-	std::vector<RDGBarrier>    barriers{};
-	bool                       culled{true};
+	std::vector<RDGBarrier> barriers{};
+	bool culled{true};
 };
 
 

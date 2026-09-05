@@ -540,8 +540,8 @@ struct RHIViewport {
 
 struct RHIClearValue {
 	RHIColor color{};
-	float    depth{1.0f};
-	uint32   stencil{};
+	float depth{1.0f};
+	uint32 stencil{};
 
 	RHIClearValue() = default;
 	RHIClearValue(RHIColor clear_color, float clear_depth = 1.0f, uint32 clear_stencil = 0) noexcept : color(clear_color), depth(clear_depth), stencil(clear_stencil) {}

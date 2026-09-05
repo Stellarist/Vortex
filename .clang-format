@@ -1,13 +1,14 @@
 Language: Cpp
 AccessModifierOffset: -4
 AlignAfterOpenBracket: DontAlign
-AlignConsecutiveDeclarations: true
+AlignConsecutiveDeclarations: false
 AlignOperands: DontAlign
 AlignTrailingComments: true
+AllowAllArgumentsOnNextLine: true
 AllowShortBlocksOnASingleLine: Always
 AllowShortFunctionsOnASingleLine: All
-BinPackArguments: false
-BinPackParameters: false
+BinPackArguments: true
+BinPackParameters: BinPack
 BraceWrapping:
     AfterCaseLabel: true
     AfterClass: false
@@ -60,6 +61,7 @@ PenaltyExcessCharacter: 1000000
 PenaltyReturnTypeOnItsOwnLine: 60
 PointerAlignment: Left
 ReflowComments: true
+RequiresClausePosition: WithPreceding
 SortIncludes: false
 SortUsingDeclarations: true
 SpaceAfterCStyleCast: true

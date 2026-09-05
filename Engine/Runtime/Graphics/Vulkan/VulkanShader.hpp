@@ -11,7 +11,7 @@ class VulkanShader : public RHIShader {
 private:
 	RHIShaderDesc desc{};
 
-	vk::ShaderModule        shader{};
+	vk::ShaderModule shader{};
 	vk::ShaderStageFlagBits stage_flags{};
 
 	VulkanDevice& device;

@@ -9,7 +9,7 @@ namespace Vortex {
 class ScopedFlag {
 private:
 	bool& value;
-	bool  previous;
+	bool previous;
 
 public:
 	ScopedFlag(bool& flag) : value(flag), previous(flag) { value = true; }

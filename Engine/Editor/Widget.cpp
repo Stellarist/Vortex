@@ -172,7 +172,7 @@ void Widget::drawSceneActors(const Actor* actor)
 		return;
 
 	auto* mutable_actor = const_cast<Actor*>(actor);
-	auto  actor_title = std::format("[{}] {}", mutable_actor->getType().name(), mutable_actor->getName());
+	auto actor_title = std::format("[{}] {}", mutable_actor->getType().name(), mutable_actor->getName());
 
 	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth;
 	if (ImGui::TreeNodeEx((void*) (intptr) mutable_actor->getUid(), flags, "%s", actor_title.c_str())) {
@@ -180,9 +180,9 @@ void Widget::drawSceneActors(const Actor* actor)
 
 		if (auto* root_component = mutable_actor->getRootComponent()) {
 			auto& transform = root_component->getTransform();
-			auto  translation = transform.getTranslation();
-			auto  rotation = Math::degrees(Math::eulerAngles(transform.getRotation()));
-			auto  scale = transform.getScaling();
+			auto translation = transform.getTranslation();
+			auto rotation = Math::degrees(Math::eulerAngles(transform.getRotation()));
+			auto scale = transform.getScaling();
 
 			ImGui::DragFloat3("Position", &translation.x, 0.01f);
 			ImGui::DragFloat3("Rotation", &rotation.x, 0.5f);
@@ -253,8 +253,8 @@ void Widget::drawSceneActors(const Actor* actor)
 
 		if (mutable_actor->hasComponent<LightComponent>()) {
 			auto* light = &mutable_actor->getComponent<LightComponent>();
-			auto  color = light->getColor();
-			auto  intensity = light->getIntensity();
+			auto color = light->getColor();
+			auto intensity = light->getIntensity();
 
 			ImGui::ColorEdit3("Color", &color.r);
 			ImGui::DragFloat("Intensity", &intensity, 100.0f, 0.0f);

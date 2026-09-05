@@ -17,7 +17,7 @@ class VulkanQueue {
 private:
 	RHICommandQueue type{};
 
-	vk::Queue     queue{};
+	vk::Queue queue{};
 	vk::Semaphore timeline_semaphore{};
 
 	std::unique_ptr<VulkanCommandPool> command_pool{};
@@ -39,11 +39,11 @@ public:
 
 	std::shared_ptr<VulkanCommandBuffer> acquireCommand();
 
-	void submit(VulkanCommandList*              command_list,
-	    std::span<const vk::Semaphore>          wait_semaphores = {},
+	void submit(VulkanCommandList* command_list,
+	    std::span<const vk::Semaphore> wait_semaphores = {},
 	    std::span<const vk::PipelineStageFlags> wait_stages = {},
-	    std::span<const vk::Semaphore>          signal_semaphores = {},
-	    vk::Fence                               fence = {});
+	    std::span<const vk::Semaphore> signal_semaphores = {},
+	    vk::Fence fence = {});
 
 	RHICommandQueue getType() const noexcept { return type; }
 

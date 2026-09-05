@@ -115,7 +115,7 @@ RHIRef<RHIGraphicsPipeline> VulkanDevice::createGraphicsPipeline(const RHIGraphi
 	vk::PipelineColorBlendStateCreateInfo color_blend_info{};
 	color_blend_info.setAttachments(color_blend_states);
 
-	const std::array                   dynamic_states{vk::DynamicState::eViewport, vk::DynamicState::eScissor};
+	const std::array dynamic_states{vk::DynamicState::eViewport, vk::DynamicState::eScissor};
 	vk::PipelineDynamicStateCreateInfo dynamic_info{};
 	dynamic_info.setDynamicStates(dynamic_states);
 
@@ -124,7 +124,7 @@ RHIRef<RHIGraphicsPipeline> VulkanDevice::createGraphicsPipeline(const RHIGraphi
 	for (const auto& layout : desc.binding_layouts)
 		set_layouts.push_back(static_cast<VulkanBindingLayout*>(layout.get())->getHandle());
 
-	bool                  has_push_constants{};
+	bool has_push_constants{};
 	vk::PushConstantRange push_constant_range{};
 	for (const auto& binding_layout : desc.binding_layouts) {
 		for (const auto& item : binding_layout->getDesc().bindings) {
@@ -189,7 +189,7 @@ RHIRef<RHIComputePipeline> VulkanDevice::createComputePipeline(const RHIComputeP
 	for (const auto& layout : desc.binding_layouts)
 		set_layouts.push_back(static_cast<VulkanBindingLayout*>(layout.get())->getHandle());
 
-	bool                  has_push_constants{};
+	bool has_push_constants{};
 	vk::PushConstantRange push_constant_range{};
 	for (const auto& binding_layout : desc.binding_layouts) {
 		for (const auto& item : binding_layout->getDesc().bindings) {
@@ -208,7 +208,7 @@ RHIRef<RHIComputePipeline> VulkanDevice::createComputePipeline(const RHIComputeP
 	    .setPPushConstantRanges(has_push_constants ? &push_constant_range : nullptr);
 	pipeline->layout = device.createPipelineLayout(layout_info);
 
-	const auto&                       shader = static_cast<const VulkanShader&>(*desc.compute_shader);
+	const auto& shader = static_cast<const VulkanShader&>(*desc.compute_shader);
 	vk::PipelineShaderStageCreateInfo stage_info{};
 	stage_info.setStage(shader.getStage())
 	    .setModule(shader.getHandle())

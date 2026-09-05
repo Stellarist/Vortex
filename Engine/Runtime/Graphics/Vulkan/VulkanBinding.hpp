@@ -14,7 +14,7 @@ private:
 	vk::DescriptorSetLayout layout{};
 
 	std::vector<vk::DescriptorSetLayoutBinding> bindings{};
-	std::vector<vk::DescriptorPoolSize>         pool_sizes{};
+	std::vector<vk::DescriptorPoolSize> pool_sizes{};
 
 	VulkanDevice& device;
 
@@ -45,7 +45,7 @@ private:
 
 	RHIRef<const RHIBindingLayout> layout{};
 
-	vk::DescriptorSet  set{};
+	vk::DescriptorSet set{};
 	vk::DescriptorPool pool{};
 
 	VulkanDevice& device;

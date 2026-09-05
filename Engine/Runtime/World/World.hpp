@@ -11,7 +11,7 @@ export namespace Vortex {
 class World : public Object {
 private:
 	std::vector<std::unique_ptr<Actor>> actors{};
-	std::vector<Component*>             components{};
+	std::vector<Component*> components{};
 
 	mutable CameraComponent* active_camera{};
 

@@ -11,10 +11,10 @@ namespace Vortex {
 
 #if VDEBUG
 VKAPI_ATTR VkBool32 VKAPI_CALL vortexValidationCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT      message_severity,
-    VkDebugUtilsMessageTypeFlagsEXT             message_type,
+    VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
+    VkDebugUtilsMessageTypeFlagsEXT message_type,
     const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
-    void*                                       user_data)
+    void* user_data)
 {
 	if ((message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) != 0 && user_data)
 		static_cast<std::atomic_uint32_t*>(user_data)->fetch_add(1, std::memory_order_relaxed);

@@ -39,10 +39,10 @@ PerspectiveCameraComponent::PerspectiveCameraComponent(std::string component_nam
 
 PerspectiveCameraComponent::PerspectiveCameraComponent(
     std::string component_name,
-    float       new_fov,
-    float       new_aspect_ratio,
-    float       new_near_plane,
-    float       new_far_plane) :
+    float new_fov,
+    float new_aspect_ratio,
+    float new_near_plane,
+    float new_far_plane) :
     CameraComponent(std::move(component_name))
 {
 	setAspectRatio(new_aspect_ratio);
@@ -125,12 +125,12 @@ OrthographicCameraComponent::OrthographicCameraComponent(std::string component_n
 
 OrthographicCameraComponent::OrthographicCameraComponent(
     std::string component_name,
-    float       new_left,
-    float       new_right,
-    float       new_bottom,
-    float       new_top,
-    float       new_near_plane,
-    float       new_far_plane) :
+    float new_left,
+    float new_right,
+    float new_bottom,
+    float new_top,
+    float new_near_plane,
+    float new_far_plane) :
     CameraComponent(std::move(component_name))
 {
 	setLeft(new_left);

@@ -14,7 +14,7 @@ class VulkanInputLayout : public RHIInputLayout {
 private:
 	RHIInputLayoutDesc desc{};
 
-	std::vector<vk::VertexInputBindingDescription>   bindings{};
+	std::vector<vk::VertexInputBindingDescription> bindings{};
 	std::vector<vk::VertexInputAttributeDescription> attributes{};
 
 	friend class VulkanDevice;
@@ -43,7 +43,7 @@ private:
 
 	RHIShaderType push_constant_visibility{};
 
-	vk::Pipeline       pipeline{};
+	vk::Pipeline pipeline{};
 	vk::PipelineLayout layout{};
 
 	VulkanDevice& device;
@@ -76,7 +76,7 @@ private:
 
 	RHIShaderType push_constant_visibility{};
 
-	vk::Pipeline       pipeline{};
+	vk::Pipeline pipeline{};
 	vk::PipelineLayout layout{};
 
 	VulkanDevice& device;

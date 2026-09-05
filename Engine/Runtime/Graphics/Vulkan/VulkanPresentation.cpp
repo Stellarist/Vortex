@@ -11,9 +11,9 @@ namespace Vortex {
 
 static void transitionSwapchainImage(
     vk::CommandBuffer command,
-    vk::Image         image,
-    vk::ImageLayout   old_layout,
-    vk::ImageLayout   new_layout)
+    vk::Image image,
+    vk::ImageLayout old_layout,
+    vk::ImageLayout new_layout)
 {
 	vk::ImageSubresourceRange range{};
 	range.setAspectMask(vk::ImageAspectFlagBits::eColor)
@@ -65,11 +65,11 @@ static void blitToSwapchain(vk::CommandBuffer command, vk::Image source, vk::Ima
 }
 
 VulkanPresentation::VulkanPresentation(
-    VulkanDevice&      device,
+    VulkanDevice& device,
     vk::PhysicalDevice physical_device,
-    vk::SurfaceKHR     surface,
-    uint32             queue_family,
-    const RHIExtent&   initial_extent) :
+    vk::SurfaceKHR surface,
+    uint32 queue_family,
+    const RHIExtent& initial_extent) :
     device(device),
     physical_device(physical_device),
     surface(surface),
@@ -135,7 +135,7 @@ void VulkanPresentation::destroySwapchain() noexcept
 void VulkanPresentation::createResources(std::span<const VkImage> images)
 {
 	vk::SemaphoreCreateInfo semaphore_info{};
-	vk::FenceCreateInfo     fence_info{};
+	vk::FenceCreateInfo fence_info{};
 	fence_info.setFlags(vk::FenceCreateFlagBits::eSignaled);
 
 	for (auto& submission : submission_slots) {
@@ -202,7 +202,7 @@ bool VulkanPresentation::beginFrame(const RHIExtent& surface_extent)
 			return false;
 	}
 
-	auto&      submission = submission_slots[submission_slot_index];
+	auto& submission = submission_slots[submission_slot_index];
 	const auto wait_result = device.getHandle().waitForFences(
 	    submission.in_flight,
 	    true,
@@ -210,7 +210,7 @@ bool VulkanPresentation::beginFrame(const RHIExtent& surface_extent)
 	CHECK(wait_result == vk::Result::eSuccess, "Failed to wait for Vulkan submission fence (result {})",
 	    static_cast<int32>(wait_result));
 
-	uint32     image_index{};
+	uint32 image_index{};
 	const auto result = device.getHandle().acquireNextImageKHR(
 	    swapchain,
 	    std::numeric_limits<uint64>::max(),
@@ -249,7 +249,7 @@ void VulkanPresentation::endFrame()
 	auto& command = *submission.command;
 	auto* vk_command_list = static_cast<VulkanCommandList*>(&command);
 	auto* vk_backbuffer = static_cast<VulkanTexture*>(image.backbuffer.get());
-	auto  vk_command_buffer = vk_command_list->getCurrentCommand()->getHandle();
+	auto vk_command_buffer = vk_command_list->getCurrentCommand()->getHandle();
 
 	vk_command_list->transitionTexture(image.backbuffer.get(), image.backbuffer->getState(), CopySource);
 	transitionSwapchainImage(vk_command_buffer, image.image, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);

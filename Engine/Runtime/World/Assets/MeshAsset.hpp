@@ -23,9 +23,9 @@ struct MeshSection {
 
 class MeshAsset : public Asset {
 private:
-	std::vector<MeshVertex>                 vertices;
-	std::vector<uint32>                     indices;
-	std::vector<MeshSection>                sections;
+	std::vector<MeshVertex> vertices;
+	std::vector<uint32> indices;
+	std::vector<MeshSection> sections;
 	std::vector<AssetHandle<MaterialAsset>> materials;
 
 	Bounds local_bounds;

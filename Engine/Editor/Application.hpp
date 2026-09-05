@@ -12,10 +12,10 @@ class Application {
 private:
 	AssetManager asset_manager;
 
-	std::unique_ptr<World>    world;
+	std::unique_ptr<World> world;
 	std::unique_ptr<Renderer> renderer;
-	std::unique_ptr<Window>   window;
-	std::unique_ptr<Widget>   widget;
+	std::unique_ptr<Window> window;
+	std::unique_ptr<Widget> widget;
 
 	Clock clock;
 

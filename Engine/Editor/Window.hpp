@@ -11,11 +11,11 @@ export namespace Vortex {
 class Window {
 private:
 	SDL_Window* window{};
-	SDL_Event   event{};
+	SDL_Event event{};
 
 	uint32 width{};
 	uint32 height{};
-	bool   should_close{};
+	bool should_close{};
 
 	std::vector<std::function<void()>> event_callbacks;
 
@@ -35,7 +35,7 @@ public:
 	bool shouldClose() const;
 
 	SDL_Window* get() const;
-	SDL_Event*  getEvent();
+	SDL_Event* getEvent();
 };
 
 }        // namespace Vortex

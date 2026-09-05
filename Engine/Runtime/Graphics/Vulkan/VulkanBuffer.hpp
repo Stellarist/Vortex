@@ -13,11 +13,11 @@ export namespace Vortex {
 
 class VulkanBuffer : public RHIBuffer {
 private:
-	RHIBufferDesc    desc{};
+	RHIBufferDesc desc{};
 	RHIResourceState state{Unknown};
 
-	vk::Buffer        buffer{};
-	VmaAllocation     allocation{};
+	vk::Buffer buffer{};
+	VmaAllocation allocation{};
 	VmaAllocationInfo allocation_info{};
 
 	VulkanDevice& device;

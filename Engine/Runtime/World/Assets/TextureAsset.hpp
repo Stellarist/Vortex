@@ -21,7 +21,7 @@ public:
 
 private:
 	TexturePixelFormat format{TexturePixelFormat::Unknown};
-	Dimension          dimension{Dimension::Tex2D};
+	Dimension dimension{Dimension::Tex2D};
 
 	std::vector<uint8> data;
 

@@ -235,7 +235,7 @@ void validateRDGCopyPass(const RDGPassNode& pass)
 
 	const auto& lhs = source->desc;
 	const auto& rhs = destination->desc;
-	const bool  compatible =
+	const bool compatible =
 	    lhs.format == rhs.format &&
 	    lhs.width == rhs.width &&
 	    lhs.height == rhs.height &&

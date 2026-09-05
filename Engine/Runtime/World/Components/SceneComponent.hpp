@@ -9,7 +9,7 @@ class SceneComponent : public Component {
 private:
 	Transform transform;
 
-	SceneComponent*              attach_parent{};
+	SceneComponent* attach_parent{};
 	std::vector<SceneComponent*> attach_children;
 
 public:

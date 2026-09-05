@@ -13,12 +13,12 @@ export namespace Vortex {
 
 class VulkanTexture : public RHITexture {
 private:
-	RHITextureDesc   desc{};
+	RHITextureDesc desc{};
 	RHIResourceState state{Unknown};
 
-	vk::Image         image{};
-	vk::ImageLayout   layout{};
-	VmaAllocation     allocation{};
+	vk::Image image{};
+	vk::ImageLayout layout{};
+	VmaAllocation allocation{};
 	VmaAllocationInfo allocation_info{};
 
 	VulkanDevice& device;
@@ -75,8 +75,8 @@ class VulkanStagingTexture : public RHIStagingTexture {
 private:
 	RHITextureDesc desc{};
 
-	vk::Buffer        buffer{};
-	VmaAllocation     allocation{};
+	vk::Buffer buffer{};
+	VmaAllocation allocation{};
 	VmaAllocationInfo allocation_info{};
 
 	VulkanDevice& device;

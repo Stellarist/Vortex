@@ -13,8 +13,8 @@ private:
 	RHIFramebufferInfo info{};
 
 	std::vector<vk::RenderingAttachmentInfo> color_attachments_info{};
-	vk::RenderingAttachmentInfo              depth_attachment_info{};
-	vk::RenderingAttachmentInfo              stencil_attachment_info{};
+	vk::RenderingAttachmentInfo depth_attachment_info{};
+	vk::RenderingAttachmentInfo stencil_attachment_info{};
 
 	friend class VulkanDevice;
 

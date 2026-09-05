@@ -57,7 +57,7 @@ void Window::pollEvent()
 			if (!mouse_map.contains(event.button.button))
 				return;
 
-			Vec2       pos{event.button.x, event.button.y};
+			Vec2 pos{event.button.x, event.button.y};
 			MouseInput mouse_input(mouse_map.at(event.button.button), pos, Input::State::Pressed);
 			InputHandler::instance().onMouseInput(mouse_input);
 			break;
@@ -68,7 +68,7 @@ void Window::pollEvent()
 			if (!mouse_map.contains(event.button.button))
 				return;
 
-			Vec2       pos{event.button.x, event.button.y};
+			Vec2 pos{event.button.x, event.button.y};
 			MouseInput mouse_input(mouse_map.at(event.button.button), pos, Input::State::Released);
 			InputHandler::instance().onMouseInput(mouse_input);
 			break;

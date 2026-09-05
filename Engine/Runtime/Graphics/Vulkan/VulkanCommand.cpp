@@ -274,7 +274,7 @@ void VulkanCommandList::clearTexture(RHITexture* texture, const RHIColor& color)
 
 	validateTextureState(*texture, CopyDest, "clearTexture");
 
-	vk::ClearColorValue       clear_value = toVkClearColorValue(color);
+	vk::ClearColorValue clear_value = toVkClearColorValue(color);
 	vk::ImageSubresourceRange subresource{};
 	subresource.setAspectMask(vk::ImageAspectFlagBits::eColor)
 	    .setBaseMipLevel(0)
@@ -309,7 +309,7 @@ void VulkanCommandList::clearDepthTexture(RHITexture* texture, bool clear_depth,
 		aspect |= vk::ImageAspectFlagBits::eStencil;
 
 	vk::ClearDepthStencilValue clear_value = {depth, stencil};
-	vk::ImageSubresourceRange  subresource{};
+	vk::ImageSubresourceRange subresource{};
 	subresource.setAspectMask(aspect)
 	    .setBaseMipLevel(0)
 	    .setLevelCount(vk_texture->getDesc().mip_levels)

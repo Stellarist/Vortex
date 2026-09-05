@@ -50,7 +50,7 @@ void VulkanDevice::beginDebugLabel(vk::CommandBuffer command, std::string_view n
 	if (!begin_debug_label || !command || name.empty())
 		return;
 
-	const std::string          label_name(name);
+	const std::string label_name(name);
 	const VkDebugUtilsLabelEXT label{
 	    .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
 	    .pLabelName = label_name.c_str(),

@@ -33,7 +33,7 @@ RHIRef<RHITexture> VulkanDevice::createTexture(const RHITextureDesc& desc)
 	    .usage = VMA_MEMORY_USAGE_AUTO,
 	};
 
-	VkImage        vk_image{};
+	VkImage vk_image{};
 	const VkResult result = vmaCreateImage(allocator, &image_info, &alloc_info, &vk_image, &texture->allocation, &texture->allocation_info);
 	CHECK(result == VK_SUCCESS, "Failed to allocate Vulkan image ({}x{}x{}, result {})",
 	    desc.width, desc.height, desc.depth, static_cast<int32>(result));
@@ -45,8 +45,8 @@ RHIRef<RHITexture> VulkanDevice::createTexture(const RHITextureDesc& desc)
 
 RHIRef<RHITextureView> VulkanDevice::createTextureView(const RHITextureViewDesc& desc)
 {
-	auto        normalized_desc = normalizeRHITextureViewDesc(desc);
-	auto*       texture = static_cast<VulkanTexture*>(normalized_desc.texture.get());
+	auto normalized_desc = normalizeRHITextureViewDesc(desc);
+	auto* texture = static_cast<VulkanTexture*>(normalized_desc.texture.get());
 	const auto& subresource = normalized_desc.subresource;
 
 	vk::ImageSubresourceRange range{};
@@ -85,7 +85,7 @@ RHIRef<RHIStagingTexture> VulkanDevice::createStagingTexture(const RHITextureDes
 	    .requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 	};
 
-	VkBuffer       vk_buffer{};
+	VkBuffer vk_buffer{};
 	const VkResult result = vmaCreateBuffer(allocator, &buffer_info, &alloc_info, &vk_buffer, &staging->allocation, &staging->allocation_info);
 	CHECK(result == VK_SUCCESS, "Failed to allocate Vulkan staging buffer for {}x{}x{} texture (result {})",
 	    desc.width, desc.height, desc.depth, static_cast<int32>(result));
@@ -121,7 +121,7 @@ void* VulkanDevice::mapStagingTexture(RHIStagingTexture* staging_texture, RHIAcc
 	if (!staging)
 		return nullptr;
 
-	void*      mapped_data{};
+	void* mapped_data{};
 	const auto result = vmaMapMemory(allocator, staging->allocation, &mapped_data);
 	CHECK(result == VK_SUCCESS, "Failed to map Vulkan staging texture (result {})",
 	    static_cast<int32>(result));

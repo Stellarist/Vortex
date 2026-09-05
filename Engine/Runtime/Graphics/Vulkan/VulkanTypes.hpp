@@ -7,14 +7,14 @@ import :RHI.Types;
 export namespace Vortex {
 
 struct VulkanTextureTransition {
-	vk::ImageLayout         layout{};
+	vk::ImageLayout layout{};
 	vk::PipelineStageFlags2 stage{};
-	vk::AccessFlags2        access{};
+	vk::AccessFlags2 access{};
 };
 
 struct VulkanBufferTransition {
 	vk::PipelineStageFlags2 stage{};
-	vk::AccessFlags2        access{};
+	vk::AccessFlags2 access{};
 };
 
 inline constexpr vk::Format toVkFormat(RHIFormat format) noexcept

@@ -11,7 +11,7 @@ struct RHIBufferDesc {
 	uint32 stride{};
 
 	RHIBufferUsage usage{RHIBufferUsage::None};
-	RHIAccessMode  access{RHIAccessMode::None};
+	RHIAccessMode access{RHIAccessMode::None};
 
 	bool operator==(const RHIBufferDesc&) const = default;
 
@@ -50,7 +50,7 @@ public:
 struct RHIBufferViewDesc {
 	RHIRef<RHIBuffer> buffer{};
 	RHIBufferViewType type{RHIBufferViewType::Constant};
-	RHIFormat         format{RHIFormat::Unknown};
+	RHIFormat format{RHIFormat::Unknown};
 
 	uint64 offset{};
 	uint64 size{};

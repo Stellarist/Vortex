@@ -17,9 +17,9 @@ class RDGPassContext;
 class RHIDevice;
 
 struct RDGPassDesc {
-	std::string   name{};
-	RDGPassType   type{RDGPassType::Raster};
-	RDGPassFlags  flags{RDGPassFlags::None};
+	std::string name{};
+	RDGPassType type{RDGPassType::Raster};
+	RDGPassFlags flags{RDGPassFlags::None};
 	RDGPassAccess access{};
 
 	std::optional<RDGRenderTargets> render_targets{};
@@ -27,7 +27,7 @@ struct RDGPassDesc {
 
 struct RDGPassNode {
 	std::unique_ptr<RDGPass> pass{};
-	RDGPassState             state{};
+	RDGPassState state{};
 };
 
 
@@ -62,8 +62,8 @@ public:
 
 class RDGPassContext {
 private:
-	RDGGraph*       graph{};
-	RHIDevice*      device{};
+	RDGGraph* graph{};
+	RHIDevice* device{};
 	RHICommandList* command{};
 	RHIFramebuffer* framebuffer{};
 
@@ -89,7 +89,7 @@ public:
 
 class RDGPassBuilder {
 private:
-	RDGGraph*    graph{};
+	RDGGraph* graph{};
 	RDGPassDesc* desc{};
 
 	RDGPassBuilder(RDGGraph& graph, RDGPassDesc& desc) noexcept;
