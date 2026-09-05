@@ -18,8 +18,7 @@ find_package(Vulkan REQUIRED)
 find_package(SDL3 REQUIRED)
 find_package(glm REQUIRED)
 find_package(imgui REQUIRED)
-find_package(spdlog REQUIRED)
-find_package(nlohmann_json REQUIRED)
+find_package(yaml-cpp CONFIG REQUIRED)
 find_package(vk-bootstrap REQUIRED)
 find_package(VulkanMemoryAllocator REQUIRED)
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
@@ -40,10 +39,10 @@ target_sources(Vortex PRIVATE
 	FILES  ${GLM_MODULE_ROOT}/glm/glm.cppm ${VULKAN_MODULE_ROOT}/vulkan/vulkan.cppm
 )
 
-target_include_directories(Vortex PRIVATE Engine)
 target_compile_definitions(Vortex PRIVATE 
 	GLM_ENABLE_EXPERIMENTAL
 	VULKAN_HPP_CXX_MODULE_EXPERIMENTAL_WARNING
+	VDEBUG=$<IF:$<CONFIG:Debug>,1,0>
 )
 
 target_link_libraries(Vortex PRIVATE
@@ -51,8 +50,7 @@ target_link_libraries(Vortex PRIVATE
 	SDL3::SDL3
 	glm::glm
 	imgui::imgui
-	spdlog::spdlog
-	nlohmann_json::nlohmann_json
+	yaml-cpp::yaml-cpp
 	vk-bootstrap::vk-bootstrap
 	GPUOpen::VulkanMemoryAllocator
 )
