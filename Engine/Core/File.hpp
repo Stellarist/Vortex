@@ -77,7 +77,7 @@ std::filesystem::path assetsDir()
 
 std::filesystem::path configsDir()
 {
-	return requireDirectory("Configs");
+	return requireDirectory("Config");
 }
 
 std::filesystem::path shadersDir()
