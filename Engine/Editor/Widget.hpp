@@ -8,7 +8,7 @@ import vulkan;
 
 import Editor.Window;
 import Runtime.World;
-import Runtime.Graphics;
+import Runtime.Render;
 
 export namespace Vortex {
 
@@ -34,8 +34,7 @@ public:
 
 	void drawSceneGraph(const World* world, float dt);
 	void drawSceneActors(const Actor* actor);
-	void drawSceneComponents(const Scene* scene);
-	void drawAssets(const AssetManager* assets);
+	void drawAssets();
 };
 
 }        // namespace Vortex

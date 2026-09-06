@@ -9,6 +9,7 @@ module;
 module Editor;
 
 import vulkan;
+import Runtime.Vulkan;
 
 namespace Vortex {
 
@@ -22,10 +23,16 @@ Widget::Widget(Window& window, Renderer& renderer) :
 
 	if (!ImGui_ImplSDL3_InitForVulkan(window.get())) {
 		ImGui::DestroyContext();
-		throw std::runtime_error("Failed to initialize ImGui SDL3 backend");
+		ERROR("Failed to initialize ImGui SDL3 backend");
 	}
 
 	std::array pool_size{
+	    vk::DescriptorPoolSize{
+	        vk::DescriptorType::eSampler,
+	        100},
+	    vk::DescriptorPoolSize{
+	        vk::DescriptorType::eSampledImage,
+	        100},
 	    vk::DescriptorPoolSize{
 	        vk::DescriptorType::eCombinedImageSampler,
 	        100},
@@ -68,8 +75,9 @@ Widget::Widget(Window& window, Renderer& renderer) :
 	    .UseDynamicRendering = true,
 	};
 
-	if (!ImGui_ImplVulkan_Init(&init_info))
-		throw std::runtime_error("Failed to initialize ImGui Vulkan backend");
+	CHECK(ImGui_ImplVulkan_Init(&init_info),
+	    "Failed to initialize ImGui Vulkan backend");
+	LOG("Initialized ImGui SDL3/Vulkan backends");
 }
 
 Widget::~Widget()
@@ -79,6 +87,7 @@ Widget::~Widget()
 		device.destroyDescriptorPool(descriptor_pool);
 	ImGui_ImplSDL3_Shutdown();
 	ImGui::DestroyContext();
+	LOG(Debug, "Shut down ImGui backends");
 }
 
 void Widget::newFrame()
@@ -107,7 +116,7 @@ void Widget::drawFrame(RHICommandList& command)
 	if (!backbuffer)
 		return;
 
-	vk_command->transitionTexture(backbuffer, RenderTarget);
+	vk_command->transitionTexture(backbuffer, backbuffer->getState(), RenderTarget);
 
 	vk::RenderingAttachmentInfo color_attachment{};
 	color_attachment.setImageView(backbuffer_view->getHandle())
@@ -144,21 +153,38 @@ void Widget::drawSceneGraph(const World* world, float dt)
 	if (!world)
 		return;
 
-	auto* scene = world->getActiveScene();
-	if (!scene)
-		return;
-
 	ImGui::Begin("Scene Graph");
 
 	if (ImGui::TreeNodeEx("Scene Graph", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth)) {
-		ImGui::Text("FPS: %.2f", Time::getFPS());
-		ImGui::Text("Scene: %s", scene->getName().c_str());
+		ImGui::Text("FPS: %.2f", dt > 0.0f ? 1.0f / dt : 0.0f);
+		ImGui::Text("World: %s", world->getName().c_str());
 		ImGui::Separator();
+		if (renderer && ImGui::TreeNodeEx("Renderer", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth)) {
+			auto& settings = renderer->getSettings();
+			int render_path = static_cast<int>(renderer->getRenderPath());
+			if (ImGui::Combo("Render Path", &render_path, "Forward\0Deferred\0"))
+				renderer->setRenderPath(static_cast<RenderPathType>(render_path));
+			ImGui::Checkbox("Frustum Culling", &settings.frustum_culling);
+			ImGui::Checkbox("Directional Shadows", &settings.directional_shadows);
+			ImGui::DragFloat("Shadow Bias", &settings.shadow_bias, 0.00005f, 0.0f, 0.05f, "%.5f");
+			const auto& stats = renderer->getStats();
+			ImGui::Text("Frame: %llu%s", static_cast<unsigned long long>(stats.frame_index), stats.frame_rendered ? "" : " (skipped)");
+			ImGui::Text("RDG Passes: %u", stats.rdg_pass_count);
+			ImGui::Text("Draws: %u (opaque %u, masked %u, transparent %u)",
+			    stats.draw_count,
+			    stats.opaque_draw_count,
+			    stats.masked_draw_count,
+			    stats.transparent_draw_count);
+			ImGui::Text("Shadow Casters: %u", stats.shadow_draw_count);
+			ImGui::Text("Frustum Culled: %u", stats.culled_draw_count);
+			if (!renderer->getLastSettingError().empty())
+				ImGui::TextWrapped("Setting rejected: %s", renderer->getLastSettingError().c_str());
+			ImGui::TreePop();
+		}
 
-		for (auto* root_actor : scene->getRootActors())
+		for (auto* root_actor : world->getRootActors())
 			drawSceneActors(root_actor);
-		drawSceneComponents(scene);
-		drawAssets(world->getAssetManager());
+		drawAssets();
 
 		ImGui::TreePop();
 	}
@@ -292,69 +318,15 @@ void Widget::drawSceneActors(const Actor* actor)
 	}
 }
 
-void Widget::drawSceneComponents(const Scene* scene)
+void Widget::drawAssets()
 {
-	if (!scene)
-		return;
-
-	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth;
-	if (ImGui::TreeNodeEx("Components", flags)) {
-		ImGui::Indent();
-
-		if (scene->hasComponent<CameraComponent>() && ImGui::TreeNodeEx("Camera Components", flags)) {
-			ImGui::Indent();
-
-			auto cameras = scene->getComponents<CameraComponent>();
-			for (const auto& camera : cameras) {
-				auto camera_title = std::format("[{}] {}", camera->getType().name(), camera->getName());
-				ImGui::Text("%s", camera_title.c_str());
-			}
-
-			ImGui::Unindent();
-			ImGui::TreePop();
-		}
-
-		if (scene->hasComponent<LightComponent>() && ImGui::TreeNodeEx("Light Components", flags)) {
-			ImGui::Indent();
-
-			auto lights = scene->getComponents<LightComponent>();
-			for (const auto& light : lights) {
-				auto light_title = std::format("[{}] {}", light->getType().name(), light->getName());
-				ImGui::Text("%s", light_title.c_str());
-			}
-
-			ImGui::Unindent();
-			ImGui::TreePop();
-		}
-
-		if (scene->hasComponent<MeshComponent>() && ImGui::TreeNodeEx("Mesh Components", flags)) {
-			ImGui::Indent();
-
-			auto meshes = scene->getComponents<MeshComponent>();
-			for (const auto& mesh : meshes) {
-				auto mesh_title = std::format("[{}] {}", mesh->getType().name(), mesh->getName());
-				ImGui::Text("%s", mesh_title.c_str());
-			}
-
-			ImGui::Unindent();
-			ImGui::TreePop();
-		}
-
-		ImGui::Unindent();
-		ImGui::TreePop();
-	}
-}
-
-void Widget::drawAssets(const AssetManager* assets)
-{
-	if (!assets)
-		return;
+	const auto& assets = AssetManager::instance();
 
 	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth;
 	if (ImGui::TreeNodeEx("Assets", flags)) {
 		ImGui::Indent();
 
-		auto materials = assets->getLoadedAssets<MaterialAsset>();
+		auto materials = assets.getLoadedAssets<MaterialAsset>();
 		if (!materials.empty() && ImGui::TreeNodeEx("Materials", flags)) {
 			ImGui::Indent();
 
@@ -367,7 +339,7 @@ void Widget::drawAssets(const AssetManager* assets)
 			ImGui::TreePop();
 		}
 
-		auto textures = assets->getLoadedAssets<TextureAsset>();
+		auto textures = assets.getLoadedAssets<TextureAsset>();
 		if (!textures.empty() && ImGui::TreeNodeEx("Textures", flags)) {
 			ImGui::Indent();
 
@@ -380,7 +352,7 @@ void Widget::drawAssets(const AssetManager* assets)
 			ImGui::TreePop();
 		}
 
-		auto meshes = assets->getLoadedAssets<MeshAsset>();
+		auto meshes = assets.getLoadedAssets<MeshAsset>();
 		if (!meshes.empty() && ImGui::TreeNodeEx("Meshes", flags)) {
 			ImGui::Indent();
 

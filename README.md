@@ -2,229 +2,89 @@
 
 Maybe a toy Vulkan Engine in future, but just a toy Demo at now.
 
-Until Version 3.0:
-
-## Module Layout
+## 当前架构
 
 ```text
-Core
-Editor.Window
-Runtime.World
-├─ Assets.*
-├─ Components.*
-└─ Geometry.*
-Runtime.Graphics
-├─ RHI.*
-├─ Vulkan.*
-├─ Render.*
-└─ RDG.*
-Editor
-├─ CameraController
-├─ AssetImporter
-├─ Widget
-└─ Application
+Application / Editor
+        |
+        +----> World ----> Actor / Component / Asset
+        |                     |
+        |                     v
+        +----> Renderer -> SceneExtractor -> SceneSnapshot
+                                      -> RenderScene -> RenderFrame
+                                                     -> build RDG
+                              |
+                              v
+                         Passes -> RHI -> Vulkan
 ```
 
-Runtime modules use directory-prefixed partitions internally while consumers
-only import `Runtime.World`, `Runtime.Graphics`, or `Editor`.
+核心责任：
+
+- `World` 持有逻辑世界，不依赖 Graphics；
+- `SceneExtractor` 把 World 转换成与游戏对象解耦的 `SceneSnapshot`；
+- `RenderScene` 维护 GPU Scene 和裁剪结果，输出只包含 `RenderView` 与 `DrawList` 的 `RenderFrame`；
+- `RenderCore` 只定义 Renderer 与 RenderPass 共享的帧数据和 Shader ABI；
+- `Renderer` 是每帧建图的调用方，知道有哪些 Pass；
+- `Passes` 是临时 typed pass，只声明资源访问并录制命令；
+- `RDG` 根据读写关系编译依赖、裁剪、生命周期和 barrier，然后执行；
+- `RHI` 是 backend 无关的资源与命令接口；
+- `Vulkan` 实现 RHI，并使用 Vulkan Dynamic Rendering。
+
+## 当前帧流程
 
 ```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                                  LAYERS                                     │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ Layer 6: APPLICATION / EDITOR                                               │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  Application                     Window                    Widget            │
-│  • Main loop                     • SDL3 window             • ImGui frame     │
-│  • Logic/render orchestration    • Input/events            • Scene UI       │
-│  • World/Renderer lifetime       • Vulkan surface          • Render callback│
-└─────────────────────────────────────────────────────────────────────────────┘
-                    │                    │                    │
-                    └────────────────────┼────────────────────┘
-                                         ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ Layer 5: WORLD / RENDERER                                                   │
-├─────────────────────────────────────┬───────────────────────────────────────┤
-│ WORLD SYSTEM                        │ RENDERER                              │
-│                                     │                                       │
-│ ┌─────────────────────────────────┐ │ ┌───────────────────────────────────┐ │
-│ │ World                           │ │ │ Renderer                          │ │
-│ │ • Active Scene / Camera         │ │ │ • Frame begin/end                 │ │
-│ └─────────────────────────────────┘ │ │ • Backbuffer / Depth              │ │
-│ ┌─────────────────────────────────┐ │ │ • Graphics pipeline/state         │ │
-│ │ Scene                           │ │ │ • Forward/Deferred shader select  │ │
-│ │ • Actor ownership/attachment    │ │ │ • UI render callbacks             │ │
-│ │ • Component registry            │ │ └───────────────────────────────────┘ │
-│ │ • Asset references              │ │                                       │
-│ │ • Component lifecycle/Tick      │ │ ┌───────────────────────────────────┐ │
-│ └─────────────────────────────────┘ │ │ AssetImporter                     │ │
-│ ┌───────────────┬─────────────────┐ │ │ • tinygltf loader                 │ │
-│ │ Components    │ Assets          │ │ │ • Scene/Actor conversion          │ │
-│ │ • Scene       │ • MeshAsset     │ │ │ • Mesh/Material/Texture import    │ │
-│ │ • Primitive   │ • MaterialAsset │ │ │ • Camera/Light import             │ │
-│ │ • Mesh/Camera │ • TextureAsset  │ │ └───────────────────────────────────┘ │
-│ │ • Light       │                 │ │                                       │
-│ ├───────────────┴─────────────────┤ │                                       │
-│ │ Object / Actor / Component      │ │                                       │
-│ │ Transform / AABB / Ray          │ │                                       │
-│ └─────────────────────────────────┘ │                                       │
-└─────────────────────────────────────┴───────────────────────────────────────┘
-                    │                                   │
-                    └──────────────┬────────────────────┘
-                                   ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ Layer 4: RENDER PROXY                                                       │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ ┌─────────────────────────────────────────────────────────────────────────┐ │
-│ │ RenderScene                                                             │ │
-│ │ • Reads World/Scene              • Scene/Material/Object descriptor sets │ │
-│ │ • Camera/Light/Mesh update       • Resource rebuild and material sorting │ │
-│ │ • RenderSceneData upload         • Draw traversal                       │ │
-│ └─────────────────────────────────────────────────────────────────────────┘ │
-│                                                                             │
-│ ┌──────────────────────┬──────────────────────┬───────────────────────────┐ │
-│ │ RenderMesh           │ RenderMaterial       │ RenderTexture             │ │
-│ │ • Vertex/Index       │ • Material uniform   │ • RHITexture              │ │
-│ │ • Object uniform     │ • Descriptor set     │ • RHISampler              │ │
-│ │ • Draw state         │ • Texture bindings   │ • Source Texture          │ │
-│ └──────────────────────┴──────────────────────┴───────────────────────────┘ │
-│                                                                             │
-│ RenderVertex / RenderCameraData / RenderLightData / RenderObjectData        │
-│ RenderMaterialData / RenderSceneData                                        │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                   │
-                                   ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ Layer 3: RHI (RENDER HARDWARE INTERFACE)                                    │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ ┌──────────────────────┬──────────────────────┬───────────────────────────┐ │
-│ │ Context / Device     │ Resources            │ Descriptors               │ │
-│ │ • Frame lifecycle    │ • Buffer             │ • DescriptorLayout        │ │
-│ │ • Device factory     │ • Texture 1D-3D/Cube  │ • DescriptorSet           │ │
-│ │ • Backbuffer         │ • StagingTexture     │ • Texture SRV/UAV         │ │
-│ │ • Command execution  │ • Sampler / Shader   │ • Uniform/Storage Buffer  │ │
-│ │                      │ • FrameBuffer         │ • Sampler                 │ │
-│ └──────────────────────┴──────────────────────┴───────────────────────────┘ │
-│ ┌──────────────────────────────────┬──────────────────────────────────────┐ │
-│ │ Pipeline                         │ Command                              │ │
-│ │ • InputLayout                    │ • GraphicsState                      │ │
-│ │ • Raster/Depth/Blend State       │ • Draw/DrawIndexed                   │ │
-│ │ • GraphicsPipeline               │ • Copy/Clear/Write                   │ │
-│ │ • Shader/Descriptor Layouts      │ • Buffer/Texture transitions         │ │
-│ └──────────────────────────────────┴──────────────────────────────────────┘ │
-│                                                                             │
-│ RHITypes: Format / ResourceState / Usage / TextureDimension / Subresource   │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                   │ implemented by
-                                   ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ Layer 2: VULKAN BACKEND                                                     │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ ┌──────────────────────┬──────────────────────┬───────────────────────────┐ │
-│ │ VulkanContext        │ VulkanDevice         │ VulkanQueue               │ │
-│ │ • Instance/Surface   │ • RHI object factory │ • Graphics submission     │ │
-│ │ • Swapchain/Frames   │ • Memory mapping     │ • Timeline semaphore      │ │
-│ │ • Acquire/Present    │ • Descriptor writes  │ • Pending submissions     │ │
-│ └──────────────────────┴──────────────────────┴───────────────────────────┘ │
-│ ┌──────────────────────┬──────────────────────┬───────────────────────────┐ │
-│ │ VulkanCommand        │ VulkanResources      │ VulkanPipeline/Descriptor │ │
-│ │ • CommandPool/Buffer │ • VMA allocation     │ • Graphics pipeline       │ │
-│ │ • Dynamic rendering  │ • Buffer/Texture     │ • Input layout            │ │
-│ │ • State transitions  │ • Sampler/Shader     │ • Descriptor layout/set   │ │
-│ │ • Copy/Draw          │ • FrameBuffer        │ • Pipeline layout         │ │
-│ └──────────────────────┴──────────────────────┴───────────────────────────┘ │
-│                                                                             │
-│ vk-bootstrap / Vulkan-Hpp / Vulkan Memory Allocator                         │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                   │
-                                   ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ Layer 1: CORE / PLATFORM / THIRD PARTY                                      │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ Core: Clock / EventBus / Input / FileSystem / PathResolver / Json / Logger  │
-│ Platform: Vulkan 1.4 / SDL3                                                 │
-│ Libraries: glm / ImGui / spdlog / nlohmann-json / tinygltf / Slang          │
-└─────────────────────────────────────────────────────────────────────────────┘
+main loop
+  -> Renderer::tick
+     -> SceneExtractor::extract(World)
+     -> RenderScene::update(SceneSnapshot)
+     -> RenderScene::prepareFrame
+     -> RHIContext::beginFrame
+     -> Renderer::draw
+        -> register external Backbuffer
+        -> create transient Shadow / SceneColor / SceneDepth / optional GBuffer
+        -> ShadowPass
+        -> ForwardPass (opaque)，或 GBufferPass + DeferredPass
+        -> ForwardPass (transparent): sorted alpha blend + read-only depth（有透明 draw 时）
+	    -> BlitPass -> Backbuffer
+        -> RDG::compile + execute: resource allocation + barriers + debug markers
+        -> ImGui callback
+     -> RHIContext::endFrame
+        -> submit + present
 ```
 
-```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                               DEPENDENCIES                                  │
-└─────────────────────────────────────────────────────────────────────────────┘
+## 目录
 
-                           ┌──────────────────┐
-                           │   Application    │
-                           └───┬─────┬─────┬──┘
-                               │     │     │
-                ┌──────────────┘     │     └──────────────┐
-                ▼                    ▼                    ▼
-        ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-        │ Window/Widget│     │    World     │     │   Renderer   │
-        └──────┬───────┘     └──────┬───────┘     └──────┬───────┘
-               │                    │                    │ owns
-               │                    ▼                    ▼
-               │             ┌──────────────┐     ┌──────────────┐
-               │             │ Scene/Node   │────>│ RenderScene  │
-               │             │ Components   │     └──────┬───────┘
-               │             │ Resources    │            │ owns
-               │             └──────▲───────┘            ▼
-               │                    │             ┌────────────────────┐
-               │             ┌──────┴───────┐     │ RenderMesh        │
-               │             │AssetImporter │     │ RenderMaterial    │
-               │             └──────────────┘     │ RenderTexture     │
-               │                                  └─────────┬──────────┘
-               │                                            │ uses
-               │                                            ▼
-               │                                  ┌────────────────────┐
-               └─────────────────────────────────>│        RHI         │
-                                                  └─────────▲──────────┘
-                                                            │ implements
-                                                  ┌─────────┴──────────┐
-                                                  │  Vulkan Backend    │
-                                                  └─────────┬──────────┘
-                                                            ▼
-                                                  ┌────────────────────┐
-                                                  │ Vulkan API / GPU   │
-                                                  └────────────────────┘
+```text
+Engine/
+  Core/                       通用类型、Math、Geometry、Clock、Input、Event、File、Log
+  Runtime/World/              Object、Assets、Components、Actor/World
+  Runtime/RHI/                backend 无关接口
+  Runtime/Vulkan/             Vulkan backend
+  Runtime/RDG/                Render Dependency Graph
+  Runtime/RenderCore/         RenderFrame、DrawList 与 ShaderTypes 等共享契约
+  Runtime/RenderPass/         基础 Pass 与具体 RenderShaders
+  Runtime/Renderer/           World 提取、GPU Scene、资源缓存、配置与每帧建图
+  Editor/                     Window、Importer、CameraController、ImGui、Application
+  Shaders/                    Slang shader
+Tests/                        按模块组织的无窗口测试与 Fake RHI
+Docs/                         架构、工作流、测试方案和路线图
+Spec/                         按模块维护的接口、实现和算法说明
+Scripts/                      shader 编译与资源复制
 ```
 
-```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                             CURRENT FRAME FLOW                              │
-└─────────────────────────────────────────────────────────────────────────────┘
+## 构建
 
-Application::run()                         [Single Thread]
-      │
-      ├─> Clock::tick()
-      ├─> tickGui(dt)
-      │     ├─> Window::pollEvent()
-      │     └─> Widget::newFrame()
-      │
-      ├─> tickLogic(dt)
-      │     └─> World::tick(dt)
-      │           └─> Scene::update(dt)
-      │                 └─> Behaviour::update(dt)
-      │
-      └─> tickRender(dt)
-            └─> Renderer::tick(dt)
-                  ├─> RenderScene::update(dt)
-                  │     ├─> rebuild resources (when counts change)
-                  │     ├─> update camera/lights/transforms
-                  │     └─> upload scene/object uniforms
-                  │
-                  ├─> RHIContext::beginFrame()
-                  │     └─> acquire swapchain image / open command list
-                  │
-                  ├─> clear backbuffer + depth
-                  ├─> Renderer::drawScene()
-                  │     ├─> create framebuffer/pipeline when needed
-                  │     └─> RenderScene::draw()
-                  │           └─> Scene Set -> Material Set -> Object Set
-                  │                 └─> setGraphicsState() -> drawIndexed()
-                  │
-                  ├─> Widget render callback
-                  └─> RHIContext::endFrame()
-                        └─> close -> submit -> present
+渲染层直接使用 RHI：`RenderShaders` 缓存各阶段的 `RHIShader`，`SceneResources` 管理资产对应的 GPU 资源，`RenderScene` 创建共享的 Scene/Material/Object Layout，各 Pass 显式创建自己的 Pipeline 和 Pass 局部 BindingSet。绑定槽位与 Slang 中的 `vk::binding` 对应；反射文件仅用于构建和测试时核对 ABI，运行时不依赖它们。
+
+需要 CMake、MSVC、Vulkan SDK 和 vcpkg，并设置 `VCPKG_ROOT`。
+
+```powershell
+cmake --preset msvc
+cmake --build --preset msvc-debug
+```
+
+运行：
+
+```powershell
+.\Build\Debug\Vortex.exe
 ```

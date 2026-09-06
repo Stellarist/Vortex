@@ -1,0 +1,6 @@
+# Startup defaults only. Runtime editor changes remain in memory.
+render_path: forward
+frustum_culling: true
+
+directional_shadows: true
+shadow_bias: 0.0015
