@@ -18,7 +18,7 @@ find_package(Vulkan REQUIRED)
 find_package(SDL3 REQUIRED)
 find_package(glm REQUIRED)
 find_package(imgui REQUIRED)
-find_package(yaml-cpp CONFIG REQUIRED)
+find_package(tomlplusplus CONFIG REQUIRED)
 find_package(vk-bootstrap REQUIRED)
 find_package(VulkanMemoryAllocator REQUIRED)
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
@@ -50,7 +50,7 @@ target_link_libraries(Vortex PRIVATE
 	SDL3::SDL3
 	glm::glm
 	imgui::imgui
-	yaml-cpp::yaml-cpp
+	tomlplusplus::tomlplusplus
 	vk-bootstrap::vk-bootstrap
 	GPUOpen::VulkanMemoryAllocator
 )

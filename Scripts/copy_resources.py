@@ -2,7 +2,7 @@ import sys
 import shutil
 from pathlib import Path
 
-RESOURCES = ["Assets", "Configs", "Scripts"]
+RESOURCES = ["config.toml", "Assets", "Scripts"]
 
 def copy_resources(src_dir, build_dir):
     src = Path(src_dir)
@@ -44,8 +44,11 @@ def copy_resources(src_dir, build_dir):
                 src_path = src / resource
                 dst_path = build / resource
 
-                if src_path.exists():
+                if src_path.is_dir():
                     shutil.copytree(src_path, dst_path, dirs_exist_ok=True)
+                elif src_path.is_file():
+                    dst_path.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(src_path, dst_path)
                 else:
                     print(f"Warning: {resource} does not exist")
                     has_error = True

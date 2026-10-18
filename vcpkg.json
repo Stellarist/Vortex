@@ -19,6 +19,6 @@
     "vulkan",
     "vulkan-memory-allocator",
     "vk-bootstrap",
-    "yaml-cpp"
+    "tomlplusplus"
   ]
 }

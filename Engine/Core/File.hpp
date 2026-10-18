@@ -75,11 +75,6 @@ std::filesystem::path assetsDir()
 	return requireDirectory("Assets");
 }
 
-std::filesystem::path configsDir()
-{
-	return requireDirectory("Config");
-}
-
 std::filesystem::path shadersDir()
 {
 	return requireDirectory("Shaders");
