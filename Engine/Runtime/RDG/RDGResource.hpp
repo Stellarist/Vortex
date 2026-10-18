@@ -51,4 +51,47 @@ struct RDGBufferView final {
 	RHIRef<RHIBufferView> view{};
 };
 
+struct RDGResourceStats {
+	uint64 texture_count{};
+	uint64 buffer_count{};
+	uint64 texture_allocations{};
+	uint64 buffer_allocations{};
+	uint64 texture_reuses{};
+	uint64 buffer_reuses{};
+};
+
+
+class RDGResourcePool {
+private:
+	template <typename T>
+	struct Entry {
+		RHIRef<T> resource{};
+		uint32 idle_frames{};
+	};
+
+	std::vector<Entry<RHIBuffer>> buffers{};
+	std::vector<Entry<RHITexture>> textures{};
+	RDGResourceStats stats{};
+
+	RHIDevice& device;
+
+public:
+	RDGResourcePool(RHIDevice& device) : device(device) {}
+
+	RDGResourcePool(const RDGResourcePool&) = delete;
+	RDGResourcePool& operator=(const RDGResourcePool&) = delete;
+
+	RDGResourcePool(RDGResourcePool&&) = delete;
+	RDGResourcePool& operator=(RDGResourcePool&&) = delete;
+
+	RHIRef<RHIBuffer> acquireBuffer(const RHIBufferDesc& desc);
+	RHIRef<RHITexture> acquireTexture(const RHITextureDesc& desc);
+
+	void collect(uint32 max_idle_frames = 60);
+	void clear() noexcept;
+
+	RDGResourceStats getStats() const noexcept;
+	RHIDevice& getDevice() const noexcept { return device; }
+};
+
 }        // namespace Vortex

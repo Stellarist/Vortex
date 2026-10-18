@@ -7,3 +7,4 @@ export import :Resource;
 export import :Pass;
 export import :Validation;
 export import :Builder;
+export import :Binding;

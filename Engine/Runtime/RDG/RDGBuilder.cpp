@@ -2,12 +2,34 @@ module Runtime.RDG;
 
 namespace Vortex {
 
+struct UploadData {
+	RDGBufferRef buffer;
+	std::vector<std::byte> bytes;
+
+	void setup(RDGPassBuilder& builder) { builder.write(buffer, CopyDest); }
+	void execute(RDGPassContext& context) const
+	{
+		context.getCommand().writeBuffer(&context.getBuffer(buffer), 0, bytes.data(), bytes.size());
+	}
+};
+
 static void sortDependencies(std::vector<RDGPassHandle>& dependencies)
 {
 	std::ranges::sort(dependencies, [](RDGPassHandle lhs, RDGPassHandle rhs) {
 		return lhs.index < rhs.index;
 	});
 	dependencies.erase(std::unique(dependencies.begin(), dependencies.end()), dependencies.end());
+}
+
+static void mergeExternalStates(RDGResource& resource, RHIResourceState initial_state, RHIResourceState final_state)
+{
+	CHECK(Argument, resource.initial_state == initial_state,
+	    "External RDG resource '{}' was imported with conflicting initial states", resource.name);
+	CHECK(Argument, final_state == Unknown || resource.final_state == Unknown || resource.final_state == final_state,
+	    "External RDG resource '{}' was imported with conflicting final states", resource.name);
+
+	if (final_state != Unknown)
+		resource.final_state = final_state;
 }
 
 static RHIRef<RHIFramebuffer> createFramebuffer(RHIDevice& device, const RDGPassNode& pass)
@@ -143,8 +165,33 @@ RDGBufferRef RDGBuilder::createBuffer(std::string name, const RHIBufferDesc& des
 	return result;
 }
 
+RDGBufferRef RDGBuilder::createBuffer(std::string name, RHIBufferDesc desc,
+    std::span<const std::byte> data)
+{
+	CHECK(Argument, data.size() <= desc.size, "RDG upload data exceeds the buffer size");
+	CHECK(Argument, desc.size <= std::numeric_limits<size_t>::max(), "RDG upload is too large for CPU storage");
+
+	desc.usage |= RHIBufferUsage::CopyDest;
+	auto* buffer = createBuffer(std::move(name), desc);
+	UploadData upload{buffer, std::vector<std::byte>(static_cast<size_t>(desc.size))};
+	std::ranges::copy(data, upload.bytes.begin());
+	addPass(RDGPassDesc{.name = buffer->name + ".Upload", .type = RDGPassType::Copy}, std::move(upload));
+	return buffer;
+}
+
 RDGTextureRef RDGBuilder::registerExternalTexture(std::string name, RHITexture& texture, RHIResourceState initial_state, RHIResourceState final_state)
 {
+	CHECK(!executed, "Cannot import an RDG texture after execution");
+	validateRDGName(name, "texture");
+
+	for (const auto& resource : graph.textures) {
+		if (resource->external && resource->texture.get() == &texture) {
+			mergeExternalStates(*resource, initial_state, final_state);
+			compiled = false;
+			return resource.get();
+		}
+	}
+
 	auto* resource = createTexture(std::move(name), texture.getDesc());
 	resource->texture = &texture;
 	resource->initial_state = initial_state;
@@ -155,6 +202,17 @@ RDGTextureRef RDGBuilder::registerExternalTexture(std::string name, RHITexture& 
 
 RDGBufferRef RDGBuilder::registerExternalBuffer(std::string name, RHIBuffer& buffer, RHIResourceState initial_state, RHIResourceState final_state)
 {
+	CHECK(!executed, "Cannot import an RDG buffer after execution");
+	validateRDGName(name, "buffer");
+
+	for (const auto& resource : graph.buffers) {
+		if (resource->external && resource->buffer.get() == &buffer) {
+			mergeExternalStates(*resource, initial_state, final_state);
+			compiled = false;
+			return resource.get();
+		}
+	}
+
 	auto* resource = createBuffer(std::move(name), buffer.getDesc());
 	resource->buffer = &buffer;
 	resource->initial_state = initial_state;
@@ -243,13 +301,14 @@ void RDGBuilder::buildDependencies()
 			continue;
 
 		for (const auto& attachment : desc.render_targets->colors) {
-			if (attachment.store_op != RHIStoreOp::Discard)
+			if (attachment.store_op == RHIStoreOp::Store)
 				continue;
 			texture_trackers[attachment.texture->index].content_valid = false;
 		}
 
 		const auto& depth = desc.render_targets->depth;
-		if (!depth || depth->store_op != RHIStoreOp::Discard)
+		if (!depth || depth->store_op == RHIStoreOp::Store ||
+		    (depth->read_only && depth->store_op == RHIStoreOp::None))
 			continue;
 		texture_trackers[depth->texture->index].content_valid = false;
 	}
@@ -375,7 +434,9 @@ void RDGBuilder::buildBarrierPlan()
 
 			const bool access_hazard = current.last_access &&
 			    (writes(*current.last_access) || writes(access.access));
-			if (current.state != access.state || access_hazard)
+			const bool initial_access = !current.last_access &&
+			    !access.resource->external && current.state != Unknown;
+			if (current.state != access.state || access_hazard || initial_access)
 				pass.state.barriers.push_back({access.resource, current.state, access.state});
 
 			current.state = access.state;
@@ -411,7 +472,9 @@ void RDGBuilder::allocateResources(RHIDevice& device)
 		if (texture->external || !texture->first_use)
 			continue;
 
-		texture->texture = device.createTexture(texture->desc);
+		texture->texture = resource_pool ?
+		    resource_pool->acquireTexture(texture->desc) :
+		    device.createTexture(texture->desc);
 		CHECK(texture->texture, "Failed to allocate RDG texture '{}'", texture->name);
 		texture->texture->setName(texture->name);
 		texture->initial_state = texture->texture->getState();
@@ -421,7 +484,9 @@ void RDGBuilder::allocateResources(RHIDevice& device)
 		if (buffer->external || !buffer->first_use)
 			continue;
 
-		buffer->buffer = device.createBuffer(buffer->desc);
+		buffer->buffer = resource_pool ?
+		    resource_pool->acquireBuffer(buffer->desc) :
+		    device.createBuffer(buffer->desc);
 		CHECK(buffer->buffer, "Failed to allocate RDG buffer '{}'", buffer->name);
 		buffer->buffer->setName(buffer->name);
 		buffer->initial_state = buffer->buffer->getState();
@@ -443,6 +508,8 @@ void RDGBuilder::compile()
 void RDGBuilder::execute(RHIDevice& device, RHICommandList& command)
 {
 	CHECK(!executed, "An RDG can only execute once");
+	CHECK(!resource_pool || &resource_pool->getDevice() == &device,
+	    "RDG resource pool belongs to a different device");
 
 	compile();
 	executed = true;

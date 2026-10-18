@@ -85,7 +85,14 @@ void RDGPassBuilder::addAccess(RDGResource* resource, RDGAccess access, RHIResou
 {
 	CHECK(Argument, ownsResource(*graph, resource), "An RDG pass cannot use a resource owned by another graph");
 	CHECK(Argument, state != Unknown, "An RDG resource access must have a known state");
-	CHECK(Argument, !declaresResource(*desc, resource), "An RDG pass can only declare a resource once; use readWrite when needed");
+	for (const auto& existing : desc->access.accesses) {
+		if (existing.resource != resource)
+			continue;
+
+		CHECK(Argument, existing.access == RDGAccess::Read && access == RDGAccess::Read && existing.state == state,
+		    "Repeated RDG accesses must be reads in the same state; use readWrite for a write dependency");
+		return;
+	}
 
 	desc->access.accesses.push_back({resource, access, state});
 }
@@ -95,7 +102,8 @@ void RDGPassBuilder::addAccess(RDGTextureViewRef view, RDGAccess access, RHIReso
 	CHECK(Argument, ownsView(*graph, view), "An RDG pass cannot use a texture view owned by another graph");
 
 	addAccess(view->texture, access, state);
-	desc->access.texture_views.push_back(view);
+	if (!declaresView(*desc, view))
+		desc->access.texture_views.push_back(view);
 }
 
 void RDGPassBuilder::addAccess(RDGBufferViewRef view, RDGAccess access, RHIResourceState state)
@@ -103,7 +111,8 @@ void RDGPassBuilder::addAccess(RDGBufferViewRef view, RDGAccess access, RHIResou
 	CHECK(Argument, ownsView(*graph, view), "An RDG pass cannot use a buffer view owned by another graph");
 
 	addAccess(view->buffer, access, state);
-	desc->access.buffer_views.push_back(view);
+	if (!declaresView(*desc, view))
+		desc->access.buffer_views.push_back(view);
 }
 
 void RDGPassBuilder::setColorAttachment(uint32 slot, RDGTextureRef texture, RHILoadOp load_op, RHIStoreOp store_op, const RHIClearValue& clear_value)
@@ -130,7 +139,7 @@ void RDGPassBuilder::setDepthReadOnlyAttachment(RDGTextureRef texture)
 	CHECK(!desc->render_targets->depth.has_value(), "An RDG raster pass can only declare one depth attachment");
 
 	addAccess(texture, RDGAccess::Read, DepthRead);
-	desc->render_targets->depth = RDGAttachment{texture, RHILoadOp::Load, RHIStoreOp::Store, {}, true};
+	desc->render_targets->depth = RDGAttachment{texture, RHILoadOp::Load, RHIStoreOp::None, {}, true};
 }
 
 

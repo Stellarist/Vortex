@@ -3,6 +3,7 @@ export module Runtime.RDG:Builder;
 import Core;
 import :Pass;
 import :Validation;
+import :Resource;
 import Runtime.RHI;
 
 export namespace Vortex {
@@ -19,6 +20,7 @@ struct RDGGraph {
 class RDGBuilder {
 private:
 	RDGGraph graph{};
+	RDGResourcePool* resource_pool{};
 
 	std::vector<RDGPassHandle> execution_order{};
 	std::vector<RDGBarrier> epilogue_barriers{};
@@ -36,11 +38,11 @@ private:
 	static void applyBarriers(RHICommandList& command, std::span<const RDGBarrier> barriers);
 	static void createPassViews(RHIDevice& device, const RDGPassNode& pass);
 
-	RDGPassHandle addPass(RDGPassDesc desc,
-	    std::function<void(RDGPassContext&)> execute);
+	RDGPassHandle addPass(RDGPassDesc desc, std::function<void(RDGPassContext&)> execute);
 
 public:
 	RDGBuilder() = default;
+	RDGBuilder(RDGResourcePool& pool) : resource_pool(&pool) {}
 
 	RDGBuilder(const RDGBuilder&) = delete;
 	RDGBuilder& operator=(const RDGBuilder&) = delete;
@@ -50,6 +52,10 @@ public:
 
 	RDGTextureRef createTexture(std::string name, const RHITextureDesc& desc);
 	RDGBufferRef createBuffer(std::string name, const RHIBufferDesc& desc);
+	RDGBufferRef createBuffer(std::string name, RHIBufferDesc desc, std::span<const std::byte> data);
+
+	template <typename T> requires std::is_trivially_copyable_v<T>
+	RDGBufferRef createConstantBuffer(std::string name, const T& value);
 
 	RDGTextureRef registerExternalTexture(std::string name, RHITexture& texture,
 	    RHIResourceState initial_state, RHIResourceState final_state = Unknown);
@@ -62,24 +68,11 @@ public:
 	void compile();
 	void execute(RHIDevice& device, RHICommandList& command);
 
+	template <typename Pass>
+	RDGPassHandle addPass(RDGPassDesc desc, Pass pass);
+
 	template <typename Data, typename Setup, typename Execute>
-	RDGPassHandle addPass(RDGPassDesc desc, Data data, Setup&& setup, Execute&& execute)
-	{
-		CHECK(!executed, "Cannot add a pass after the RDG has executed");
-		validateRDGName(desc.name, "pass");
-		if (desc.type == RDGPassType::Raster && !desc.render_targets)
-			desc.render_targets.emplace();
-
-		RDGPassBuilder builder(graph, desc);
-		std::invoke(std::forward<Setup>(setup), builder, data);
-
-		return addPass(std::move(desc),
-		    [data = std::move(data),
-		        execute = std::forward<Execute>(execute)](
-		        RDGPassContext& context) mutable {
-			    std::invoke(execute, context, data);
-		    });
-	}
+	RDGPassHandle addPass(RDGPassDesc desc, Data data, Setup&& setup, Execute&& execute);
 
 	const std::vector<std::unique_ptr<RDGTexture>>& getTextures() const noexcept
 	{
@@ -96,5 +89,43 @@ public:
 		return graph.passes;
 	}
 };
+
+
+template <typename T> requires std::is_trivially_copyable_v<T>
+RDGBufferRef RDGBuilder::createConstantBuffer(std::string name, const T& value)
+{
+	return createBuffer(std::move(name),
+	    RHIBufferDesc{}.setSize(sizeof(T)).setUsage(RHIBufferUsage::ConstantBuffer),
+	    std::as_bytes(std::span{&value, 1}));
+}
+
+template <typename Pass>
+RDGPassHandle RDGBuilder::addPass(RDGPassDesc desc, Pass pass)
+{
+	return addPass(
+	    std::move(desc),
+	    std::move(pass),
+	    [](RDGPassBuilder& builder, Pass& owned) { owned.setup(builder); },
+	    [](RDGPassContext& context, const Pass& owned) { owned.execute(context); });
+}
+
+template <typename Data, typename Setup, typename Execute>
+RDGPassHandle RDGBuilder::addPass(RDGPassDesc desc, Data data, Setup&& setup, Execute&& execute)
+{
+	CHECK(!executed, "Cannot add a pass after the RDG has executed");
+	validateRDGName(desc.name, "pass");
+	if (desc.type == RDGPassType::Raster && !desc.render_targets)
+		desc.render_targets.emplace();
+
+	RDGPassBuilder builder(graph, desc);
+	std::invoke(std::forward<Setup>(setup), builder, data);
+
+	std::function<void(RDGPassContext&)> callback =
+	    [data = std::move(data), execute = std::forward<Execute>(execute)](
+	        RDGPassContext& context) mutable {
+		    std::invoke(execute, context, std::as_const(data));
+	    };
+	return addPass(std::move(desc), std::move(callback));
+}
 
 }        // namespace Vortex
