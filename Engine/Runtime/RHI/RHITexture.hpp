@@ -92,6 +92,7 @@ public:
 class RHIStagingTexture : public RHIResource {
 public:
 	virtual const RHITextureDesc& getDesc() const noexcept = 0;
+	virtual RHIAccessMode getAccess() const noexcept = 0;
 };
 
 

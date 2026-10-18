@@ -4,6 +4,7 @@ import vulkan;
 import Core;
 import Editor.Window;
 import Runtime.RHI;
+import :Validation;
 
 export namespace Vortex {
 
@@ -17,16 +18,14 @@ struct VulkanQueueIndices {
 class VulkanContext : public RHIContext {
 private:
 	vk::Instance instance{};
-	vk::DebugUtilsMessengerEXT debug_messenger{};
 	vk::SurfaceKHR surface{};
 	vk::PhysicalDevice physical_device{};
+	VulkanValidationLayer validation{};
 
 	std::unique_ptr<VulkanDevice> device{};
 	std::unique_ptr<VulkanPresentation> presentation{};
 
 	VulkanQueueIndices queue_indices{};
-
-	std::atomic_uint32_t validation_error_count{};
 
 	Window* window{};
 
@@ -46,7 +45,7 @@ public:
 	RHIFormat getFormat() const noexcept override;
 	RHIExtent getExtent() const noexcept override;
 
-	uint32 getValidationErrorCount() const noexcept { return validation_error_count.load(std::memory_order_relaxed); }
+	uint32 getValidationErrorCount() const noexcept { return validation.getErrorCount(); }
 
 	vk::Instance getInstance() const noexcept { return instance; }
 	vk::SurfaceKHR getSurface() const noexcept { return surface; }

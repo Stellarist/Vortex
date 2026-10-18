@@ -23,13 +23,7 @@ public:
 	VulkanInputLayout(RHIInputLayoutDesc desc) : desc(std::move(desc)) {}
 	~VulkanInputLayout() override = default;
 
-	const RHIVertexAttributeDesc& getAttributeDesc(uint32 index) const override
-	{
-		CHECK(Range, index < desc.attribute_descs.size(),
-		    "Vertex attribute index {} is outside the input layout", index);
-		return desc.attribute_descs[index];
-	}
-
+	const RHIVertexAttributeDesc& getAttributeDesc(uint32 index) const override { return desc.attribute_descs.at(index); }
 	uint32 getAttributeCount() const noexcept override { return static_cast<uint32>(desc.attribute_descs.size()); }
 
 	const std::vector<vk::VertexInputBindingDescription>& getBindings() const noexcept { return bindings; }
@@ -42,6 +36,7 @@ private:
 	RHIGraphicsPipelineDesc desc{};
 
 	RHIShaderType push_constant_visibility{};
+	uint32 push_constant_size{};
 
 	vk::Pipeline pipeline{};
 	vk::PipelineLayout layout{};
@@ -64,6 +59,7 @@ public:
 	const RHIGraphicsPipelineDesc& getDesc() const noexcept override { return desc; }
 
 	RHIShaderType getPushConstantVisibility() const noexcept { return push_constant_visibility; }
+	uint32 getPushConstantSize() const noexcept { return push_constant_size; }
 
 	vk::Pipeline getHandle() const noexcept { return pipeline; }
 	vk::PipelineLayout getLayout() const noexcept { return layout; }
@@ -75,6 +71,7 @@ private:
 	RHIComputePipelineDesc desc{};
 
 	RHIShaderType push_constant_visibility{};
+	uint32 push_constant_size{};
 
 	vk::Pipeline pipeline{};
 	vk::PipelineLayout layout{};
@@ -97,6 +94,8 @@ public:
 	const RHIComputePipelineDesc& getDesc() const noexcept override { return desc; }
 
 	RHIShaderType getPushConstantVisibility() const noexcept { return push_constant_visibility; }
+	uint32 getPushConstantSize() const noexcept { return push_constant_size; }
+
 	vk::Pipeline getHandle() const noexcept { return pipeline; }
 	vk::PipelineLayout getLayout() const noexcept { return layout; }
 };

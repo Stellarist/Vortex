@@ -74,14 +74,16 @@ public:
 class VulkanStagingTexture : public RHIStagingTexture {
 private:
 	RHITextureDesc desc{};
+	RHIAccessMode access{};
 
 	vk::Buffer buffer{};
 	VmaAllocation allocation{};
-	VmaAllocationInfo allocation_info{};
+	bool mapped{};
 
 	VulkanDevice& device;
 
 	friend class VulkanDevice;
+	friend class VulkanCommandList;
 
 protected:
 	void applyName(const std::string& name) noexcept override
@@ -90,10 +92,12 @@ protected:
 	}
 
 public:
-	VulkanStagingTexture(VulkanDevice& device, RHITextureDesc desc) : device(device), desc(std::move(desc)) {}
+	VulkanStagingTexture(VulkanDevice& device, RHITextureDesc desc, RHIAccessMode access) :
+	    device(device), desc(std::move(desc)), access(access) {}
 	~VulkanStagingTexture() override { device.destroyStagingTexture(this); }
 
 	const RHITextureDesc& getDesc() const noexcept override { return desc; }
+	RHIAccessMode getAccess() const noexcept override { return access; }
 
 	vk::Buffer getHandle() const noexcept { return buffer; }
 };

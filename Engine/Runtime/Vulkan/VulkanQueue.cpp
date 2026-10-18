@@ -20,7 +20,7 @@ VulkanQueue::VulkanQueue(VulkanDevice& device, RHICommandQueue type, uint32 fami
 	LOG(Debug, "Vulkan queue ready (family {})", family_index);
 }
 
-VulkanQueue::~VulkanQueue()
+VulkanQueue::~VulkanQueue() noexcept
 {
 	if (queue)
 		queue.waitIdle();
@@ -32,75 +32,63 @@ VulkanQueue::~VulkanQueue()
 		device.getHandle().destroySemaphore(timeline_semaphore);
 }
 
-std::shared_ptr<VulkanCommandBuffer> VulkanQueue::acquireCommand()
+std::shared_ptr<VulkanCommandBuffer> VulkanQueue::acquire()
 {
-	retireCompletedCommands();
+	collect();
 
 	auto* command = command_pool->createCommandBuffer();
+	command->closed = command->submitted = false;
 	return {command, [this](VulkanCommandBuffer* command) {
 		        command_pool->releaseCommandBuffer(command);
 	        }};
 }
 
 void VulkanQueue::submit(VulkanCommandList* command_list,
-    std::span<const vk::Semaphore> wait_semaphores,
-    std::span<const vk::PipelineStageFlags> wait_stages,
-    std::span<const vk::Semaphore> signal_semaphores,
+    std::span<const vk::SemaphoreSubmitInfo> waits,
+    std::span<const vk::SemaphoreSubmitInfo> signals,
     vk::Fence fence)
 {
-	retireCompletedCommands();
-
-	CHECK(command_list && command_list->getDesc().queue_type == type,
-	    "Cannot submit a null command list or a command list that belongs to a different queue type");
+	CHECK(command_list && &command_list->device == &device, "Vulkan command list belongs to a different device");
 
 	auto command = command_list->getCurrentCommand();
-	CHECK(command, "Cannot submit a command list without a recorded command buffer");
+	CHECK(command && command->closed && !command->submitted, "Vulkan submission requires a closed, unsubmitted command list");
+	collect();
 
-	std::array command_buffers{command->getHandle()};
-	uint64 signal_value = ++next_timeline_value;
+	const uint64 signal_value = next_timeline_value;
+	vk::CommandBufferSubmitInfo command_info{};
+	command_info.setCommandBuffer(command->getHandle());
 
-	std::vector<vk::Semaphore> submit_signal_semaphores(signal_semaphores.begin(), signal_semaphores.end());
-	submit_signal_semaphores.push_back(timeline_semaphore);
+	std::vector<vk::SemaphoreSubmitInfo> submit_signals(signals.begin(), signals.end());
+	submit_signals.emplace_back()
+	    .setSemaphore(timeline_semaphore)
+	    .setValue(signal_value)
+	    .setStageMask(vk::PipelineStageFlagBits2::eAllCommands);
 
-	std::vector<uint64> signal_values(submit_signal_semaphores.size(), 0);
-	signal_values.back() = signal_value;
+	vk::SubmitInfo2 submit_info{};
+	submit_info.setWaitSemaphoreInfos(waits)
+	    .setCommandBufferInfos(command_info)
+	    .setSignalSemaphoreInfos(submit_signals);
 
-	std::vector<uint64> wait_values(wait_semaphores.size(), 0);
-	std::vector<vk::PipelineStageFlags> submit_wait_stages(wait_stages.begin(), wait_stages.end());
-	if (!wait_semaphores.empty() && submit_wait_stages.empty())
-		submit_wait_stages.assign(wait_semaphores.size(), vk::PipelineStageFlagBits::eAllCommands);
+	pending_submissions.push_back({signal_value, {command}});
+	const auto result = queue.submit2(1, &submit_info, fence);
+	if (result != vk::Result::eSuccess)
+		pending_submissions.pop_back();
 
-	CHECK(wait_semaphores.size() == submit_wait_stages.size(),
-	    "Queue submit wait stage count must match wait semaphore count");
-
-	vk::TimelineSemaphoreSubmitInfo timeline_info{};
-	timeline_info.setWaitSemaphoreValues(wait_values)
-	    .setSignalSemaphoreValues(signal_values);
-
-	vk::SubmitInfo submit_info{};
-	submit_info.setPNext(&timeline_info)
-	    .setWaitSemaphores(wait_semaphores)
-	    .setWaitDstStageMask(submit_wait_stages)
-	    .setCommandBuffers(command_buffers)
-	    .setSignalSemaphores(submit_signal_semaphores);
-
-	queue.submit(submit_info, fence);
-
-	pending_submissions.push_back({signal_value, {std::move(command)}});
+	CHECK(result == vk::Result::eSuccess, "Failed to submit Vulkan command list (result {})", static_cast<int32>(result));
+	command->submitted = true;
+	++next_timeline_value;
 }
 
-void VulkanQueue::updateCompletedTimeline()
+void VulkanQueue::collect()
 {
 	completed_timeline_value = std::max(completed_timeline_value,
 	    device.getHandle().getSemaphoreCounterValue(timeline_semaphore));
-}
 
-void VulkanQueue::retireCompletedCommands()
-{
-	updateCompletedTimeline();
-
-	while (!pending_submissions.empty() && pending_submissions.front().value <= completed_timeline_value)
+	while (!pending_submissions.empty() && pending_submissions.front().value <= completed_timeline_value) {
+		for (const auto& command : pending_submissions.front().commands)
+			command->resetResources();
 		pending_submissions.pop_front();
+	}
 }
 
 }        // namespace Vortex

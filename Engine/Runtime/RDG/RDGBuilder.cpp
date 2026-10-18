@@ -6,7 +6,7 @@ struct UploadData {
 	RDGBufferRef buffer;
 	std::vector<std::byte> bytes;
 
-	void setup(RDGPassBuilder& builder) { builder.write(buffer, CopyDest); }
+	void setup(RDGPassBuilder& builder) { builder.write(buffer, TransferDest); }
 	void execute(RDGPassContext& context) const
 	{
 		context.getCommand().writeBuffer(&context.getBuffer(buffer), 0, bytes.data(), bytes.size());
@@ -171,7 +171,7 @@ RDGBufferRef RDGBuilder::createBuffer(std::string name, RHIBufferDesc desc,
 	CHECK(Argument, data.size() <= desc.size, "RDG upload data exceeds the buffer size");
 	CHECK(Argument, desc.size <= std::numeric_limits<size_t>::max(), "RDG upload is too large for CPU storage");
 
-	desc.usage |= RHIBufferUsage::CopyDest;
+	desc.usage |= RHIBufferUsage::TransferDest;
 	auto* buffer = createBuffer(std::move(name), desc);
 	UploadData upload{buffer, std::vector<std::byte>(static_cast<size_t>(desc.size))};
 	std::ranges::copy(data, upload.bytes.begin());

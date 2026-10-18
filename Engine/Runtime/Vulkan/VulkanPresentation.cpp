@@ -25,10 +25,12 @@ static void transitionSwapchainImage(
 	vk::ImageMemoryBarrier2 barrier{};
 	barrier.setOldLayout(old_layout)
 	    .setNewLayout(new_layout)
-	    .setSrcStageMask(old_layout == vk::ImageLayout::eUndefined ? vk::PipelineStageFlagBits2::eTopOfPipe : getVkPipelineStageFlags(old_layout))
+	    .setSrcStageMask(old_layout == vk::ImageLayout::eUndefined ? vk::PipelineStageFlagBits2::eNone : getVkPipelineStageFlags(old_layout))
 	    .setDstStageMask(getVkPipelineStageFlags(new_layout))
 	    .setSrcAccessMask({})
 	    .setDstAccessMask({})
+	    .setSrcQueueFamilyIndex(vk::QueueFamilyIgnored)
+	    .setDstQueueFamilyIndex(vk::QueueFamilyIgnored)
 	    .setImage(image)
 	    .setSubresourceRange(range);
 
@@ -47,7 +49,7 @@ static void blitToSwapchain(vk::CommandBuffer command, vk::Image source, vk::Ima
 
 	vk::ImageSubresourceLayers destination_layers = source_layers;
 
-	vk::ImageBlit blit{};
+	vk::ImageBlit2 blit{};
 	blit.setSrcSubresource(source_layers)
 	    .setSrcOffsets({vk::Offset3D{0, 0, 0},
 	        vk::Offset3D{static_cast<int32>(extent.width), static_cast<int32>(extent.height), 1}})
@@ -55,13 +57,14 @@ static void blitToSwapchain(vk::CommandBuffer command, vk::Image source, vk::Ima
 	    .setDstOffsets({vk::Offset3D{0, 0, 0},
 	        vk::Offset3D{static_cast<int32>(extent.width), static_cast<int32>(extent.height), 1}});
 
-	command.blitImage(
-	    source,
-	    vk::ImageLayout::eTransferSrcOptimal,
-	    destination,
-	    vk::ImageLayout::eTransferDstOptimal,
-	    blit,
-	    vk::Filter::eNearest);
+	vk::BlitImageInfo2 blit_info{};
+	blit_info.setSrcImage(source)
+	    .setSrcImageLayout(vk::ImageLayout::eTransferSrcOptimal)
+	    .setDstImage(destination)
+	    .setDstImageLayout(vk::ImageLayout::eTransferDstOptimal)
+	    .setRegions(blit)
+	    .setFilter(vk::Filter::eNearest);
+	command.blitImage2(blit_info);
 }
 
 VulkanPresentation::VulkanPresentation(
@@ -94,6 +97,7 @@ void VulkanPresentation::createSwapchain(uint32 width, uint32 height)
 	    queue_family);
 	builder.set_desired_format({static_cast<VkFormat>(toVkFormat(desc.format)), {}})
 	    .set_desired_present_mode(VK_PRESENT_MODE_MAILBOX_KHR)
+	    .set_desired_min_image_count(RHIPreferredSwapchainImageCount)
 	    .set_desired_extent(width, height)
 	    .add_image_usage_flags(VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 	if (swapchain)
@@ -109,7 +113,8 @@ void VulkanPresentation::createSwapchain(uint32 width, uint32 height)
 	desc.extent = {new_swapchain.extent.width, new_swapchain.extent.height};
 	swapchain_recreate_pending = false;
 	createResources(images);
-	LOG("Vulkan swapchain ready ({}x{}, {} images)", desc.extent.width, desc.extent.height, images.size());
+	LOG("Vulkan swapchain ready ({}x{}, {} images, {} submission slots)",
+	    desc.extent.width, desc.extent.height, images.size(), submission_slots.size());
 }
 
 bool VulkanPresentation::recreateSwapchain(const RHIExtent& extent)
@@ -148,7 +153,7 @@ void VulkanPresentation::createResources(std::span<const VkImage> images)
 	backbuffer_desc.setWidth(desc.extent.width)
 	    .setHeight(desc.extent.height)
 	    .setFormat(desc.format)
-	    .setUsage(RHITextureUsage::RenderTarget | RHITextureUsage::CopySource | RHITextureUsage::CopyDest);
+	    .setUsage(RHITextureUsage::RenderTarget | RHITextureUsage::TransferSource | RHITextureUsage::TransferDest);
 
 	present_images.reserve(images.size());
 	for (const auto image_handle : images) {
@@ -189,7 +194,7 @@ void VulkanPresentation::destroyResources() noexcept
 
 bool VulkanPresentation::beginFrame(const RHIExtent& surface_extent)
 {
-	frame_active = false;
+	CHECK(!frame_active, "Vulkan frame is already active");
 
 	if (surface_extent.width == 0 || surface_extent.height == 0)
 		return false;
@@ -241,8 +246,7 @@ bool VulkanPresentation::beginFrame(const RHIExtent& surface_extent)
 
 void VulkanPresentation::endFrame()
 {
-	if (!frame_active)
-		return;
+	CHECK(frame_active, "No active Vulkan frame to present");
 
 	auto& submission = submission_slots[submission_slot_index];
 	auto& image = present_images[acquired_image_index];
@@ -251,19 +255,24 @@ void VulkanPresentation::endFrame()
 	auto* vk_backbuffer = static_cast<VulkanTexture*>(image.backbuffer.get());
 	auto vk_command_buffer = vk_command_list->getCurrentCommand()->getHandle();
 
-	vk_command_list->transitionTexture(image.backbuffer.get(), image.backbuffer->getState(), CopySource);
+	command.endRendering();
+	vk_command_list->transitionTexture(image.backbuffer.get(), image.backbuffer->getState(), TransferSource);
 	transitionSwapchainImage(vk_command_buffer, image.image, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
 	blitToSwapchain(vk_command_buffer, vk_backbuffer->getHandle(), image.image, desc.extent);
 	transitionSwapchainImage(vk_command_buffer, image.image, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR);
 
 	command.close();
 
-	const vk::PipelineStageFlags wait_stage = vk::PipelineStageFlagBits::eTransfer;
+	vk::SemaphoreSubmitInfo wait_info{}, signal_info{};
+	wait_info.setSemaphore(submission.image_available)
+	    .setStageMask(vk::PipelineStageFlagBits2::eAllTransfer);
+	signal_info.setSemaphore(image.render_finished)
+	    .setStageMask(vk::PipelineStageFlagBits2::eAllCommands);
+
 	device.getQueue().submit(
 	    vk_command_list,
-	    std::span<const vk::Semaphore>(&submission.image_available, 1),
-	    std::span<const vk::PipelineStageFlags>(&wait_stage, 1),
-	    std::span<const vk::Semaphore>(&image.render_finished, 1),
+	    std::span<const vk::SemaphoreSubmitInfo>(&wait_info, 1),
+	    std::span<const vk::SemaphoreSubmitInfo>(&signal_info, 1),
 	    submission.in_flight);
 
 	vk::PresentInfoKHR present_info{};
@@ -272,7 +281,7 @@ void VulkanPresentation::endFrame()
 	    .setImageIndices(acquired_image_index);
 	const auto result = device.getQueue().getHandle().presentKHR(present_info);
 
-	submission_slot_index = (submission_slot_index + 1) % MAX_FRAMES_IN_FLIGHT;
+	submission_slot_index = (submission_slot_index + 1) % RHIMaxFramesInFlight;
 	frame_active = false;
 
 	if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR) {

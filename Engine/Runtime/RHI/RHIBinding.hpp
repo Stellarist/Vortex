@@ -11,6 +11,7 @@ struct RHIBindingLayoutItem {
 
 	uint32 slot{};
 	uint32 size{};
+	uint32 array_size{1};
 
 private:
 	static RHIBindingLayoutItem make(RHIBindingType type, uint32 slot) noexcept
@@ -78,9 +79,42 @@ struct RHIBindingLayoutDesc {
 	}
 };
 
+struct RHIBindlessLayoutDesc {
+	RHIShaderType visibility{RHIShaderType::None};
+	RHIBindingType type{RHIBindingType::TextureSRV};
+
+	uint32 slot{};
+	uint32 max_capacity{};
+
+	RHIBindlessLayoutDesc& setVisibility(RHIShaderType new_visibility) noexcept
+	{
+		visibility = new_visibility;
+		return *this;
+	}
+
+	RHIBindlessLayoutDesc& setType(RHIBindingType new_type) noexcept
+	{
+		type = new_type;
+		return *this;
+	}
+
+	RHIBindlessLayoutDesc& setSlot(uint32 new_slot) noexcept
+	{
+		slot = new_slot;
+		return *this;
+	}
+
+	RHIBindlessLayoutDesc& setMaxCapacity(uint32 new_max_capacity) noexcept
+	{
+		max_capacity = new_max_capacity;
+		return *this;
+	}
+};
+
 class RHIBindingLayout : public RHIResource {
 public:
-	virtual const RHIBindingLayoutDesc& getDesc() const noexcept = 0;
+	virtual const RHIBindingLayoutDesc* getDesc() const noexcept = 0;
+	virtual const RHIBindlessLayoutDesc* getBindlessDesc() const noexcept { return nullptr; }
 };
 
 
@@ -90,6 +124,7 @@ struct RHIBindingSetItem {
 	RHIBindingType type{RHIBindingType::None};
 
 	uint32 slot{};
+	uint32 array_element{};
 
 private:
 	static RHIBindingSetItem make(RHIBindingType type, uint32 slot, RHIResource* resource) noexcept
@@ -145,8 +180,17 @@ struct RHIBindingSetDesc {
 
 class RHIBindingSet : public RHIResource {
 public:
-	virtual const RHIBindingSetDesc& getDesc() const noexcept = 0;
+	virtual const RHIBindingSetDesc* getDesc() const noexcept = 0;
 	virtual const RHIBindingLayout* getLayout() const noexcept = 0;
+};
+
+class RHIDescriptorTable : public RHIBindingSet {
+public:
+	virtual uint32 getCapacity() const noexcept = 0;
+
+	virtual void write(uint32 index, RHIResource* resource) = 0;
+	virtual void clear(uint32 index) = 0;
+	virtual void resize(uint32 capacity, bool keep_contents = true) = 0;
 };
 
 }        // namespace Vortex

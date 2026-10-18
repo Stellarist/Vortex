@@ -20,13 +20,13 @@ static bool isSingleState(RHIResourceState state) noexcept
 
 static bool stateCanRead(RHIResourceState state) noexcept
 {
-	return state != CopyDest && state != Present;
+	return state != TransferDest && state != Present;
 }
 
 static bool stateCanWrite(RHIResourceState state) noexcept
 {
 	return state == Common || state == RenderTarget || state == DepthWrite ||
-	    state == UnorderedAccess || state == CopyDest;
+	    state == UnorderedAccess || state == TransferDest;
 }
 
 void validateRDGName(std::string_view name, std::string_view kind)
@@ -79,12 +79,12 @@ void validateRDGTextureAccess(const RDGPassNode& pass, const RDGTexture& texture
 		    !isRHIDepthFormat(texture.desc.format);
 		break;
 
-	case CopySource:
-		valid = hasTextureUsage(texture.desc, RHITextureUsage::CopySource);
+	case TransferSource:
+		valid = hasTextureUsage(texture.desc, RHITextureUsage::TransferSource);
 		break;
 
-	case CopyDest:
-		valid = hasTextureUsage(texture.desc, RHITextureUsage::CopyDest);
+	case TransferDest:
+		valid = hasTextureUsage(texture.desc, RHITextureUsage::TransferDest);
 		break;
 
 	default:
@@ -128,12 +128,12 @@ void validateRDGBufferAccess(const RDGPassNode& pass, const RDGBuffer& buffer, c
 		    hasBufferUsage(buffer.desc, RHIBufferUsage::TypedBuffer);
 		break;
 
-	case CopySource:
-		valid = hasBufferUsage(buffer.desc, RHIBufferUsage::CopySource);
+	case TransferSource:
+		valid = hasBufferUsage(buffer.desc, RHIBufferUsage::TransferSource);
 		break;
 
-	case CopyDest:
-		valid = hasBufferUsage(buffer.desc, RHIBufferUsage::CopyDest);
+	case TransferDest:
+		valid = hasBufferUsage(buffer.desc, RHIBufferUsage::TransferDest);
 		break;
 
 	default:
@@ -219,12 +219,12 @@ void validateRDGCopyPass(const RDGPassNode& pass)
 		if (access.resource->type != RDGResourceType::Texture)
 			continue;
 
-		if (access.state == CopySource && reads(access.access)) {
+		if (access.state == TransferSource && reads(access.access)) {
 			source = static_cast<const RDGTexture*>(access.resource);
 			++source_count;
 		}
 
-		if (access.state == CopyDest && writes(access.access)) {
+		if (access.state == TransferDest && writes(access.access)) {
 			destination = static_cast<const RDGTexture*>(access.resource);
 			++destination_count;
 		}

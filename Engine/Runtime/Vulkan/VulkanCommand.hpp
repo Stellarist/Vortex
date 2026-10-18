@@ -9,28 +9,32 @@ export namespace Vortex {
 
 class VulkanCommandPool;
 
-// command buffer
 class VulkanCommandBuffer {
 private:
 	vk::CommandBuffer buffer{};
 
 	std::vector<RHIRef<RHIResource>> tracked_resources{};
 
+	bool closed{};
+	bool submitted{};
+	bool available{};
+
 	VulkanDevice& device;
 	VulkanCommandPool& pool;
+
+	friend class VulkanCommandList;
+	friend class VulkanQueue;
+	friend class VulkanCommandPool;
 
 public:
 	VulkanCommandBuffer(VulkanDevice& device, VulkanCommandPool& pool);
 	~VulkanCommandBuffer();
 
-	void allocMemory();
-	void freeMemory();
-
 	void beginRendering(const vk::RenderingInfo& render_info);
 	void endRendering();
 
 	void trackResource(RHIResource* resource);
-	void resetResources();
+	void resetResources() noexcept;
 
 	vk::CommandBuffer getHandle() const noexcept { return buffer; }
 
@@ -38,13 +42,11 @@ public:
 };
 
 
-// command pool
 class VulkanCommandPool {
 private:
 	vk::CommandPool pool{};
 
-	std::deque<VulkanCommandBuffer*> cmd_buffers{};
-	std::deque<VulkanCommandBuffer*> free_cmd_buffers{};
+	std::vector<std::unique_ptr<VulkanCommandBuffer>> cmd_buffers{};
 
 	VulkanDevice& device;
 	VulkanQueue& queue;
@@ -55,7 +57,7 @@ public:
 
 	VulkanCommandBuffer* createCommandBuffer();
 
-	void releaseCommandBuffer(VulkanCommandBuffer* cmd_buffer);
+	void releaseCommandBuffer(VulkanCommandBuffer* cmd_buffer) noexcept;
 
 	vk::CommandPool getHandle() const noexcept { return pool; }
 
@@ -63,7 +65,6 @@ public:
 };
 
 
-// command list
 class VulkanCommandList : public RHICommandList {
 private:
 	RHICommandListDesc desc{};
@@ -75,11 +76,18 @@ private:
 
 	vk::PipelineLayout current_layout{};
 	RHIShaderType current_push_constant_visibility{};
+	uint32 current_push_constant_size{};
 
 	bool rendering{};
+	bool recording{};
 
 	VulkanDevice& device;
 
+	friend class VulkanQueue;
+
+	void useBuffer(RHIBuffer* buffer, RHIResourceState state, std::string_view operation);
+	void bindSets(const std::vector<RHIRef<RHIBindingSet>>& sets,
+	    const std::vector<RHIRef<RHIBindingLayout>>& layouts, vk::ShaderStageFlags stages);
 	void beginRenderPass(RHIFramebuffer& framebuffer);
 	void endRenderPass();
 

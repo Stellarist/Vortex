@@ -3,6 +3,7 @@ export module Runtime.Vulkan;
 export import Runtime.RHI;
 
 import :Presentation;
+import :Validation;
 
 export import :Types;
 export import :Device;

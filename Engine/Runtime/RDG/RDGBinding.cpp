@@ -48,6 +48,8 @@ RHIRef<RHIBindingSet> RDGBindingSet::resolve(RDGPassContext& context) const
 RDGBindingBuilder::RDGBindingBuilder(RDGPassBuilder& pass, RHIBindingLayout& layout, std::string_view name) :
     pass(&pass), name(name)
 {
+	CHECK(layout.getDesc(),
+	    "RDG binding builders require an ordinary binding layout; use a descriptor table and declare its resource accesses explicitly for bindless layouts");
 	bindings.layout = &layout;
 }
 
@@ -56,7 +58,7 @@ void RDGBindingBuilder::validateSlot(uint32 slot, RHIBindingType type) const
 	CHECK(bindings.layout, "Cannot reuse an RDG binding builder after build");
 	CHECK(Argument, std::ranges::none_of(bindings.items, [slot](const auto& item) { return item.slot == slot; }),
 	    "RDG binding slot {} is already assigned", slot);
-	CHECK(Argument, std::ranges::any_of(bindings.layout->getDesc().bindings, [slot, type](const auto& item) { return item.slot == slot && item.type == type; }),
+	CHECK(Argument, std::ranges::any_of(bindings.layout->getDesc()->bindings, [slot, type](const auto& item) { return item.slot == slot && item.type == type; }),
 	    "RDG binding slot {} does not match its layout", slot);
 }
 
@@ -172,7 +174,7 @@ RDGBindingBuilder& RDGBindingBuilder::sampler(uint32 slot, RHISampler& sampler)
 RDGBindingSet RDGBindingBuilder::build()
 {
 	CHECK(bindings.layout, "Cannot reuse an RDG binding builder after build");
-	const auto count = std::ranges::count_if(bindings.layout->getDesc().bindings,
+	const auto count = std::ranges::count_if(bindings.layout->getDesc()->bindings,
 	    [](const auto& item) { return item.type != RHIBindingType::PushConstants; });
 	CHECK(Argument, bindings.items.size() == static_cast<size_t>(count), "RDG bindings do not cover the layout");
 	return std::move(bindings);

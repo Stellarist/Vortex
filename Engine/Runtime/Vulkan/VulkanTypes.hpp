@@ -385,9 +385,9 @@ inline constexpr vk::ImageUsageFlagBits toVkImageUsageFlagBits(RHITextureUsage u
 		return vk::ImageUsageFlagBits::eDepthStencilAttachment;
 	case RHITextureUsage::Storage:
 		return vk::ImageUsageFlagBits::eStorage;
-	case RHITextureUsage::CopySource:
+	case RHITextureUsage::TransferSource:
 		return vk::ImageUsageFlagBits::eTransferSrc;
-	case RHITextureUsage::CopyDest:
+	case RHITextureUsage::TransferDest:
 		return vk::ImageUsageFlagBits::eTransferDst;
 	default:
 		return vk::ImageUsageFlagBits::eSampled;
@@ -405,9 +405,9 @@ inline constexpr vk::ImageUsageFlags toVkImageUsageFlags(RHITextureUsage usage) 
 		flags |= vk::ImageUsageFlagBits::eDepthStencilAttachment;
 	if ((usage & RHITextureUsage::Storage) != RHITextureUsage::None)
 		flags |= vk::ImageUsageFlagBits::eStorage;
-	if ((usage & RHITextureUsage::CopySource) != RHITextureUsage::None)
+	if ((usage & RHITextureUsage::TransferSource) != RHITextureUsage::None)
 		flags |= vk::ImageUsageFlagBits::eTransferSrc;
-	if ((usage & RHITextureUsage::CopyDest) != RHITextureUsage::None)
+	if ((usage & RHITextureUsage::TransferDest) != RHITextureUsage::None)
 		flags |= vk::ImageUsageFlagBits::eTransferDst;
 
 	return flags;
@@ -477,9 +477,9 @@ inline constexpr vk::BufferUsageFlags toVkBufferUsageFlags(RHIBufferUsage usage)
 		flags |= vk::BufferUsageFlagBits::eStorageBuffer;
 	if ((usage & RHIBufferUsage::IndirectArgument) != RHIBufferUsage::None)
 		flags |= vk::BufferUsageFlagBits::eIndirectBuffer;
-	if ((usage & RHIBufferUsage::CopySource) != RHIBufferUsage::None)
+	if ((usage & RHIBufferUsage::TransferSource) != RHIBufferUsage::None)
 		flags |= vk::BufferUsageFlagBits::eTransferSrc;
-	if ((usage & RHIBufferUsage::CopyDest) != RHIBufferUsage::None)
+	if ((usage & RHIBufferUsage::TransferDest) != RHIBufferUsage::None)
 		flags |= vk::BufferUsageFlagBits::eTransferDst;
 	if ((usage & RHIBufferUsage::TypedBuffer) != RHIBufferUsage::None)
 		flags |= vk::BufferUsageFlagBits::eUniformTexelBuffer | vk::BufferUsageFlagBits::eStorageTexelBuffer;
@@ -581,20 +581,24 @@ inline constexpr vk::PipelineStageFlags2 getVkPipelineStageFlags(vk::ImageLayout
 	switch (layout) {
 	case vk::ImageLayout::eTransferSrcOptimal:
 	case vk::ImageLayout::eTransferDstOptimal:
-		return vk::PipelineStageFlagBits2::eTransfer;
+		return vk::PipelineStageFlagBits2::eAllTransfer;
+	case vk::ImageLayout::eAttachmentOptimal:
+		return vk::PipelineStageFlagBits2::eColorAttachmentOutput |
+		    vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests;
 	case vk::ImageLayout::eColorAttachmentOptimal:
 		return vk::PipelineStageFlagBits2::eColorAttachmentOutput;
 	case vk::ImageLayout::eDepthStencilAttachmentOptimal:
 	case vk::ImageLayout::eDepthStencilReadOnlyOptimal:
 		return vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests;
 	case vk::ImageLayout::eShaderReadOnlyOptimal:
+	case vk::ImageLayout::eReadOnlyOptimal:
 	case vk::ImageLayout::eGeneral:
 		return vk::PipelineStageFlagBits2::eAllGraphics | vk::PipelineStageFlagBits2::eComputeShader;
 	case vk::ImageLayout::ePresentSrcKHR:
 		return vk::PipelineStageFlagBits2::eAllCommands;
 	case vk::ImageLayout::eUndefined:
 	default:
-		return vk::PipelineStageFlagBits2::eTopOfPipe;
+		return vk::PipelineStageFlagBits2::eNone;
 	}
 }
 
@@ -679,36 +683,59 @@ inline constexpr vk::DeviceSize getVkFormatByteSize(RHIFormat format) noexcept
 	return 0;
 }
 
+inline constexpr uint64 getVkStagingTextureSubresourceOffset(const RHITextureDesc& desc, uint32 mip, uint32 layer) noexcept
+{
+	uint64 layer_size{}, mip_offset{};
+	for (uint32 level = 0; level < desc.mip_levels; ++level) {
+		const uint64 size = uint64(std::max(1u, desc.width >> level)) * std::max(1u, desc.height >> level) *
+		    std::max(1u, desc.depth >> level) * getRHIFormatByteSize(desc.format);
+		const uint64 aligned_size = (size + 3) & ~uint64(3);
+		if (level < mip)
+			mip_offset += aligned_size;
+		layer_size += aligned_size;
+	}
+	return layer * layer_size + mip_offset;
+}
+
+inline constexpr uint64 getVkStagingTextureByteSize(const RHITextureDesc& desc) noexcept
+{
+	return getVkStagingTextureSubresourceOffset(desc, 0, desc.array_layers);
+}
+
 inline constexpr VulkanTextureTransition getTextureTransition(RHIResourceState state) noexcept
 {
 	VulkanTextureTransition info{};
 
-	if ((state & CopySource) != 0) {
+	if ((state & TransferSource) != 0) {
 		info.layout = vk::ImageLayout::eTransferSrcOptimal;
-		info.stage = vk::PipelineStageFlagBits2::eCopy;
+		info.stage = vk::PipelineStageFlagBits2::eAllTransfer;
 		info.access = vk::AccessFlagBits2::eTransferRead;
-	} else if ((state & CopyDest) != 0) {
+	} else if ((state & TransferDest) != 0) {
 		info.layout = vk::ImageLayout::eTransferDstOptimal;
-		info.stage = vk::PipelineStageFlagBits2::eCopy;
+		info.stage = vk::PipelineStageFlagBits2::eAllTransfer;
 		info.access = vk::AccessFlagBits2::eTransferWrite;
 	} else if ((state & RenderTarget) != 0) {
-		info.layout = vk::ImageLayout::eColorAttachmentOptimal;
+		info.layout = vk::ImageLayout::eAttachmentOptimal;
 		info.stage = vk::PipelineStageFlagBits2::eColorAttachmentOutput;
 		info.access = vk::AccessFlagBits2::eColorAttachmentRead | vk::AccessFlagBits2::eColorAttachmentWrite;
 	} else if ((state & DepthWrite) != 0) {
-		info.layout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+		info.layout = vk::ImageLayout::eAttachmentOptimal;
 		info.stage = vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests;
 		info.access = vk::AccessFlagBits2::eDepthStencilAttachmentRead | vk::AccessFlagBits2::eDepthStencilAttachmentWrite;
 	} else if ((state & DepthRead) != 0) {
-		info.layout = vk::ImageLayout::eDepthStencilReadOnlyOptimal;
-		info.stage = vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests | vk::PipelineStageFlagBits2::eFragmentShader;
-		info.access = vk::AccessFlagBits2::eDepthStencilAttachmentRead | vk::AccessFlagBits2::eShaderSampledRead;
+		info.layout = vk::ImageLayout::eReadOnlyOptimal;
+		info.stage = vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests;
+		info.access = vk::AccessFlagBits2::eDepthStencilAttachmentRead;
+		if ((state & ShaderResource) != 0) {
+			info.stage |= vk::PipelineStageFlagBits2::eAllGraphics | vk::PipelineStageFlagBits2::eComputeShader;
+			info.access |= vk::AccessFlagBits2::eShaderSampledRead;
+		}
 	} else if ((state & UnorderedAccess) != 0) {
 		info.layout = vk::ImageLayout::eGeneral;
 		info.stage = vk::PipelineStageFlagBits2::eAllGraphics | vk::PipelineStageFlagBits2::eComputeShader;
 		info.access = vk::AccessFlagBits2::eShaderStorageRead | vk::AccessFlagBits2::eShaderStorageWrite;
 	} else if ((state & ShaderResource) != 0) {
-		info.layout = vk::ImageLayout::eShaderReadOnlyOptimal;
+		info.layout = vk::ImageLayout::eReadOnlyOptimal;
 		info.stage = vk::PipelineStageFlagBits2::eAllGraphics | vk::PipelineStageFlagBits2::eComputeShader;
 		info.access = vk::AccessFlagBits2::eShaderSampledRead;
 	} else if ((state & Present) != 0) {
@@ -717,7 +744,7 @@ inline constexpr VulkanTextureTransition getTextureTransition(RHIResourceState s
 		info.access = vk::AccessFlagBits2::eMemoryRead;
 	} else {
 		info.layout = vk::ImageLayout::eUndefined;
-		info.stage = vk::PipelineStageFlagBits2::eTopOfPipe;
+		info.stage = vk::PipelineStageFlagBits2::eNone;
 		info.access = {};
 	}
 
@@ -728,36 +755,46 @@ inline constexpr VulkanBufferTransition getBufferTransition(RHIResourceState sta
 {
 	VulkanBufferTransition info{};
 
-	if (state == Unknown) {
-		info.stage = vk::PipelineStageFlagBits2::eTopOfPipe;
-		info.access = {};
-	} else if ((state & CopySource) != 0) {
-		info.stage = vk::PipelineStageFlagBits2::eCopy;
-		info.access = vk::AccessFlagBits2::eTransferRead;
-	} else if ((state & CopyDest) != 0) {
-		info.stage = vk::PipelineStageFlagBits2::eCopy;
+	if ((state & TransferDest) != 0) {
+		info.stage = vk::PipelineStageFlagBits2::eAllTransfer;
 		info.access = vk::AccessFlagBits2::eTransferWrite;
-	} else if ((state & VertexBuffer) != 0) {
-		info.stage = vk::PipelineStageFlagBits2::eVertexAttributeInput;
-		info.access = vk::AccessFlagBits2::eVertexAttributeRead;
-	} else if ((state & IndexBuffer) != 0) {
-		info.stage = vk::PipelineStageFlagBits2::eIndexInput;
-		info.access = vk::AccessFlagBits2::eIndexRead;
-	} else if ((state & ConstantBuffer) != 0) {
-		info.stage = vk::PipelineStageFlagBits2::eAllGraphics | vk::PipelineStageFlagBits2::eComputeShader;
-		info.access = vk::AccessFlagBits2::eUniformRead;
-	} else if ((state & IndirectBuffer) != 0) {
-		info.stage = vk::PipelineStageFlagBits2::eDrawIndirect;
-		info.access = vk::AccessFlagBits2::eIndirectCommandRead;
 	} else if ((state & UnorderedAccess) != 0) {
 		info.stage = vk::PipelineStageFlagBits2::eAllGraphics | vk::PipelineStageFlagBits2::eComputeShader;
 		info.access = vk::AccessFlagBits2::eShaderStorageRead | vk::AccessFlagBits2::eShaderStorageWrite;
-	} else if ((state & ShaderResource) != 0) {
-		info.stage = vk::PipelineStageFlagBits2::eAllGraphics | vk::PipelineStageFlagBits2::eComputeShader;
-		info.access = vk::AccessFlagBits2::eShaderRead;
 	} else {
-		info.stage = vk::PipelineStageFlagBits2::eAllCommands;
-		info.access = vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite;
+		if ((state & TransferSource) != 0) {
+			info.stage |= vk::PipelineStageFlagBits2::eAllTransfer;
+			info.access |= vk::AccessFlagBits2::eTransferRead;
+		}
+		if ((state & VertexBuffer) != 0) {
+			info.stage |= vk::PipelineStageFlagBits2::eVertexAttributeInput;
+			info.access |= vk::AccessFlagBits2::eVertexAttributeRead;
+		}
+		if ((state & IndexBuffer) != 0) {
+			info.stage |= vk::PipelineStageFlagBits2::eIndexInput;
+			info.access |= vk::AccessFlagBits2::eIndexRead;
+		}
+		if ((state & ConstantBuffer) != 0) {
+			info.stage |= vk::PipelineStageFlagBits2::eAllGraphics | vk::PipelineStageFlagBits2::eComputeShader;
+			info.access |= vk::AccessFlagBits2::eUniformRead;
+		}
+		if ((state & IndirectBuffer) != 0) {
+			info.stage |= vk::PipelineStageFlagBits2::eDrawIndirect;
+			info.access |= vk::AccessFlagBits2::eIndirectCommandRead;
+		}
+		if ((state & ShaderResource) != 0) {
+			info.stage |= vk::PipelineStageFlagBits2::eAllGraphics | vk::PipelineStageFlagBits2::eComputeShader;
+			info.access |= vk::AccessFlagBits2::eShaderRead;
+		}
+	}
+
+	if (!info.stage) {
+		if (state == Unknown) {
+			info.stage = vk::PipelineStageFlagBits2::eNone;
+		} else {
+			info.stage = vk::PipelineStageFlagBits2::eAllCommands;
+			info.access = vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite;
+		}
 	}
 
 	return info;

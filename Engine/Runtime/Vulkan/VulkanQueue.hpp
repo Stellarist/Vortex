@@ -21,7 +21,6 @@ private:
 	vk::Semaphore timeline_semaphore{};
 
 	std::unique_ptr<VulkanCommandPool> command_pool{};
-
 	std::deque<VulkanSubmission> pending_submissions{};
 
 	uint32 family_index{};
@@ -30,19 +29,16 @@ private:
 
 	VulkanDevice& device;
 
-	void updateCompletedTimeline();
-	void retireCompletedCommands();
-
 public:
 	VulkanQueue(VulkanDevice& device, RHICommandQueue type, uint32 family_index);
-	~VulkanQueue();
+	~VulkanQueue() noexcept;
 
-	std::shared_ptr<VulkanCommandBuffer> acquireCommand();
+	std::shared_ptr<VulkanCommandBuffer> acquire();
 
+	void collect();
 	void submit(VulkanCommandList* command_list,
-	    std::span<const vk::Semaphore> wait_semaphores = {},
-	    std::span<const vk::PipelineStageFlags> wait_stages = {},
-	    std::span<const vk::Semaphore> signal_semaphores = {},
+	    std::span<const vk::SemaphoreSubmitInfo> waits = {},
+	    std::span<const vk::SemaphoreSubmitInfo> signals = {},
 	    vk::Fence fence = {});
 
 	RHICommandQueue getType() const noexcept { return type; }

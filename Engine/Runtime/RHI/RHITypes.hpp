@@ -8,8 +8,7 @@ template <typename E>
 struct EnableEnumFlags : std::false_type {};
 
 template <typename E>
-concept EnumFlags =
-    std::is_enum_v<E> && EnableEnumFlags<E>::value;
+concept EnumFlags = std::is_enum_v<E> && EnableEnumFlags<E>::value;
 
 template <EnumFlags E>
 constexpr E operator|(E lhs, E rhs) noexcept
@@ -63,6 +62,7 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept
 
 enum class RHIAPI : uint8 {
 	Vulkan,
+	D3D12,
 };
 
 enum class RHIFormat : uint16 {
@@ -127,8 +127,8 @@ enum RHIResourceState : uint16 {
 	DepthRead = 1 << 7,
 	ShaderResource = 1 << 8,
 	UnorderedAccess = 1 << 9,
-	CopySource = 1 << 10,
-	CopyDest = 1 << 11,
+	TransferSource = 1 << 10,
+	TransferDest = 1 << 11,
 	Present = 1 << 12,
 };
 
@@ -262,8 +262,8 @@ enum class RHIBufferUsage : uint16 {
 	ConstantBuffer = 1 << 2,
 	StorageBuffer = 1 << 3,
 	IndirectArgument = 1 << 4,
-	CopySource = 1 << 5,
-	CopyDest = 1 << 6,
+	TransferSource = 1 << 5,
+	TransferDest = 1 << 6,
 	TypedBuffer = 1 << 7,
 };
 
@@ -273,8 +273,8 @@ enum class RHITextureUsage : uint8 {
 	RenderTarget = 1 << 1,
 	DepthStencil = 1 << 2,
 	Storage = 1 << 3,
-	CopySource = 1 << 4,
-	CopyDest = 1 << 5,
+	TransferSource = 1 << 4,
+	TransferDest = 1 << 5,
 };
 
 enum class RHISamplerAddress : uint8 {
@@ -316,11 +316,13 @@ enum class RHILoadOp : uint8 {
 	Load,
 	Clear,
 	Discard,
+	None,
 };
 
 enum class RHIStoreOp : uint8 {
 	Store,
 	Discard,
+	None,
 };
 
 template <>

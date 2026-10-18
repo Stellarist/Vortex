@@ -11,6 +11,9 @@ class RHIDevice;
 class RHITexture;
 class RHITextureView;
 
+inline constexpr uint32 RHIMaxFramesInFlight = 2;
+inline constexpr uint32 RHIPreferredSwapchainImageCount = 3;
+
 struct RHIContextDesc {
 	RHIAPI api{RHIAPI::Vulkan};
 	RHIExtent extent{2560, 1440};

@@ -9,34 +9,6 @@ import vulkan;
 
 namespace Vortex {
 
-#if VDEBUG
-VKAPI_ATTR VkBool32 VKAPI_CALL vortexValidationCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
-    VkDebugUtilsMessageTypeFlagsEXT message_type,
-    const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
-    void* user_data)
-{
-	if ((message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) != 0 && user_data)
-		static_cast<std::atomic_uint32_t*>(user_data)->fetch_add(1, std::memory_order_relaxed);
-
-	static_cast<void>(message_type);
-	const std::string_view message = callback_data && callback_data->pMessage ?
-	    callback_data->pMessage :
-	    "Vulkan validation produced an empty message";
-	try {
-		if ((message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) != 0)
-			LOG(Error, "Vulkan validation: {}", message);
-		else if ((message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) != 0)
-			LOG(Warn, "Vulkan validation: {}", message);
-		else
-			LOG(Debug, "Vulkan validation: {}", message);
-	} catch (...) {
-		// Never allow logging failures to escape through a Vulkan C callback.
-	}
-	return VK_FALSE;
-}
-#endif
-
 VulkanContext::VulkanContext(Window& window) :
     window(&window)
 {
@@ -44,31 +16,66 @@ VulkanContext::VulkanContext(Window& window) :
 	instance_builder.set_app_name("Vortex")
 	    .require_api_version(1, 4, 0);
 #if VDEBUG
-	instance_builder.request_validation_layers()
-	    .set_debug_callback(vortexValidationCallback)
-	    .set_debug_callback_user_data_pointer(&validation_error_count);
+	if (validation.isAvailable()) {
+		instance_builder.enable_validation_layers()
+		    .set_debug_callback(validation.getCallback())
+		    .set_debug_callback_user_data_pointer(validation.getUserData());
+	}
 #endif
 
 	auto vkb_instance = instance_builder.build().value();
+	instance = vkb_instance.instance;
+	validation.attach(instance, vkb_instance.debug_messenger);
+
 	auto vk_surface = VkSurfaceKHR{};
 	CHECK(SDL_Vulkan_CreateSurface(window.get(), vkb_instance.instance, nullptr, &vk_surface),
 	    "Failed to create Vulkan surface: {}", SDL_GetError());
+
+	vk::PhysicalDeviceFeatures features{};
+	features.setShaderSampledImageArrayDynamicIndexing(true)
+	    .setShaderStorageImageArrayDynamicIndexing(true)
+	    .setShaderStorageBufferArrayDynamicIndexing(true)
+	    .setShaderUniformBufferArrayDynamicIndexing(true);
 
 	vk::PhysicalDeviceVulkan11Features features11{};
 	features11.setShaderDrawParameters(true);
 
 	vk::PhysicalDeviceVulkan12Features features12{};
-	features12.setTimelineSemaphore(true);
+	features12.setTimelineSemaphore(true)
+	    .setRuntimeDescriptorArray(true)
+	    .setDescriptorBindingPartiallyBound(true)
+	    .setDescriptorBindingUpdateUnusedWhilePending(true)
+	    .setDescriptorBindingSampledImageUpdateAfterBind(true)
+	    .setDescriptorBindingStorageImageUpdateAfterBind(true)
+	    .setDescriptorBindingStorageBufferUpdateAfterBind(true)
+	    .setDescriptorBindingUniformBufferUpdateAfterBind(true)
+	    .setDescriptorBindingUniformTexelBufferUpdateAfterBind(true)
+	    .setDescriptorBindingStorageTexelBufferUpdateAfterBind(true)
+	    .setShaderSampledImageArrayNonUniformIndexing(true)
+	    .setShaderStorageImageArrayNonUniformIndexing(true)
+	    .setShaderStorageBufferArrayNonUniformIndexing(true)
+	    .setShaderUniformBufferArrayNonUniformIndexing(true)
+	    .setShaderUniformTexelBufferArrayNonUniformIndexing(true)
+	    .setShaderStorageTexelBufferArrayNonUniformIndexing(true)
+	    .setShaderUniformTexelBufferArrayDynamicIndexing(true)
+	    .setShaderStorageTexelBufferArrayDynamicIndexing(true);
 
 	vk::PhysicalDeviceVulkan13Features features13{};
 	features13.setSynchronization2(true)
 	    .setDynamicRendering(true);
 
+	vk::PhysicalDeviceVulkan14Features features14{};
+	features14.setMaintenance5(true)
+	    .setMaintenance6(true);
+
 	auto vkb_physical_device =
 	    vkb::PhysicalDeviceSelector(vkb_instance)
+	        .set_minimum_version(1, 4)
+	        .set_required_features(features)
 	        .set_required_features_11(features11)
 	        .set_required_features_12(features12)
 	        .set_required_features_13(features13)
+	        .set_required_features_14(features14)
 	        .set_surface(vk_surface)
 	        .select()
 	        .value();
@@ -78,8 +85,6 @@ VulkanContext::VulkanContext(Window& window) :
 	        .build()
 	        .value();
 
-	instance = std::move(vkb_instance);
-	debug_messenger = vkb_instance.debug_messenger;
 	surface = std::move(vk_surface);
 	physical_device = std::move(vkb_physical_device);
 
@@ -98,9 +103,9 @@ VulkanContext::VulkanContext(Window& window) :
 	    RHIExtent{pixel_width, pixel_height});
 
 	const auto properties = physical_device.getProperties();
-	LOG("Vulkan initialized on '{}' (graphics queue {}, {}x{})",
+	LOG("Vulkan initialized on '{}' (graphics queue {}, {}x{}, validation {})",
 	    properties.deviceName.data(), queue_indices.graphics_family.value(),
-	    pixel_width, pixel_height);
+	    pixel_width, pixel_height, validation.isEnabled() ? "enabled" : "disabled");
 }
 
 VulkanContext::~VulkanContext() noexcept
@@ -112,15 +117,9 @@ VulkanContext::~VulkanContext() noexcept
 	device.reset();
 
 	instance.destroySurfaceKHR(surface);
-	if (debug_messenger) {
-		vkb::destroy_debug_utils_messenger(
-		    static_cast<VkInstance>(instance),
-		    static_cast<VkDebugUtilsMessengerEXT>(debug_messenger));
-		debug_messenger = vk::DebugUtilsMessengerEXT{};
-	}
+	validation.reset();
 
 	instance.destroy();
-	LOG(Debug, "Vulkan context shut down");
 }
 
 RHIDevice& VulkanContext::getDevice() noexcept

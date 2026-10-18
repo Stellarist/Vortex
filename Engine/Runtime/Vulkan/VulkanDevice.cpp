@@ -37,17 +37,24 @@ VulkanDevice::VulkanDevice(VulkanContext& context, vk::Device device) :
 
 VulkanDevice::~VulkanDevice() noexcept
 {
-	device.waitIdle();
+	const auto result = vkDeviceWaitIdle(static_cast<VkDevice>(device));
+	CHECK(result == VK_SUCCESS, "Failed to wait for Vulkan device (result {})", static_cast<int32>(result));
 	queue.reset();
 	vmaDestroyAllocator(allocator);
 	device.destroy();
 	device = vk::Device{};
-	LOG(Debug, "Vulkan device shut down");
 }
 
-void VulkanDevice::beginDebugLabel(vk::CommandBuffer command, std::string_view name) const noexcept
+void VulkanDevice::waitIdle()
 {
-	if (!begin_debug_label || !command || name.empty())
+	const auto result = vkDeviceWaitIdle(static_cast<VkDevice>(device));
+	CHECK(result == VK_SUCCESS, "Failed to wait for Vulkan device (result {})", static_cast<int32>(result));
+	queue->collect();
+}
+
+void VulkanDevice::beginDebugLabel(vk::CommandBuffer command, std::string_view name) const
+{
+	if (!begin_debug_label || !command)
 		return;
 
 	const std::string label_name(name);

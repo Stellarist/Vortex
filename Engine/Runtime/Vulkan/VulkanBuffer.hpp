@@ -19,6 +19,7 @@ private:
 	vk::Buffer buffer{};
 	VmaAllocation allocation{};
 	VmaAllocationInfo allocation_info{};
+	bool mapped{};
 
 	VulkanDevice& device;
 
@@ -59,8 +60,7 @@ protected:
 	}
 
 public:
-	VulkanBufferView(VulkanDevice& device, RHIBufferViewDesc desc) :
-	    device(device), desc(std::move(desc)) {}
+	VulkanBufferView(VulkanDevice& device, RHIBufferViewDesc desc) : device(device), desc(std::move(desc)) {}
 	~VulkanBufferView() override { device.destroyBufferView(this); }
 
 	const RHIBufferViewDesc& getDesc() const noexcept override { return desc; }

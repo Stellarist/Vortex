@@ -13,6 +13,8 @@ static vk::AttachmentLoadOp toVkAttachmentLoadOp(RHILoadOp load_op) noexcept
 		return vk::AttachmentLoadOp::eClear;
 	case RHILoadOp::Discard:
 		return vk::AttachmentLoadOp::eDontCare;
+	case RHILoadOp::None:
+		return vk::AttachmentLoadOp::eNone;
 	}
 	return vk::AttachmentLoadOp::eDontCare;
 }
@@ -24,6 +26,8 @@ static vk::AttachmentStoreOp toVkAttachmentStoreOp(RHIStoreOp store_op) noexcept
 		return vk::AttachmentStoreOp::eStore;
 	case RHIStoreOp::Discard:
 		return vk::AttachmentStoreOp::eDontCare;
+	case RHIStoreOp::None:
+		return vk::AttachmentStoreOp::eNone;
 	}
 	return vk::AttachmentStoreOp::eDontCare;
 }
@@ -37,7 +41,7 @@ RHIRef<RHIFramebuffer> VulkanDevice::createFramebuffer(const RHIFramebufferDesc&
 		auto* texture_view = static_cast<VulkanTextureView*>(attachment.texture_view.get());
 		framebuffer->color_attachments_info.emplace_back()
 		    .setImageView(texture_view->getHandle())
-		    .setImageLayout(vk::ImageLayout::eColorAttachmentOptimal)
+		    .setImageLayout(vk::ImageLayout::eAttachmentOptimal)
 		    .setLoadOp(toVkAttachmentLoadOp(attachment.load_op))
 		    .setStoreOp(toVkAttachmentStoreOp(attachment.store_op))
 		    .setClearValue(vk::ClearValue{}.setColor(toVkClearColorValue(attachment.clear_value.color)));
@@ -48,8 +52,8 @@ RHIRef<RHIFramebuffer> VulkanDevice::createFramebuffer(const RHIFramebufferDesc&
 		auto& texture = texture_view->getTexture();
 
 		const auto layout = desc.depth_attachment.read_only ?
-		    vk::ImageLayout::eDepthStencilReadOnlyOptimal :
-		    vk::ImageLayout::eDepthStencilAttachmentOptimal;
+		    vk::ImageLayout::eReadOnlyOptimal :
+		    vk::ImageLayout::eAttachmentOptimal;
 
 		framebuffer->depth_attachment_info.setImageView(texture_view->getHandle())
 		    .setImageLayout(layout)

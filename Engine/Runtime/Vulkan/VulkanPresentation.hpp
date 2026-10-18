@@ -23,15 +23,13 @@ private:
 		RHIRef<RHITextureView> backbuffer_view{};
 	};
 
-	static constexpr uint32 MAX_FRAMES_IN_FLIGHT = 2;
-
 	vk::PhysicalDevice physical_device{};
 	vk::SurfaceKHR surface{};
 	vk::SwapchainKHR swapchain{};
 
-	RHIContextDesc desc{};
+	RHIContextDesc desc{.api = RHIAPI::Vulkan};
 
-	std::array<SubmissionSlot, MAX_FRAMES_IN_FLIGHT> submission_slots{};
+	std::array<SubmissionSlot, RHIMaxFramesInFlight> submission_slots{};
 	std::vector<PresentImage> present_images{};
 
 	uint32 submission_slot_index{};

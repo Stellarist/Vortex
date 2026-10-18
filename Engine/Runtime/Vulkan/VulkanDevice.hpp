@@ -43,6 +43,8 @@ public:
 	VulkanDevice(VulkanContext& context, vk::Device device);
 	~VulkanDevice() noexcept override;
 
+	RHIAPI getAPI() const noexcept override { return RHIAPI::Vulkan; }
+
 	template <typename Handle>
 	void setName(Handle handle, const std::string& name) const noexcept;
 
@@ -50,24 +52,25 @@ public:
 	RHIRef<RHIBufferView> createBufferView(const RHIBufferViewDesc& desc) override;
 	RHIRef<RHITexture> createTexture(const RHITextureDesc& desc) override;
 	RHIRef<RHITextureView> createTextureView(const RHITextureViewDesc& desc) override;
-	RHIRef<RHIStagingTexture> createStagingTexture(const RHITextureDesc& desc) override;
+	RHIRef<RHIStagingTexture> createStagingTexture(const RHITextureDesc& desc, RHIAccessMode access) override;
 	RHIRef<RHISampler> createSampler(const RHISamplerDesc& desc) override;
 	RHIRef<RHIShader> createShader(const RHIShaderDesc& desc, std::span<const std::byte> bytecode) override;
 	RHIRef<RHIFramebuffer> createFramebuffer(const RHIFramebufferDesc& desc) override;
 
 	RHIRef<RHIInputLayout> createInputLayout(const RHIInputLayoutDesc& desc) override;
 	RHIRef<RHIBindingLayout> createBindingLayout(const RHIBindingLayoutDesc& desc) override;
+	RHIRef<RHIBindingLayout> createBindlessLayout(const RHIBindlessLayoutDesc& desc) override;
 	RHIRef<RHIBindingSet> createBindingSet(const RHIBindingSetDesc& desc, const RHIBindingLayout& layout) override;
+	RHIRef<RHIDescriptorTable> createDescriptorTable(const RHIBindingLayout& layout, uint32 capacity) override;
 	RHIRef<RHICommandList> createCommandList(const RHICommandListDesc& desc) override;
 	RHIRef<RHIGraphicsPipeline> createGraphicsPipeline(const RHIGraphicsPipelineDesc& desc) override;
 	RHIRef<RHIComputePipeline> createComputePipeline(const RHIComputePipelineDesc& desc) override;
 
 	void* mapBuffer(RHIBuffer* buffer, RHIAccessMode mode) const override;
 	void unmapBuffer(RHIBuffer* buffer) const noexcept override;
-	void* mapStagingTexture(RHIStagingTexture* staging_texture, RHIAccessMode mode) const override;
+	void* mapStagingTexture(RHIStagingTexture* staging_texture, RHIAccessMode mode,
+	    uint64& row_pitch, uint64& depth_pitch, uint32 mip = 0, uint32 layer = 0) const override;
 	void unmapStagingTexture(RHIStagingTexture* staging_texture) const noexcept override;
-	void bindBufferMemory(RHIBuffer* buffer, uint64 offset = {}) const noexcept override;
-	void bindTextureMemory(RHITexture* texture, uint64 offset = {}) const noexcept override;
 
 	void executeCommandList(RHICommandList* command_list) override;
 
@@ -77,7 +80,6 @@ public:
 	void destroyTextureView(VulkanTextureView* view) noexcept;
 	void destroyStagingTexture(VulkanStagingTexture* staging_texture) noexcept;
 	void destroySampler(VulkanSampler* sampler) noexcept;
-	void destroyShader(VulkanShader* shader) noexcept;
 
 	void destroyBindingLayout(VulkanBindingLayout* layout) noexcept;
 	void destroyBindingSet(VulkanBindingSet* set) noexcept;
@@ -86,13 +88,13 @@ public:
 
 	vk::Device getHandle() const noexcept { return device; }
 
-	void beginDebugLabel(vk::CommandBuffer command, std::string_view name) const noexcept;
+	void beginDebugLabel(vk::CommandBuffer command, std::string_view name) const;
 	void endDebugLabel(vk::CommandBuffer command) const noexcept;
 
 	VulkanContext& getContext() const noexcept { return *context; }
 	VulkanQueue& getQueue() const noexcept { return *queue; }
 
-	void waitIdle() override { device.waitIdle(); }
+	void waitIdle() override;
 };
 
 template <typename Handle>

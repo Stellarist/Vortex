@@ -35,18 +35,22 @@ RHIRef<RHIGraphicsPipeline> VulkanDevice::createGraphicsPipeline(const RHIGraphi
 	validateRHIGraphicsPipelineDesc(desc);
 	auto pipeline = makeRHIRef<VulkanGraphicsPipeline>(*this, desc);
 
+	std::array<vk::ShaderModuleCreateInfo, 2> shader_modules{};
 	std::vector<vk::PipelineShaderStageCreateInfo> shader_stages;
 
 	const auto& raster_state = desc.raster_state;
 	const auto& depth_state = desc.depth_state;
 	const auto& framebuffer_info = desc.framebuffer_info;
 
-	auto add_shader = [&shader_stages](RHIShader* shader) {
+	auto add_shader = [&](RHIShader* shader) {
 		const auto& vk_shader = static_cast<const VulkanShader&>(*shader);
-		shader_stages.emplace_back(vk::PipelineShaderStageCreateFlags{},
-		    vk_shader.getStage(),
-		    vk_shader.getHandle(),
-		    vk_shader.getDesc().entry_point.c_str());
+		auto& module_info = shader_modules[shader_stages.size()];
+		module_info.setCodeSize(vk_shader.getBytecode().size_bytes())
+		    .setPCode(reinterpret_cast<const uint32*>(vk_shader.getBytecode().data()));
+		shader_stages.emplace_back()
+		    .setPNext(&module_info)
+		    .setStage(vk_shader.getStage())
+		    .setPName(vk_shader.getDesc().entry_point.c_str());
 	};
 
 	add_shader(desc.vertex_shader.get());
@@ -89,12 +93,18 @@ RHIRef<RHIGraphicsPipeline> VulkanDevice::createGraphicsPipeline(const RHIGraphi
 	            .setFailOp(toVkStencilOp(depth_state.front_face_stencil.fail_op))
 	            .setPassOp(toVkStencilOp(depth_state.front_face_stencil.pass_op))
 	            .setDepthFailOp(toVkStencilOp(depth_state.front_face_stencil.depth_fail_op))
-	            .setCompareOp(toVkCompareOp(depth_state.front_face_stencil.stencil_func)))
+	            .setCompareOp(toVkCompareOp(depth_state.front_face_stencil.stencil_func))
+	            .setCompareMask(0xff)
+	            .setWriteMask(0xff)
+	            .setReference(0))
 	    .setBack(vk::StencilOpState()
 	            .setFailOp(toVkStencilOp(depth_state.back_face_stencil.fail_op))
 	            .setPassOp(toVkStencilOp(depth_state.back_face_stencil.pass_op))
 	            .setDepthFailOp(toVkStencilOp(depth_state.back_face_stencil.depth_fail_op))
-	            .setCompareOp(toVkCompareOp(depth_state.back_face_stencil.stencil_func)));
+	            .setCompareOp(toVkCompareOp(depth_state.back_face_stencil.stencil_func))
+	            .setCompareMask(0xff)
+	            .setWriteMask(0xff)
+	            .setReference(0));
 
 	std::vector<vk::PipelineColorBlendAttachmentState> color_blend_states;
 	color_blend_states.reserve(framebuffer_info.color_formats.size());
@@ -115,24 +125,36 @@ RHIRef<RHIGraphicsPipeline> VulkanDevice::createGraphicsPipeline(const RHIGraphi
 	vk::PipelineColorBlendStateCreateInfo color_blend_info{};
 	color_blend_info.setAttachments(color_blend_states);
 
-	const std::array dynamic_states{vk::DynamicState::eViewport, vk::DynamicState::eScissor};
+	const std::array dynamic_states{
+	    vk::DynamicState::eViewport, vk::DynamicState::eScissor,
+	    vk::DynamicState::eCullMode, vk::DynamicState::eFrontFace,
+	    vk::DynamicState::ePrimitiveTopology, vk::DynamicState::ePrimitiveRestartEnable,
+	    vk::DynamicState::eRasterizerDiscardEnable,
+	    vk::DynamicState::eDepthBiasEnable, vk::DynamicState::eDepthBias,
+	    vk::DynamicState::eDepthTestEnable, vk::DynamicState::eDepthWriteEnable,
+	    vk::DynamicState::eDepthCompareOp, vk::DynamicState::eDepthBoundsTestEnable,
+	    vk::DynamicState::eStencilTestEnable, vk::DynamicState::eStencilOp};
 	vk::PipelineDynamicStateCreateInfo dynamic_info{};
 	dynamic_info.setDynamicStates(dynamic_states);
 
 	std::vector<vk::DescriptorSetLayout> set_layouts;
 	set_layouts.reserve(desc.binding_layouts.size());
-	for (const auto& layout : desc.binding_layouts)
-		set_layouts.push_back(static_cast<VulkanBindingLayout*>(layout.get())->getHandle());
+	for (const auto& binding_layout : desc.binding_layouts)
+		set_layouts.push_back(static_cast<const VulkanBindingLayout&>(*binding_layout).getHandle());
 
 	bool has_push_constants{};
 	vk::PushConstantRange push_constant_range{};
 	for (const auto& binding_layout : desc.binding_layouts) {
-		for (const auto& item : binding_layout->getDesc().bindings) {
+		const auto* layout_desc = binding_layout->getDesc();
+		if (!layout_desc)
+			continue;
+		for (const auto& item : layout_desc->bindings) {
 			if (item.type != RHIBindingType::PushConstants)
 				continue;
 
-			pipeline->push_constant_visibility = binding_layout->getDesc().visibility;
-			push_constant_range = {toVkShaderStageFlags(binding_layout->getDesc().visibility), 0, item.size};
+			pipeline->push_constant_visibility = layout_desc->visibility;
+			pipeline->push_constant_size = item.size;
+			push_constant_range = {toVkShaderStageFlags(layout_desc->visibility), 0, item.size};
 			has_push_constants = true;
 		}
 	}
@@ -186,18 +208,22 @@ RHIRef<RHIComputePipeline> VulkanDevice::createComputePipeline(const RHIComputeP
 
 	std::vector<vk::DescriptorSetLayout> set_layouts;
 	set_layouts.reserve(desc.binding_layouts.size());
-	for (const auto& layout : desc.binding_layouts)
-		set_layouts.push_back(static_cast<VulkanBindingLayout*>(layout.get())->getHandle());
+	for (const auto& binding_layout : desc.binding_layouts)
+		set_layouts.push_back(static_cast<const VulkanBindingLayout&>(*binding_layout).getHandle());
 
 	bool has_push_constants{};
 	vk::PushConstantRange push_constant_range{};
 	for (const auto& binding_layout : desc.binding_layouts) {
-		for (const auto& item : binding_layout->getDesc().bindings) {
+		const auto* layout_desc = binding_layout->getDesc();
+		if (!layout_desc)
+			continue;
+		for (const auto& item : layout_desc->bindings) {
 			if (item.type != RHIBindingType::PushConstants)
 				continue;
 
-			pipeline->push_constant_visibility = binding_layout->getDesc().visibility;
-			push_constant_range = {toVkShaderStageFlags(binding_layout->getDesc().visibility), 0, item.size};
+			pipeline->push_constant_visibility = layout_desc->visibility;
+			pipeline->push_constant_size = item.size;
+			push_constant_range = {toVkShaderStageFlags(layout_desc->visibility), 0, item.size};
 			has_push_constants = true;
 		}
 	}
@@ -209,9 +235,12 @@ RHIRef<RHIComputePipeline> VulkanDevice::createComputePipeline(const RHIComputeP
 	pipeline->layout = device.createPipelineLayout(layout_info);
 
 	const auto& shader = static_cast<const VulkanShader&>(*desc.compute_shader);
+	vk::ShaderModuleCreateInfo module_info{};
+	module_info.setCodeSize(shader.getBytecode().size_bytes())
+	    .setPCode(reinterpret_cast<const uint32*>(shader.getBytecode().data()));
 	vk::PipelineShaderStageCreateInfo stage_info{};
 	stage_info.setStage(shader.getStage())
-	    .setModule(shader.getHandle())
+	    .setPNext(&module_info)
 	    .setPName(shader.getDesc().entry_point.c_str());
 
 	vk::ComputePipelineCreateInfo pipeline_info{};
