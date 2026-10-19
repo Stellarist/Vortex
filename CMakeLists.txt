@@ -21,6 +21,7 @@ find_package(imgui REQUIRED)
 find_package(tomlplusplus CONFIG REQUIRED)
 find_package(vk-bootstrap REQUIRED)
 find_package(VulkanMemoryAllocator REQUIRED)
+find_package(D3D12MemoryAllocator CONFIG REQUIRED)
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
 get_target_property(GLM_MODULE_ROOT glm::glm-header-only INTERFACE_INCLUDE_DIRECTORIES)
@@ -52,7 +53,11 @@ target_link_libraries(Vortex PRIVATE
 	imgui::imgui
 	tomlplusplus::tomlplusplus
 	vk-bootstrap::vk-bootstrap
+	d3d12
+	dxgi
+	dxguid
 	GPUOpen::VulkanMemoryAllocator
+	GPUOpen::D3D12MemoryAllocator
 )
 
 add_custom_target(build_shaders ALL

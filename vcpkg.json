@@ -5,7 +5,8 @@
       "name": "imgui",
       "features": [
         "sdl3-binding",
-        "vulkan-binding"
+        "vulkan-binding",
+        "dx12-binding"
       ]
     },
     {
@@ -17,8 +18,9 @@
     "spdlog",
     "tinygltf",
     "vulkan",
-    "vulkan-memory-allocator",
     "vk-bootstrap",
+    "vulkan-memory-allocator",
+    "d3d12-memory-allocator",
     "tomlplusplus"
   ]
 }
