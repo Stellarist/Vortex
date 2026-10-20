@@ -15,12 +15,14 @@ private:
 
 	uint32 width{};
 	uint32 height{};
+
 	bool should_close{};
+	bool minimized{};
 
 	std::vector<std::function<void()>> event_callbacks;
 
 public:
-	Window(std::string_view title, int width, int height);
+	Window(std::string_view title, int width, int height, bool vulkan = true);
 	~Window();
 
 	void pollEvent();
@@ -28,6 +30,9 @@ public:
 
 	uint32 getWidth() const;
 	uint32 getHeight() const;
+
+	void getPixelSize(uint32& pixel_width, uint32& pixel_height) const noexcept;
+	bool isMinimized() const noexcept;
 
 	void setWidth(uint32 width);
 	void setHeight(uint32 height);

@@ -44,7 +44,6 @@ void CameraControllerComponent::tickComponent(float dt)
 
 	if (handler.getMouseScroll().y != 0.0f) {
 		scroll(handler.getMouseScroll().y);
-		handler.setMouseScroll(Vec2(0.0f));
 	}
 }
 

@@ -1,14 +1,25 @@
 module;
 
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+
 #include <SDL3/SDL.h>
 
 #include <imgui.h>
 #include <imgui_impl_sdl3.h>
 #include <imgui_impl_vulkan.h>
+#include <imgui_impl_dx12.h>
+
+#ifdef ERROR
+#	undef ERROR
+#endif
 
 module Editor;
 
 import vulkan;
+import d3d12;
+import Runtime.Vulkan;
+import Runtime.D3D12;
 
 namespace Vortex {
 
@@ -20,12 +31,44 @@ Widget::Widget(Window& window, Renderer& renderer) :
 	ImGui::StyleColorsDark();
 	ImGui::GetIO().FontGlobalScale = 1.75f;
 
-	if (!ImGui_ImplSDL3_InitForVulkan(window.get())) {
+	const bool d3d12 = renderer.getContext().getDevice().getAPI() == RHIAPI::D3D12;
+	if (!(d3d12 ? ImGui_ImplSDL3_InitForD3D(window.get()) : ImGui_ImplSDL3_InitForVulkan(window.get()))) {
 		ImGui::DestroyContext();
-		throw std::runtime_error("Failed to initialize ImGui SDL3 backend");
+		ERROR("Failed to initialize ImGui SDL3 backend");
+	}
+	if (d3d12) {
+		auto& native = static_cast<D3D12Device&>(renderer.getContext().getDevice());
+		d3d12_descriptors = std::make_unique<D3D12DescriptorHeap>(native, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 256, true);
+		ImGui_ImplDX12_InitInfo info{};
+		info.Device = native.getHandle();
+		info.CommandQueue = native.getQueue().getHandle();
+		info.NumFramesInFlight = RHIMaxFramesInFlight;
+		info.RTVFormat = toDXGIFormat(renderer.getContext().getFormat());
+		info.SrvDescriptorHeap = d3d12_descriptors->getHandle();
+		info.UserData = d3d12_descriptors.get();
+		info.SrvDescriptorAllocFn = [](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE* cpu, D3D12_GPU_DESCRIPTOR_HANDLE* gpu) {
+			auto& heap = *static_cast<D3D12DescriptorHeap*>(info->UserData);
+			const auto index = heap.allocate();
+			*cpu = heap.cpu(index);
+			*gpu = heap.gpu(index);
+		};
+		info.SrvDescriptorFreeFn = [](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE cpu, D3D12_GPU_DESCRIPTOR_HANDLE) {
+			auto& heap = *static_cast<D3D12DescriptorHeap*>(info->UserData);
+			const auto stride = info->Device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			heap.release(static_cast<uint32>((cpu.ptr - heap.cpu(0).ptr) / stride));
+		};
+		CHECK(ImGui_ImplDX12_Init(&info), "Failed to initialize ImGui D3D12 backend");
+		LOG("Initialized ImGui SDL3/D3D12 backends");
+		return;
 	}
 
 	std::array pool_size{
+	    vk::DescriptorPoolSize{
+	        vk::DescriptorType::eSampler,
+	        100},
+	    vk::DescriptorPoolSize{
+	        vk::DescriptorType::eSampledImage,
+	        100},
 	    vk::DescriptorPoolSize{
 	        vk::DescriptorType::eCombinedImageSampler,
 	        100},
@@ -68,22 +111,36 @@ Widget::Widget(Window& window, Renderer& renderer) :
 	    .UseDynamicRendering = true,
 	};
 
-	if (!ImGui_ImplVulkan_Init(&init_info))
-		throw std::runtime_error("Failed to initialize ImGui Vulkan backend");
+	CHECK(ImGui_ImplVulkan_Init(&init_info),
+	    "Failed to initialize ImGui Vulkan backend");
+	LOG("Initialized ImGui SDL3/Vulkan backends");
 }
 
 Widget::~Widget()
 {
-	ImGui_ImplVulkan_Shutdown();
+	try {
+		renderer->waitIdle();
+	} catch (const std::exception& error) {
+		LOG(Error, "ImGui shutdown: {}", error.what());
+	}
+	if (d3d12_descriptors)
+		ImGui_ImplDX12_Shutdown();
+	else
+		ImGui_ImplVulkan_Shutdown();
 	if (device && descriptor_pool)
 		device.destroyDescriptorPool(descriptor_pool);
 	ImGui_ImplSDL3_Shutdown();
 	ImGui::DestroyContext();
+	LOG(Debug, "Shut down ImGui backends");
 }
 
-void Widget::newFrame()
+void Widget::newFrame(float dt)
 {
-	ImGui_ImplVulkan_NewFrame();
+	sampleFrameTime(dt);
+	if (d3d12_descriptors)
+		ImGui_ImplDX12_NewFrame();
+	else
+		ImGui_ImplVulkan_NewFrame();
 	ImGui_ImplSDL3_NewFrame();
 	ImGui::NewFrame();
 
@@ -94,6 +151,20 @@ void Widget::newFrame()
 void Widget::drawFrame(RHICommandList& command)
 {
 	ImGui::Render();
+	if (d3d12_descriptors) {
+		auto& context = renderer->getContext();
+		auto& native = static_cast<D3D12CommandList&>(command);
+		const auto extent = context.getExtent();
+		auto target = context.getDevice().createFramebuffer(RHIFramebufferDesc{}.setWidth(extent.width).setHeight(extent.height).addColorAttachment(&context.getBackbufferView()));
+		auto& backbuffer = context.getBackbuffer();
+		command.transitionTexture(&backbuffer, backbuffer.getState(), RenderTarget);
+		command.beginRendering(target.get());
+		ID3D12DescriptorHeap* heaps[] = {d3d12_descriptors->getHandle()};
+		native.getCurrentCommand()->getHandle()->SetDescriptorHeaps(1, heaps);
+		ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), native.getCurrentCommand()->getHandle());
+		command.clear();
+		return;
+	}
 
 	auto* vk_command = dynamic_cast<VulkanCommandList*>(&command);
 	if (!vk_command || !vk_command->getCurrentCommand())
@@ -107,11 +178,11 @@ void Widget::drawFrame(RHICommandList& command)
 	if (!backbuffer)
 		return;
 
-	vk_command->transitionTexture(backbuffer, RenderTarget);
+	vk_command->transitionTexture(backbuffer, backbuffer->getState(), RenderTarget);
 
 	vk::RenderingAttachmentInfo color_attachment{};
 	color_attachment.setImageView(backbuffer_view->getHandle())
-	    .setImageLayout(vk::ImageLayout::eColorAttachmentOptimal)
+	    .setImageLayout(vk::ImageLayout::eAttachmentOptimal)
 	    .setLoadOp(vk::AttachmentLoadOp::eLoad)
 	    .setStoreOp(vk::AttachmentStoreOp::eStore);
 
@@ -139,28 +210,123 @@ void Widget::hook(std::function<void()> callback)
 	draw_callbacks.push_back(callback);
 }
 
-void Widget::drawSceneGraph(const World* world, float dt)
+void Widget::sampleFrameTime(float dt)
+{
+	const auto& rendered = renderer->getStats();
+	if (window->isMinimized() || !rendered.frame_rendered) {
+		frame_timing = {};
+		return;
+	}
+	if (rendered.frame_index == frame_timing.sampled_frame || !std::isfinite(dt) || dt <= 0.0f)
+		return;
+	frame_timing.sampled_frame = rendered.frame_index;
+
+	auto& timing = frame_timing;
+	timing.min_fps_elapsed += dt;
+	timing.max_frame_ms = std::max(timing.max_frame_ms, dt * 1000.0f);
+	const bool minimum_refreshed = timing.min_fps_elapsed >= 1.0f;
+	if (minimum_refreshed) {
+		timing.min_fps = 1000.0f / timing.max_frame_ms;
+		timing.min_fps_elapsed = 0.0f;
+		timing.max_frame_ms = 0.0f;
+	}
+	timing.milliseconds[timing.next] = dt * 1000.0f;
+	timing.next = (timing.next + 1) % timing.milliseconds.size();
+	timing.count = std::min(timing.count + 1, timing.milliseconds.size());
+	timing.refresh_elapsed += dt;
+	if (!minimum_refreshed && timing.refresh_elapsed < 0.25f && timing.count != 1 && timing.count != 100)
+		return;
+	timing.refresh_elapsed = 0.0f;
+
+	const auto samples = std::span(timing.milliseconds).first(timing.count);
+	const double total = std::accumulate(samples.begin(), samples.end(), 0.0);
+	timing.average_fps = static_cast<float>(1000.0 * timing.count / total);
+	if (timing.count >= 100) {
+		auto sorted = timing.milliseconds;
+		const size_t slow_count = (timing.count + 99) / 100;
+		std::nth_element(sorted.begin(), sorted.begin() + slow_count,
+		    sorted.begin() + timing.count, std::greater<float>{});
+		const double slow_total = std::accumulate(sorted.begin(), sorted.begin() + slow_count, 0.0);
+		timing.low_fps = static_cast<float>(1000.0 * slow_count / slow_total);
+	}
+	if (minimum_refreshed) {
+		const auto* backend = renderer->getContext().getDevice().getAPI() == RHIAPI::D3D12 ? "d3d12" : "vulkan";
+		const auto low_fps = timing.count >= 100 ? std::format("{:.2f}", timing.low_fps) : "collecting";
+		LOG(Debug, "{} frame timing: average {:.2f} FPS, 1% low {} FPS, 1s min {:.2f} FPS (max {:.2f} ms)",
+		    backend, timing.average_fps, low_fps, timing.min_fps, 1000.0f / timing.min_fps);
+	}
+}
+
+void Widget::drawPerformance()
+{
+	if (!ImGui::TreeNodeEx("Performance", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth))
+		return;
+
+	const auto& timing = frame_timing;
+	const float frame_ms = timing.count ? timing.milliseconds[(timing.next + timing.milliseconds.size() - 1) % timing.milliseconds.size()] : 0.0f;
+	if (timing.count) {
+		ImGui::Text("FPS: %.2f", 1000.0f / frame_ms);
+		ImGui::Text("Average FPS: %.2f", timing.average_fps);
+	} else {
+		ImGui::TextUnformatted("FPS: collecting samples...");
+		ImGui::TextUnformatted("Average FPS: collecting samples...");
+	}
+	if (timing.min_fps > 0.0f)
+		ImGui::Text("Min FPS (1s): %.2f", timing.min_fps);
+	else
+		ImGui::TextUnformatted("Min FPS (1s): collecting samples...");
+	if (ImGui::IsItemHovered())
+		ImGui::SetTooltip("1000 / the longest frame interval in milliseconds.\nUpdated once per second; includes rendering and CPU/GPU waits.");
+	if (timing.count >= 100)
+		ImGui::Text("1%% Low FPS: %.2f", timing.low_fps);
+	else
+		ImGui::TextUnformatted("1% Low FPS: collecting samples...");
+	if (ImGui::IsItemHovered())
+		ImGui::SetTooltip("1000 / mean of the slowest 1%% frame times in milliseconds.\nRolling window: up to 1000 frames; refreshed every 0.25 s.\nMeasures frame intervals including waits, not GPU execution time.");
+
+	if (timing.count)
+		ImGui::Text("Frame time: %.2f ms", frame_ms);
+	else
+		ImGui::TextUnformatted("Frame time: collecting samples...");
+
+	ImGui::TreePop();
+}
+
+void Widget::drawSceneGraph(const World* world)
 {
 	if (!world)
 		return;
 
-	auto* scene = world->getActiveScene();
-	if (!scene)
-		return;
+	const auto* title = renderer->getContext().getDevice().getAPI() == RHIAPI::D3D12 ?
+	    "Inspector (d3d12)###Inspector" :
+	    "Inspector (vulkan)###Inspector";
+	if (ImGui::Begin(title)) {
+		drawPerformance();
+		if (renderer && ImGui::TreeNodeEx("Renderer", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth)) {
+			auto& settings = renderer->getSettings();
+			ImGui::TextUnformatted("Render Path: Deferred");
+			ImGui::Checkbox("Frustum Culling", &settings.frustum_culling);
+			ImGui::Checkbox("Directional Shadows", &settings.directional_shadows);
+			const auto& stats = renderer->getStats();
+			ImGui::Text("Frame: %llu%s", static_cast<unsigned long long>(stats.frame_index), stats.frame_rendered ? "" : " (skipped)");
+			ImGui::Text("RDG Passes: %u", stats.rdg_pass_count);
+			ImGui::Text("Draws: %u (opaque %u, masked %u, transparent %u)",
+			    stats.draw_count,
+			    stats.opaque_draw_count,
+			    stats.masked_draw_count,
+			    stats.transparent_draw_count);
+			ImGui::Text("Shadow Casters: %u", stats.shadow_draw_count);
+			ImGui::Text("Frustum Culled: %u", stats.culled_draw_count);
+			ImGui::TreePop();
+		}
 
-	ImGui::Begin("Scene Graph");
-
-	if (ImGui::TreeNodeEx("Scene Graph", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth)) {
-		ImGui::Text("FPS: %.2f", Time::getFPS());
-		ImGui::Text("Scene: %s", scene->getName().c_str());
-		ImGui::Separator();
-
-		for (auto* root_actor : scene->getRootActors())
-			drawSceneActors(root_actor);
-		drawSceneComponents(scene);
-		drawAssets(world->getAssetManager());
-
-		ImGui::TreePop();
+		if (ImGui::TreeNodeEx("Scene", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth)) {
+			ImGui::Text("World: %s", world->getName().c_str());
+			for (auto* root_actor : world->getRootActors())
+				drawSceneActors(root_actor);
+			ImGui::TreePop();
+		}
+		drawAssets();
 	}
 
 	ImGui::End();
@@ -184,9 +350,11 @@ void Widget::drawSceneActors(const Actor* actor)
 			auto rotation = Math::degrees(Math::eulerAngles(transform.getRotation()));
 			auto scale = transform.getScaling();
 
-			ImGui::DragFloat3("Position", &translation.x, 0.01f);
-			ImGui::DragFloat3("Rotation", &rotation.x, 0.5f);
-			ImGui::DragFloat3("Scale", &scale.x, 0.01f);
+			if (ImGui::DragFloat3("Position", &translation.x, 0.01f))
+				transform.setTranslation(translation);
+			const bool rotation_changed = ImGui::DragFloat3("Rotation", &rotation.x, 0.5f);
+			if (ImGui::DragFloat3("Scale", &scale.x, 0.01f))
+				transform.setScaling(scale);
 
 			auto normalize = [](float angle) {
 				angle = std::fmod(angle, 360.0f);
@@ -203,9 +371,8 @@ void Widget::drawSceneActors(const Actor* actor)
 			else if (rotation.x < -89.9f && rotation.x > -90.1f)
 				rotation.x = -90.1f;
 
-			transform.setTranslation(translation);
-			transform.setRotation(Math::fromEuler(Math::radians(rotation)));
-			transform.setScaling(scale);
+			if (rotation_changed)
+				transform.setRotation(Math::fromEuler(Math::radians(rotation)));
 		}
 
 		if (mutable_actor->hasComponent<CameraComponent>()) {
@@ -292,69 +459,15 @@ void Widget::drawSceneActors(const Actor* actor)
 	}
 }
 
-void Widget::drawSceneComponents(const Scene* scene)
+void Widget::drawAssets()
 {
-	if (!scene)
-		return;
-
-	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth;
-	if (ImGui::TreeNodeEx("Components", flags)) {
-		ImGui::Indent();
-
-		if (scene->hasComponent<CameraComponent>() && ImGui::TreeNodeEx("Camera Components", flags)) {
-			ImGui::Indent();
-
-			auto cameras = scene->getComponents<CameraComponent>();
-			for (const auto& camera : cameras) {
-				auto camera_title = std::format("[{}] {}", camera->getType().name(), camera->getName());
-				ImGui::Text("%s", camera_title.c_str());
-			}
-
-			ImGui::Unindent();
-			ImGui::TreePop();
-		}
-
-		if (scene->hasComponent<LightComponent>() && ImGui::TreeNodeEx("Light Components", flags)) {
-			ImGui::Indent();
-
-			auto lights = scene->getComponents<LightComponent>();
-			for (const auto& light : lights) {
-				auto light_title = std::format("[{}] {}", light->getType().name(), light->getName());
-				ImGui::Text("%s", light_title.c_str());
-			}
-
-			ImGui::Unindent();
-			ImGui::TreePop();
-		}
-
-		if (scene->hasComponent<MeshComponent>() && ImGui::TreeNodeEx("Mesh Components", flags)) {
-			ImGui::Indent();
-
-			auto meshes = scene->getComponents<MeshComponent>();
-			for (const auto& mesh : meshes) {
-				auto mesh_title = std::format("[{}] {}", mesh->getType().name(), mesh->getName());
-				ImGui::Text("%s", mesh_title.c_str());
-			}
-
-			ImGui::Unindent();
-			ImGui::TreePop();
-		}
-
-		ImGui::Unindent();
-		ImGui::TreePop();
-	}
-}
-
-void Widget::drawAssets(const AssetManager* assets)
-{
-	if (!assets)
-		return;
+	const auto& assets = AssetManager::instance();
 
 	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth;
 	if (ImGui::TreeNodeEx("Assets", flags)) {
 		ImGui::Indent();
 
-		auto materials = assets->getLoadedAssets<MaterialAsset>();
+		auto materials = assets.getLoadedAssets<MaterialAsset>();
 		if (!materials.empty() && ImGui::TreeNodeEx("Materials", flags)) {
 			ImGui::Indent();
 
@@ -367,7 +480,7 @@ void Widget::drawAssets(const AssetManager* assets)
 			ImGui::TreePop();
 		}
 
-		auto textures = assets->getLoadedAssets<TextureAsset>();
+		auto textures = assets.getLoadedAssets<TextureAsset>();
 		if (!textures.empty() && ImGui::TreeNodeEx("Textures", flags)) {
 			ImGui::Indent();
 
@@ -380,7 +493,7 @@ void Widget::drawAssets(const AssetManager* assets)
 			ImGui::TreePop();
 		}
 
-		auto meshes = assets->getLoadedAssets<MeshAsset>();
+		auto meshes = assets.getLoadedAssets<MeshAsset>();
 		if (!meshes.empty() && ImGui::TreeNodeEx("Meshes", flags)) {
 			ImGui::Indent();
 
